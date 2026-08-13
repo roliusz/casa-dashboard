@@ -1,0 +1,11 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Casa Dashboard",
+        "description": "Adds the Casa dashboard to your sidebar. Everything else is configured inside the dashboard itself."
+      }
+    },
+    "abort": { "already_configured": "Casa Dashboard is already set up." }
+  }
+}
