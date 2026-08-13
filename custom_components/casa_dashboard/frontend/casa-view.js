@@ -11,9 +11,9 @@
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
-  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, tileRows,
+  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, tileRows,
   bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
-  newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
+  newSidebarItem, newTab, placeNear, sectionRows, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
 
@@ -186,7 +186,7 @@ export class CasaView extends LitElement {
     const art = t === "full" ? this._st(c.entity)?.attributes?.entity_picture : null;
     return html`
       <div class="card t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
-           data-ci=${ci} style="--w:${c.w};--h:${rows}"
+           data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows}"
            @pointerdown=${(e) => !auto && this._dragStart(e, si, ci)} @click=${() => this._tap(c)}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
@@ -199,35 +199,40 @@ export class CasaView extends LitElement {
 
   _dragStart(e, si, ci) {
     if (!this.editing || e.target.closest(".pencil, .grip")) return;
-    const x0 = e.clientX, y0 = e.clientY; let moved = false;
+    const sec = this._cur.sections[si], card = sec.cards[ci];
+    const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
+    if (!grid) return;
+    const r = grid.getBoundingClientRect();
+    const colW = (r.width - GRID_GAP * (sec.cols - 1)) / sec.cols;
+    // where in the card the grab happened, so it doesn't jump under the cursor
+    const cr = e.currentTarget.getBoundingClientRect();
+    const offX = (e.clientX - cr.left) / (colW + GRID_GAP);
+    const offY = (e.clientY - cr.top) / (GRID_ROW + GRID_GAP);
+    const x0 = e.clientX, y0 = e.clientY;
+    let moved = false;
+    const cellAt = (ev) => ({
+      x: (ev.clientX - r.left) / (colW + GRID_GAP) - offX,
+      y: (ev.clientY - r.top) / (GRID_ROW + GRID_GAP) - offY,
+    });
     const move = (ev) => {
       if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
-      if (!moved) { moved = true; this._drag = { si, ci, over: ci }; }
-      const over = this._slotAt(si, ev.clientX, ev.clientY);
-      if (over !== this._drag.over) { this._drag = { ...this._drag, over }; this.requestUpdate(); }
+      moved = true;
+      const want = cellAt(ev);
+      const at = placeNear(sec.cards, card, want.x, want.y, sec.cols, (k) => this._rows(k, sec.cols));
+      if (!this._drag || this._drag.x !== at.x || this._drag.y !== at.y) {
+        this._drag = { si, ci, ...at, w: card.w, h: this._rows(card, sec.cols) };
+      }
     };
     const up = () => {
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
-      if (moved && this._drag) {
-        const cards = this._cur.sections[si].cards;
-        const [c] = cards.splice(ci, 1);
-        cards.splice(Math.max(0, Math.min(cards.length, this._drag.over)), 0, c);
-        this._drag = null; this._emit();
-      } else this._drag = null;
+      if (moved && this._drag) { card.x = this._drag.x; card.y = this._drag.y; this._drag = null; this._emit(); }
+      else this._drag = null;
     };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
   }
-  _slotAt(si, x, y) {
-    const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
-    if (!grid) return 0;
-    const els = [...grid.querySelectorAll("[data-ci]")];
-    for (const el of els) {
-      const r = el.getBoundingClientRect();
-      if (y < r.bottom && x < r.left + r.width / 2) return +el.dataset.ci;
-      if (y < r.bottom && x < r.right) return +el.dataset.ci + 1;
-    }
-    return els.length;
-  }
+  /** Rows a card occupies — a tile's height follows its width, so it can't use the stored value. */
+  _rows(c, cols) { return c.type === "tile" ? tileRows(this._colw(cols), c.w) : c.h; }
+
   _resize(e, si, ci) {
     e.stopPropagation(); e.preventDefault();
     const s = this._cur.sections[si], card = s.cards[ci];
@@ -272,6 +277,36 @@ export class CasaView extends LitElement {
     const k = this._insp.kind;
     const close = () => (this._insp = null);
     let title = "", body = "", onDelete = null;
+
+    if (k === "section") {
+      const sec = this._cur.sections[this._insp.si];
+      if (!sec) return "";
+      title = "Section";
+      onDelete = () => this._removeFrom(this._cur.sections, this._insp.si);
+      const move = (d) => {
+        const list = this._cur.sections, i = this._insp.si, j = i + d;
+        if (j < 0 || j >= list.length) return;
+        [list[i], list[j]] = [list[j], list[i]];
+        this._insp = { kind: "section", si: j };
+        this._emit();
+      };
+      body = html`
+        <div class="f"><label>Name</label>
+          <input .value=${sec.name || ""} @change=${(e) => this._patch(sec, { name: e.target.value })}></div>
+        <div class="f"><label>Width</label><div class="chips">
+          ${[1, 2, 3, 4, 5, 6].map((n) => html`
+            <button class="chip ${sec.cols === n ? "on" : ""}" @click=${() => {
+              sec.cols = n;
+              for (const c of sec.cards) clampCard(c, n);
+              this._emit();
+            }}>${n}</button>`)}
+        </div><div class="hint">Columns out of ${TAB_COLS}. Two sections of three sit side by side.</div></div>
+        <div class="f"><label>Order</label><div class="chips">
+          <button class="chip" @click=${() => move(-1)}>← Earlier</button>
+          <button class="chip" @click=${() => move(1)}>Later →</button>
+        </div></div>
+        ${this._showChips(sec)}${this._condition(sec)}`;
+    }
 
     if (k === "pill") {
       const p = this._l.header.pills[this._insp.i];
@@ -419,17 +454,21 @@ export class CasaView extends LitElement {
         ${this._sidebar()}
         <main class="main">
           ${this._tabBar()}
+          <div class="secs" style="--tabcols:${TAB_COLS};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
-            <div class="sec">
-              ${sec.name ? html`<div class="sec-t">${sec.name}${auto ? html`<span class="auto-tag">auto</span>` : ""}</div>` : ""}
-              <div class="grid" data-grid=${si} style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px">
-                ${sec.cards.map((c, ci) => html`
-                  ${this._drag?.si === si && this._drag?.over === ci ? html`<div class="ph"></div>` : ""}
-                  ${this._card(si, ci, c, auto, sec.cols)}`)}
-                ${this._drag?.si === si && this._drag?.over >= sec.cards.length ? html`<div class="ph"></div>` : ""}
+            <div class="sec" style="--span:${sec.cols}">
+              ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}${auto ? html`<span class="auto-tag">auto</span>` : ""}
+                ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
+                  <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
+              <div class="grid" data-grid=${si}
+                   style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${Math.max(1, sectionRows(sec, (k) => this._rows(k, sec.cols)))}">
+                ${sec.cards.map((c, ci) => this._card(si, ci, c, auto, sec.cols))}
+                ${this._drag?.si === si ? html`<div class="ph"
+                  style="--x:${this._drag.x};--y:${this._drag.y};--w:${this._drag.w};--h:${this._drag.h}"></div>` : ""}
               </div>
               ${this.editing && !auto ? html`<button class="mini add" @click=${() => this._pick = { mode: "card", si }}>+ Add card</button>` : ""}
             </div>` : "")}
+          </div>
           ${auto && !sections.length ? html`<div class="empty">Open this tab's pencil and choose some entities.</div>` : ""}
           ${this.editing && !auto ? html`<button class="mini add wide"
             @click=${() => { tab.sections.push(newSection(`Section ${tab.sections.length + 1}`)); this._emit(); }}>+ Add section</button>` : ""}
@@ -483,13 +522,21 @@ export class CasaView extends LitElement {
       color:inherit;font:inherit;font-size:13.5px;cursor:pointer;}
     .tab.on{background:#fff;color:#0e1620;font-weight:600;}
     .tab ha-icon{--mdc-icon-size:17px;}
-    .sec{margin-bottom:22px;}
+    /* A tab is TAB_COLS columns wide and a section takes some of them, so two three-column
+       sections sit side by side and a six-column one is full width. */
+    .secs{display:grid;grid-template-columns:repeat(var(--tabcols),minmax(0,var(--colw)));
+      gap:22px var(--gap);align-items:start;justify-content:start;}
+    .sec{grid-column:span var(--span);min-width:0;}
+    .sec-pen{width:24px;height:24px;border-radius:50%;border:none;background:var(--chip);color:var(--dim);
+      cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;vertical-align:middle;}
+    .sec-pen ha-icon{--mdc-icon-size:14px;}
     .sec-t{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim,rgba(235,235,245,.6));margin:0 2px 10px;}
     .auto-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(94,155,255,.2);color:#9dc4ff;}
     /* A column is a fixed width, not a share of the screen. Stretching the columns to fill made a
        four column section 600px per card on a wide monitor; now the section is as wide as its
        columns need and no wider, and still shrinks below that on a narrow screen. */
-    .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));grid-auto-rows:var(--row);
+    .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));
+      grid-template-rows:repeat(var(--rows),var(--row));grid-auto-rows:var(--row);
       gap:var(--gap);max-width:calc(var(--cols) * var(--colw) + (var(--cols) - 1) * var(--gap));}
     /* A card stops growing at a readable width — a section with few columns would otherwise
        stretch a two-line card across half the screen. The media hero is exempt: it is meant
@@ -498,7 +545,7 @@ export class CasaView extends LitElement {
        a two-line card across half the screen, and extra rows would stretch it down the page —
        none of these designs has anything to put in the space. Tiles are square by definition and
        the media hero is meant to be big, so both are exempt. */
-    .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;
+    .card{position:relative;grid-column:calc(var(--x) + 1) / span var(--w);grid-row:calc(var(--y) + 1) / span var(--h);min-width:0;min-height:0;
       overflow:hidden;border-radius:18px;}
     .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
@@ -512,7 +559,8 @@ export class CasaView extends LitElement {
     .pencil ha-icon{--mdc-icon-size:15px;}
     .grip{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:3;
       background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.5) 50%);border-radius:0 0 18px 0;}
-    .ph{grid-column:span 2;border:2px dashed rgba(94,155,255,.75);border-radius:20px;background:rgba(94,155,255,.08);}
+    .ph{grid-column:calc(var(--x) + 1) / span var(--w);grid-row:calc(var(--y) + 1) / span var(--h);
+      pointer-events:none;grid-column:span 2;border:2px dashed rgba(94,155,255,.75);border-radius:20px;background:rgba(94,155,255,.08);}
     .empty{padding:26px;text-align:center;color:var(--dim,rgba(235,235,245,.6));font-size:13px;}
     .mini{padding:8px 13px;border-radius:11px;border:1px solid var(--cardBorder,rgba(255,255,255,.14));
       background:var(--chip,rgba(255,255,255,.09));color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
