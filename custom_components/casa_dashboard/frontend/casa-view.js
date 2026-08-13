@@ -40,6 +40,7 @@ export class CasaView extends LitElement {
     _af: { state: true },       // active filter chip, per auto tab
     _anim: { state: true },     // flips so the entry animation replays
     _roomOver: { state: true }, // section a card is being dragged onto
+    _lift: { state: true },     // the card currently under the pointer
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -62,6 +63,38 @@ export class CasaView extends LitElement {
   }
   get _tabs() { return this._l.tabs; }
   get _cur() { return this._tabs[Math.min(this._tab, this._tabs.length - 1)]; }
+  /**
+   * Cards move by changing grid position, which normally jumps. Measuring before the change and
+   * again after, then animating from the old place to the new one, makes the rest of the grid
+   * visibly step aside as a card is dragged over it. No library — two measurements and a frame.
+   */
+  _flipBefore() {
+    this._flip = new Map();
+    for (const el of this.renderRoot.querySelectorAll(".card"))
+      this._flip.set(el.dataset.key, el.getBoundingClientRect());
+  }
+
+  async _flipAfter() {
+    const before = this._flip;
+    if (!before) return;
+    this._flip = null;
+    await this.updateComplete;
+    for (const el of this.renderRoot.querySelectorAll(".card")) {
+      if (el.classList.contains("lifted")) continue;          // that one follows the pointer
+      const was = before.get(el.dataset.key);
+      if (!was) continue;
+      const now = el.getBoundingClientRect();
+      const dx = was.left - now.left, dy = was.top - now.top;
+      if (!dx && !dy) continue;
+      el.style.transition = "none";
+      el.style.transform = `translate(${dx}px,${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = "transform .2s cubic-bezier(.2,.7,.3,1)";
+        el.style.transform = "";
+      });
+    }
+  }
+
   _emit() {
     this.dispatchEvent(new CustomEvent("layout-changed", { detail: this.layout, bubbles: true, composed: true }));
     this.requestUpdate();
@@ -192,24 +225,29 @@ export class CasaView extends LitElement {
     const dragging = this._drag?.si === si && this._drag?.ci === ci;
     const art = t === "full" ? this._st(c.entity)?.attributes?.entity_picture : null;
     return html`
-      <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
-           data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}"
+      <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${this._lift?.si === si && this._lift?.ci === ci ? "lifted" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
+           data-ci=${ci} data-key=${c.id || `${si}:${c.entity}`}
+           style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}${
+             this._lift?.si === si && this._lift?.ci === ci
+               ? `;--lx:${this._lift.dx}px;--ly:${this._lift.dy}px` : ""}"
            @pointerdown=${(e) => (auto ? this._dragToRoom(e, si, ci, c.entity) : this._dragStart(e, si, ci))}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
-        ${this.editing && !auto ? html`
+        ${this.editing ? html`
           <button class="pencil" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "card", si, ci }; }}>
             <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}
-        ${this.editing ? html`<div class="grip" @pointerdown=${(e) => this._resize(e, si, ci)}></div>` : ""}
       </div>`;
   }
 
   /** In an auto tab a card belongs to a room, so dragging it means changing which room. */
   _dragToRoom(e, si, ci, entity) {
-    if (!this.editing || !entity || e.target.closest(".pencil, .grip")) return;
+    if (!this.editing || !entity || e.target.closest(".pencil")) return;
     e.preventDefault();
     let over = si;
+    const x0 = e.clientX, y0 = e.clientY;
     const move = (ev) => {
+      if (!this._lift && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      this._lift = { si, ci, dx: ev.clientX - x0, dy: ev.clientY - y0 };
       const el = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY);
       const sec = el?.closest?.(".sec");
       const idx = sec ? Number(sec.dataset.si) : -1;
@@ -218,7 +256,7 @@ export class CasaView extends LitElement {
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      this._roomOver = null;
+      this._roomOver = null; this._lift = null;
       if (over !== si) this._setRoom(entity, this._secs?.[over]?.room ?? "");
       else this.requestUpdate();
     };
@@ -227,7 +265,7 @@ export class CasaView extends LitElement {
   }
 
   _dragStart(e, si, ci) {
-    if (!this.editing || e.target.closest(".pencil, .grip")) return;
+    if (!this.editing || e.target.closest(".pencil")) return;
     const sec = this._cur.sections?.[si], card = sec?.cards[ci];
     if (!card) return;
     const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
@@ -247,16 +285,38 @@ export class CasaView extends LitElement {
     const move = (ev) => {
       if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
       moved = true;
+      this._lift = { si, ci, dx: ev.clientX - x0, dy: ev.clientY - y0 };
       const want = cellAt(ev);
+      // Dropping onto another card trades places with it, so the grid visibly rearranges under the
+      // pointer. Anywhere else, the card just takes the nearest free slot.
+      const cx = Math.round(want.x), cy = Math.round(want.y);
+      const under = sec.cards.find((k) => k !== card
+        && cx >= k.x && cx < k.x + k.w && cy >= k.y && cy < k.y + this._rows(k, sec.cols));
+      if (under && (under.x !== card.x || under.y !== card.y)) {
+        this._flipBefore();
+        const [ux, uy] = [under.x, under.y];
+        under.x = card.x; under.y = card.y;
+        card.x = ux; card.y = uy;
+        this._emit();
+        this._flipAfter();
+        return;
+      }
       const at = placeNear(sec.cards, card, want.x, want.y, sec.cols, (k) => this._rows(k, sec.cols));
-      if (!this._drag || this._drag.x !== at.x || this._drag.y !== at.y) {
-        this._drag = { si, ci, ...at, w: card.w, h: this._rows(card, sec.cols) };
+      // Commit the move as it happens rather than on release, so the cards around it step aside
+      // under the pointer instead of everything rearranging at the end.
+      if (at.x !== card.x || at.y !== card.y) {
+        this._flipBefore();
+        card.x = at.x; card.y = at.y;
+        this._emit();
+        this._flipAfter();
+      } else {
+        this.requestUpdate();
       }
     };
     const up = () => {
       window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
-      if (moved && this._drag) { card.x = this._drag.x; card.y = this._drag.y; this._drag = null; this._emit(); }
-      else this._drag = null;
+      this._lift = null;
+      if (moved) this._emit(); else this.requestUpdate();
     };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
   }
@@ -402,13 +462,33 @@ export class CasaView extends LitElement {
     }
 
     if (k === "card") {
-      const s = this._cur.sections?.[this._insp.si];
+      // An auto tab's cards are generated, so its inspector edits the entity's stored size and can
+      // drop the entity from the tab — but not swap what the card points at.
+      const auto = this._cur.kind === "auto";
+      const s = auto ? this._secs?.[this._insp.si] : this._cur.sections?.[this._insp.si];
       const c = s?.cards[this._insp.ci];
       if (!c) return "";
       const ct = CARD_TYPES[c.type];
       title = this._nameOf(c);
-      onDelete = () => this._removeFrom(s.cards, this._insp.ci);
-      const patchCard = (patch) => { Object.assign(c, patch); clampCard(c, s.cols); this._emit(); };
+      onDelete = auto
+        ? () => {
+            const list = this._cur.entities || [];
+            const at = list.indexOf(c.entity);
+            if (at >= 0) list.splice(at, 1);
+            this._insp = null; this._emit();
+          }
+        : () => this._removeFrom(s.cards, this._insp.ci);
+      const patchCard = (patch) => {
+        if (auto) {
+          const sizes = { ...(this.layout.cardSizes || {}) };
+          const next = { ...(sizes[c.entity] || {}), ...patch };
+          sizes[c.entity] = { type: next.type ?? c.type, w: next.w ?? c.w, h: next.h ?? c.h };
+          this.layout.cardSizes = sizes;
+          this._emit();
+          return;
+        }
+        Object.assign(c, patch); clampCard(c, s.cols); this._emit();
+      };
       body = html`
         <div class="f"><label>Card type</label><div class="chips">
           ${Object.entries(CARD_TYPES).map(([key, v]) => html`
@@ -425,10 +505,11 @@ export class CasaView extends LitElement {
             <span>${c.h}${ct?.square ? " ·sq" : ""}</span>
             <button class="mini" ?disabled=${ct?.square || ct?.maxH === 1} @click=${() => patchCard({ h: c.h + 1 })}>+</button></div></div>
         </div>
-        <div class="f"><label>Entity</label><input .value=${c.entity || ""} @change=${(e) => patchCard({ entity: e.target.value })}></div>
-        <div class="f"><label>Name (optional)</label><input .value=${c.name || ""} placeholder=${this._nameOf(c)}
-          @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>
-        ${this._showChips(c)}${this._condition(c)}`;
+        ${auto ? html`<div class="hint">${c.entity}</div>` : html`
+          <div class="f"><label>Entity</label><input .value=${c.entity || ""} @change=${(e) => patchCard({ entity: e.target.value })}></div>
+          <div class="f"><label>Name (optional)</label><input .value=${c.name || ""} placeholder=${this._nameOf(c)}
+            @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>
+          ${this._showChips(c)}${this._condition(c)}`}`;
     }
 
     return html`<div class="scrim" @click=${close}><div class="sheet" @click=${(e) => e.stopPropagation()}>
@@ -645,6 +726,14 @@ export class CasaView extends LitElement {
     .card.in0{animation:cardIn0 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
     .card.in1{animation:cardIn1 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
     @media (prefers-reduced-motion:reduce){ .card.in0,.card.in1{animation:none;} }
+
+    /* Last on purpose: the entry animation also sets transform, and this has to win over it.
+       The lifted card must not swallow the hit-test either, or it would always be the element
+       under the cursor and there would be nothing to drop onto. */
+    :host([editing]) .card{cursor:grab;}
+    .card.lifted{z-index:40;pointer-events:none;animation:none;
+      transform:translate(var(--lx,0),var(--ly,0)) scale(1.04);
+      filter:drop-shadow(0 22px 34px rgba(0,0,0,.55));cursor:grabbing;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
     .card.dragging{opacity:.35;}
@@ -654,8 +743,6 @@ export class CasaView extends LitElement {
     .pencil{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:none;
       background:rgba(0,0,0,.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:3;}
     .pencil ha-icon{--mdc-icon-size:15px;}
-    .grip{position:absolute;right:2px;bottom:2px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;z-index:3;
-      background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,.5) 50%);border-radius:0 0 18px 0;}
     .ph{grid-column:calc(var(--x) + 1) / span var(--w);grid-row:calc(var(--y) + 1) / span var(--h);
       pointer-events:none;grid-column:span 2;border:2px dashed rgba(94,155,255,.75);border-radius:20px;background:rgba(94,155,255,.08);}
     .empty{padding:26px;text-align:center;color:var(--dim,rgba(235,235,245,.6));font-size:13px;}
