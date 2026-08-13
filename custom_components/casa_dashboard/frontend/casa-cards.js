@@ -445,10 +445,11 @@ export const cardStyles = `
   .cc-cur.text{font-size:21px;font-weight:600;letter-spacing:0;line-height:1.25;white-space:normal;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
   .cc-now{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cc-stepper{display:flex;align-items:center;gap:12px;width:100%;}
-  .cc-stepper button{width:40px;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
-    color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
-  .cc-stepper button ha-icon{--mdc-icon-size:19px;}
+  /* the stepper's buttons are the shade's buttons: equal widths sharing the row */
+  .cc-stepper{display:flex;align-items:center;gap:10px;width:100%;}
+  .cc-stepper button{flex:1;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
+    color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .cc-stepper button ha-icon{--mdc-icon-size:18px;}
   .cc-tgt{flex:1;text-align:center;}
   .cc-tgt-v{font-size:20px;font-weight:600;}
   .cc-tgt-l{font-size:11px;color:var(--dim);}
