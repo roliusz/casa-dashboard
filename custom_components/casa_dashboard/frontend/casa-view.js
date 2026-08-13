@@ -346,7 +346,7 @@ export class CasaView extends LitElement {
         ${t.kind === "auto" ? html`
           <div class="f"><label>Entities (sorted into sections automatically)</label>
             <div class="chosen">${(t.entities || []).map((e, n) => html`
-              <span class="tagx">${e}<button @click=${() => { t.entities.splice(n, 1); this._emit(); }}>✕</button></span>`)}</div>
+              <span class="tagx">${e}<button @click=${() => { t.entities.splice(n, 1); if (!t.filter) syncAutoTabs(this.layout, t); this._emit(); }}>✕</button></span>`)}</div>
             <button class="mini" @click=${() => this._pick = { mode: "auto" }}>+ Choose entities</button>
             <div class="hint">Lights, Climate, Media, Shades, Door locks… each gets its own section.</div></div>` : ""}
         ${this._showChips(t)}${this._condition(t)}`;
@@ -425,6 +425,7 @@ export class CasaView extends LitElement {
                 <button class="mini ${chosen ? "on" : ""}" @click=${() => {
                   tab.entities = tab.entities || [];
                   chosen ? tab.entities.splice(tab.entities.indexOf(id), 1) : tab.entities.push(id);
+                  if (!tab.filter) syncAutoTabs(this.layout, tab);   // the All tab owns the set
                   this._emit();
                 }}>${chosen ? "✓" : "+"}</button>`
             : Object.keys(CARD_TYPES).filter((t) => typeAllowed(t, id)).map((t) => html`
@@ -442,7 +443,7 @@ export class CasaView extends LitElement {
   render() {
     if (!this.hass) return html``;
     const tab = this._cur;
-    const sections = sectionsOf(tab);
+    const sections = sectionsOf(tab, this.hass);
     const auto = tab.kind === "auto";
     return html`
       ${this._headerBar()}

@@ -64,16 +64,27 @@ export const PILL_TYPES = {
 /** Domain -> which section an auto tab files it under, and how it should look. */
 export const CATEGORIES = [
   { key: "lights",  name: "Lights",     icon: "mdi:lightbulb",    domains: ["light"],                 card: "small", h: 1 },
-  { key: "climate", name: "Climate",    icon: "mdi:thermostat",   domains: ["climate"],               card: "compact", h: 3 },
+  { key: "climate", name: "Climate",    icon: "mdi:thermostat",   domains: ["climate"],               card: "tile" },
   { key: "media",   name: "Media",      icon: "mdi:play-circle",  domains: ["media_player"],          card: "compact", h: 2 },
   { key: "shades",  name: "Shades",     icon: "mdi:blinds",       domains: ["cover"],                 card: "compact", h: 2 },
   { key: "locks",   name: "Door locks", icon: "mdi:lock",         domains: ["lock"],                  card: "small", h: 1  },
   { key: "fans",    name: "Fans",       icon: "mdi:fan",          domains: ["fan"],                   card: "small", h: 1  },
-  { key: "scenes",  name: "Scenes",     icon: "mdi:creation",     domains: ["scene", "script", "automation"], card: "tile" },
+  { key: "scenes",  name: "Scenes",     icon: "mdi:creation",     domains: ["scene", "script", "automation"], card: "small", h: 1 },
   { key: "power",   name: "Switches",   icon: "mdi:toggle-switch",domains: ["switch", "input_boolean"], card: "small", h: 1 },
   { key: "sensors", name: "Sensors",    icon: "mdi:gauge",        domains: ["sensor", "binary_sensor"], card: "small", h: 1 },
   { key: "other",   name: "Other",      icon: "mdi:shape-outline",domains: [],                        card: "small"  },
 ];
+
+/**
+ * The room an entity sits in, via its own area or its device's. Returns null when Home Assistant
+ * has no area for it — a home that has never assigned areas groups by kind instead.
+ */
+export function areaOf(hass, entity) {
+  const ent = hass?.entities?.[entity];
+  if (!ent) return null;
+  const id = ent.area_id || (ent.device_id ? hass?.devices?.[ent.device_id]?.area_id : null);
+  return id ? hass?.areas?.[id]?.name || id : null;
+}
 
 export const categoryFor = (entity) => {
   const d = String(entity || "").split(".")[0];
@@ -186,31 +197,71 @@ export function isVisible(item, narrow, hass) {
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */
-export function autoSections(tab) {
-  const groups = new Map();
-  for (const e of tab.entities || []) {
-    const cat = categoryFor(e);
-    if (!groups.has(cat.key)) groups.set(cat.key, { cat, items: [] });
-    groups.get(cat.key).items.push(e);
-  }
-  return CATEGORIES.filter((c) => groups.has(c.key)).map((c) => {
-    const g = groups.get(c.key);
-    return {
-      id: `auto-${c.key}`, name: c.name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
-      cards: g.items.reduce((acc, e) => {
-        const card = newCard(c.card, e);
-        if (c.h) card.h = c.h;                    // category knows how tall its design needs to be
-        clampCard(card, DEFAULT_COLS);
-        Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
-        acc.push(card);
-        return acc;
-      }, []),
-    };
+export function autoSections(tab, hass) {
+  const entities = (tab.entities || []).filter((e) => !tab.filter || categoryFor(e).key === tab.filter);
+
+  const build = (name, id, items) => ({
+    id, name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
+    cards: items.reduce((acc, e) => {
+      const cat = categoryFor(e);
+      const card = newCard(cat.card, e);
+      if (cat.h) card.h = cat.h;
+      clampCard(card, DEFAULT_COLS);
+      Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
+      acc.push(card);
+      return acc;
+    }, []),
   });
+
+  // by room, when Home Assistant knows any
+  const rooms = new Map();
+  for (const e of entities) {
+    const room = areaOf(hass, e) || "";
+    if (!rooms.has(room)) rooms.set(room, []);
+    rooms.get(room).push(e);
+  }
+  if ([...rooms.keys()].some(Boolean)) {
+    return [...rooms.entries()]
+      .sort(([a], [b]) => (!a ? 1 : !b ? -1 : a.localeCompare(b)))          // unassigned last
+      .map(([room, items]) => build(room || "Other", `auto-room-${room || "other"}`, items));
+  }
+
+  // otherwise by kind, as before
+  const groups = new Map();
+  for (const e of entities) {
+    const cat = categoryFor(e);
+    if (!groups.has(cat.key)) groups.set(cat.key, []);
+    groups.get(cat.key).push(e);
+  }
+  return CATEGORIES.filter((c) => groups.has(c.key)).map((c) => build(c.name, `auto-${c.key}`, groups.get(c.key)));
+}
+
+/**
+ * Choosing entities on an auto tab also builds one tab per kind chosen — Lights, Climate, Shades
+ * and so on — leaving the source tab as the "All" view. They are regenerated whenever the
+ * selection changes, so they are marked with the id of the tab they came from.
+ */
+export function autoTabsFor(tab) {
+  const present = new Set((tab.entities || []).map((e) => categoryFor(e).key));
+  return CATEGORIES.filter((c) => present.has(c.key)).map((c) => ({
+    ...newAutoTab(c.name, c.icon),
+    entities: (tab.entities || []).filter((e) => categoryFor(e).key === c.key),
+    filter: c.key,
+    gen: tab.id,
+  }));
+}
+
+/** Replace the tabs generated from this one, keeping them just after it. */
+export function syncAutoTabs(layout, tab) {
+  const tabs = (layout.tabs || []).filter((t) => t.gen !== tab.id);
+  const at = tabs.indexOf(tab);
+  tabs.splice(at + 1, 0, ...autoTabsFor(tab));
+  layout.tabs = tabs;
+  return layout;
 }
 
 /** Sections to render for a tab, whichever kind it is. */
-export const sectionsOf = (tab) => (tab.kind === "auto" ? autoSections(tab) : tab.sections || []);
+export const sectionsOf = (tab, hass) => (tab.kind === "auto" ? autoSections(tab, hass) : tab.sections || []);
 
 /** Bring a stored layout in line with the current limits — sizes saved before they existed. */
 export function normalizeLayout(layout, rowsOf) {
