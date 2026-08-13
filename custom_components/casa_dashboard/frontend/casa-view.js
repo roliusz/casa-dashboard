@@ -549,7 +549,10 @@ export class CasaView extends LitElement {
        none of these designs has anything to put in the space. Tiles are square by definition and
        the media hero is meant to be big, so both are exempt. */
     .card{position:relative;grid-column:calc(var(--x) + 1) / span var(--w);grid-row:calc(var(--y) + 1) / span var(--h);min-width:0;min-height:0;
-      overflow:hidden;border-radius:18px;}
+      border-radius:18px;}
+    /* No overflow clip here: the inner card fills the cell exactly, so clipping would cut off the
+       drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
+    .card.t-full{overflow:hidden;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
     .card.dragging{opacity:.35;}

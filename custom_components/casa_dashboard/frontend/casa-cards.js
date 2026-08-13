@@ -385,6 +385,8 @@ export const cardStyles = `
     cursor:pointer;font-family:inherit;color:var(--text);height:100%;min-height:0;
     transition:transform .15s,border-color .5s ease,background .5s ease;}
   .scene-card:active{transform:scale(.97);}
+  .scene-card:focus{outline:none;}
+  .scene-card:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:2px;}
   .scene-card.row{flex-direction:row;align-items:center;gap:11px;padding:0 15px;}
   .scene-card ha-icon{--mdc-icon-size:22px;color:var(--dim);flex:none;}
   .scene-card span{font-size:13.5px;font-weight:600;min-width:0;max-width:100%;text-align:left;
