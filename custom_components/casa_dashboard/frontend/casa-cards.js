@@ -21,13 +21,13 @@ const { html } = await import(`./lit-all.min.js${V}`);
 /** Three rows or more: the name, the reading large in the middle, controls underneath. */
 const isTall = (c) => (c.h || 2) >= 3 && c.type !== "tile";
 
-const tallBody = (icon, name, value, label, controls, onMore) => html`
+const tallBody = (icon, name, value, label, controls, onMore, text = false) => html`
   <div class="cc-head rclick" @click=${onMore}>
     <ha-icon class="cc-ic" icon=${icon}></ha-icon>
     <span class="cc-title">${name}</span>
   </div>
   <div class="cc-mid">
-    <div class="cc-cur">${value}</div>
+    <div class="cc-cur ${text ? "text" : ""}">${value}</div>
     <div class="cc-now">${label}</div>
   </div>
   ${controls}`;
@@ -101,6 +101,18 @@ function speakerCard(ctx, c) {
         <div class="cmp-val">${vol}%</div>
       </div>
     </div>`;
+  const spkName = c.name || attr(ctx, e, "friendly_name") || "Speaker";
+  const volBtns = html`<div class="spk-btns">
+    <button @click=${() => volNudge(ctx, e, -0.01)}><ha-icon icon="mdi:minus"></ha-icon></button>
+    <button class=${muted ? "act" : ""} @click=${() => ctx.call("media_player", "volume_mute", { entity_id: e, is_volume_muted: !muted })}>
+      <ha-icon icon=${muted ? "mdi:volume-off" : "mdi:volume-mute"}></ha-icon></button>
+    <button @click=${() => volNudge(ctx, e, 0.01)}><ha-icon icon="mdi:plus"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
+      ${tallBody(muted ? "mdi:volume-off" : (c.icon || "mdi:speaker"), spkName,
+        muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
+    </div>`;
   return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
     <div class="spk-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${muted ? "mdi:volume-off" : (c.icon || "mdi:speaker")}></ha-icon>
@@ -138,8 +150,9 @@ function tvCard(ctx, c) {
   if (isTall(c))
     return html`<div class="gcard media-tile ${on ? "on" : ""}">
       ${tallBody(c.icon || "mdi:television", tvName,
-        on ? (a.app_name || a.source || "On") : "Off", on ? (a.media_title || "") : "",
-        transport, () => ctx.more(e))}
+        on ? (a.media_title || a.app_name || a.source || "On") : "Off",
+        on ? (a.media_title ? (a.app_name || a.source || "") : "") : "",
+        transport, () => ctx.more(e), true)}
     </div>`;
   return html`<div class="gcard media-tile ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
@@ -246,8 +259,7 @@ function climateCard(ctx, c) {
     </div>
     <div class="cc-mid">
       <div class="cc-cur">${cur != null ? cur + "°" : "–"}</div>
-      <div class="cc-now">${heating ? "Heating" : cooling ? "Cooling"
-        : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1)}</div>
+      <div class="cc-now">Current temperature</div>
     </div>
     <div class="cc-stepper">
       <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
@@ -408,6 +420,8 @@ export const cardStyles = `
   .clim-card.heat{border-color:rgba(251,110,29,.3);} .clim-card.cool{border-color:rgba(125,178,255,.3);}
   .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
   .cc-cur{font-size:48px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-cur.text{font-size:21px;font-weight:600;letter-spacing:0;line-height:1.25;white-space:normal;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
   .cc-now{font-size:11.5px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-stepper{display:flex;align-items:center;gap:12px;width:100%;}
   .cc-stepper button{width:40px;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
