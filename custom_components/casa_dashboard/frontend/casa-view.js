@@ -11,7 +11,7 @@
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
-  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, tileRows,
+  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
   bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newSidebarItem, newTab, placeNear, sectionRows, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
@@ -419,7 +419,13 @@ export class CasaView extends LitElement {
         const chosen = mode === "auto" && (tab.entities || []).includes(id);
         return html`<div class="pr">
           <ha-icon icon=${iconFor(id)}></ha-icon>
-          <span class="grow">${this._st(id).attributes.friendly_name || id}</span>
+          <div class="grow">
+            <div class="pr-t">
+              <span class="pr-n">${this._st(id).attributes.friendly_name || id}</span>
+              ${areaOf(this.hass, id) ? html`<span class="pr-room">${areaOf(this.hass, id)}</span>` : ""}
+            </div>
+            <div class="pr-id">${id}</div>
+          </div>
           ${mode === "auto"
             ? html`<span class="cat">${categoryFor(id).name}</span>
                 <button class="mini ${chosen ? "on" : ""}" @click=${() => {
@@ -590,7 +596,12 @@ export class CasaView extends LitElement {
     .stp{display:flex;align-items:center;gap:10px;} .stp span{font-size:13px;min-width:46px;text-align:center;}
     .pl{flex:1;overflow-y:auto;margin:10px 0;}
     .pr{display:flex;align-items:center;gap:8px;padding:7px 2px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06);}
-    .pr .grow{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pr .grow{flex:1;min-width:0;}
+    .pr-t{display:flex;align-items:baseline;gap:7px;min-width:0;}
+    .pr-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .pr-room{flex:none;font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.65;white-space:nowrap;}
+    .pr-id{font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.6;white-space:nowrap;
+      overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
     .pr ha-icon{--mdc-icon-size:18px;color:var(--dim,rgba(235,235,245,.6));}
     .cat{font-size:10.5px;color:var(--dim,rgba(235,235,245,.5));}
     .chosen{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
