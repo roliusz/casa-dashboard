@@ -272,10 +272,10 @@ export const cardStyles = `
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
   .spk-card,.shade2,.media-tile,.clim2{padding:20px;justify-content:space-between;}
-  .spk-head{display:inline-flex;align-items:center;gap:10px;}
+  .spk-head{display:flex;align-items:center;gap:10px;min-width:0;max-width:100%;}
   .spk-card .spk-head,.media-tile .spk-head{cursor:pointer;}
-  .spk-ic{--mdc-icon-size:25px;color:var(--dim);}
-  .spk-name{font-size:16px;font-weight:600;}
+  .spk-ic{--mdc-icon-size:25px;color:var(--dim);flex:none;}
+  .spk-name{font-size:16px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .spk-level{font-size:38px;font-weight:300;letter-spacing:-1px;}
   .spk-level.sm{font-size:24px;font-weight:600;letter-spacing:0;}
   .spk-card.playing .spk-ic{color:var(--green);}
@@ -324,8 +324,8 @@ export const cardStyles = `
   /* climate */
   .clim-card{padding:22px;justify-content:space-between;align-items:flex-start;}
   /* two-row climate */
-  .c2-mid{display:flex;flex-direction:column;min-height:0;}
-  .c2-state{font-size:13px;color:var(--dim);margin-top:1px;}
+  .c2-mid{display:flex;align-items:baseline;gap:8px;min-width:0;}
+  .c2-state{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
   .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
   .cc-head{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
