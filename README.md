@@ -60,12 +60,22 @@ Editing requires an administrator account. Everyone else sees the dashboard read
 
 ## Development
 
+Deploy to a real Home Assistant:
+
 ```bash
 HA_CONFIG=/path/to/your/homeassistant ./scripts/deploy.sh
 ```
 
 Restart Home Assistant after the first copy. Frontend changes afterwards only need a hard refresh
 of the panel.
+
+There is also a standalone harness in `dev/` that runs the dashboard against a fake home, with no
+Home Assistant involved — useful for working on layout and for taking screenshots:
+
+```bash
+python3 -m http.server 8777
+# then open http://localhost:8777/dev/
+```
 
 ## Third-party code
 

@@ -439,6 +439,9 @@ export class CasaView extends LitElement {
     /* The cards are ported from the bedroom panel, so they carry its glass with them rather than
        inheriting the host's. casa-panel defines a flat dark --card and a 34px blur, which is why
        they came out looking washed out — these are the values the design was drawn against. */
+    /* The panels this design comes from set this globally; without it every card renders its
+       own padding and border *on top of* its grid cell and spills out the bottom. */
+    *,*::before,*::after{box-sizing:border-box;}
     :host{display:block;
       --text:#fff;--dim:rgba(235,235,245,.6);
       --card:linear-gradient(150deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 62%),rgba(255,255,255,.04);

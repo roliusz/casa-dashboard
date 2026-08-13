@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Casa Dashboard — demo</title>
+<style>
+  /* fixed canvas so the layout is deterministic to measure and to screenshot */
+  html,body{margin:0;background:#0b1014;}
+  body{width:1280px;min-height:900px;}
+  casa-view{display:block;width:1280px;}
+  ha-icon{display:inline-flex;align-items:center;justify-content:center;
+    width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);}
+  ha-icon::after{content:"";display:block;width:74%;height:74%;border-radius:4px;
+    background:currentColor;opacity:.65;}
+</style>
+<casa-view id="v"></casa-view>
+<script type="module">
+  // A standalone harness: the real casa-view against a fake home, so the layout can be
+  // inspected and screenshotted without a Home Assistant instance.
+  // cache-busted so an edit is always the thing on screen
+  const F = "../custom_components/casa_dashboard/frontend";
+  const bust = `?t=${performance.timeOrigin}`;
+  await import(`${F}/casa-view.js${bust}`);
+  const { newAutoTab, newTab } = await import(`${F}/casa-layout.js${bust}`);
+  const { demoHass, demoLayout } = await import(`./demo-states.js${bust}`);
+
+  const v = document.getElementById("v");
+  v.hass = demoHass();
+  v.layout = demoLayout(newAutoTab, newTab);
+  v.narrow = false;
+  window.view = v;
+</script>
