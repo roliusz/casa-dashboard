@@ -10,7 +10,7 @@
 // import means a HACS update can never leave a stale module cached in someone's browser.
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css } = await import(`./lit-all.min.js${V}`);
-const { starterLayout, normalizeLayout } = await import(`./casa-layout.js${V}`);
+const { starterLayout, normalizeLayout, areaMap } = await import(`./casa-layout.js${V}`);
 await import(`./casa-view.js${V}`);
 
 console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`);
@@ -33,6 +33,7 @@ class CasaPanel extends LitElement {
     _edit: { state: true },
     _showSettings: { state: true },
     _loaded: { state: true },
+    _areas: { state: true },
   };
 
   constructor() {
@@ -57,6 +58,27 @@ class CasaPanel extends LitElement {
       this._err = true;
     }
     this._loaded = true;
+    this._loadAreas();
+  }
+
+  /**
+   * Which room each entity is in. `hass` does not always carry the registries — depending on the
+   * version and on what the frontend has subscribed to, hass.areas can be empty — and without them
+   * every entity looks unassigned and lands in "Other". Ask for them directly.
+   */
+  async _loadAreas() {
+    try {
+      const [areas, devices, entities] = await Promise.all([
+        this.hass.callWS({ type: "config/area_registry/list" }),
+        this.hass.callWS({ type: "config/device_registry/list" }),
+        this.hass.callWS({ type: "config/entity_registry/list" }),
+      ]);
+      this._areas = areaMap(areas, devices, entities);
+      console.info(`Casa Dashboard: ${Object.keys(this._areas).length} entities matched to ${areas.length} rooms`);
+    } catch (e) {
+      console.warn("Casa Dashboard: could not read the area registry, grouping without rooms", e);
+      this._areas = {};
+    }
   }
 
   /** Persist, coalesced so a drag doesn't write once per frame. */
@@ -114,7 +136,7 @@ class CasaPanel extends LitElement {
             <ha-icon icon="mdi:cog-outline"></ha-icon></button>
         </header>
 
-        <casa-view .hass=${this.hass} .layout=${this._layout} ?editing=${this._edit} ?narrow=${this.narrow}
+        <casa-view .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} ?editing=${this._edit} ?narrow=${this.narrow}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}></casa-view>
 
         ${this._showSettings ? this._settingsSheet() : ""}

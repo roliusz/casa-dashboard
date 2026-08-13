@@ -30,6 +30,7 @@ export class CasaView extends LitElement {
     layout: { attribute: false },
     editing: { type: Boolean, reflect: true },
     narrow: { type: Boolean },
+    areas: { attribute: false },   // entity_id -> room name
     _tab: { state: true },
     _insp: { state: true },     // {kind:'pill'|'side'|'card'|'tab', …ids}
     _drag: { state: true },
@@ -424,7 +425,7 @@ export class CasaView extends LitElement {
           <div class="grow">
             <div class="pr-t">
               <span class="pr-n">${this._st(id).attributes.friendly_name || id}</span>
-              ${areaOf(this.hass, id) ? html`<span class="pr-room">${areaOf(this.hass, id)}</span>` : ""}
+              ${areaOf(this.hass, id, this.areas) ? html`<span class="pr-room">${areaOf(this.hass, id, this.areas)}</span>` : ""}
             </div>
             <div class="pr-id">${id}</div>
           </div>
@@ -453,7 +454,7 @@ export class CasaView extends LitElement {
     const auto = tab.kind === "auto";
     const cats = auto ? autoCategories(tab) : [];
     const af = this._af[tab.id] || "";
-    const sections = sectionsOf(tab, this.hass, af);
+    const sections = sectionsOf(tab, this.hass, af, this.areas);
     return html`
       ${this._headerBar()}
       <div class="cols">

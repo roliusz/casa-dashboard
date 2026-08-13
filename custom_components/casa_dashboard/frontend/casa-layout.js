@@ -79,11 +79,26 @@ export const CATEGORIES = [
  * The room an entity sits in, via its own area or its device's. Returns null when Home Assistant
  * has no area for it — a home that has never assigned areas groups by kind instead.
  */
-export function areaOf(hass, entity) {
+export function areaOf(hass, entity, areas) {
+  if (areas && areas[entity]) return areas[entity];          // resolved from the registries
   const ent = hass?.entities?.[entity];
   if (!ent) return null;
   const id = ent.area_id || (ent.device_id ? hass?.devices?.[ent.device_id]?.area_id : null);
   return id ? hass?.areas?.[id]?.name || id : null;
+}
+
+/** Entity -> room name, from the three registries. What `hass` carries is not always populated. */
+export function areaMap(areaList, deviceList, entityList) {
+  const areaName = {};
+  for (const a of areaList || []) areaName[a.area_id] = a.name;
+  const deviceArea = {};
+  for (const d of deviceList || []) if (d.area_id) deviceArea[d.id] = d.area_id;
+  const out = {};
+  for (const e of entityList || []) {
+    const id = e.area_id || (e.device_id ? deviceArea[e.device_id] : null);
+    if (id && areaName[id]) out[e.entity_id] = areaName[id];
+  }
+  return out;
 }
 
 export const categoryFor = (entity) => {
@@ -200,7 +215,7 @@ export function isVisible(item, narrow, hass) {
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */
-export function autoSections(tab, hass, filter) {
+export function autoSections(tab, hass, filter, areas) {
   const only = filter || tab.filter;
   const entities = (tab.entities || []).filter((e) => !only || categoryFor(e).key === only);
 
@@ -222,7 +237,7 @@ export function autoSections(tab, hass, filter) {
   const rooms = new Map();
   const loose = [];
   for (const e of entities) {
-    const room = areaOf(hass, e);
+    const room = areaOf(hass, e, areas);
     if (!room) { loose.push(e); continue; }
     if (!rooms.has(room)) rooms.set(room, []);
     rooms.get(room).push(e);
@@ -242,8 +257,8 @@ export function autoCategories(tab) {
 }
 
 /** Sections to render for a tab, whichever kind it is. */
-export const sectionsOf = (tab, hass, filter) =>
-  (tab.kind === "auto" ? autoSections(tab, hass, filter) : tab.sections || []);
+export const sectionsOf = (tab, hass, filter, areas) =>
+  (tab.kind === "auto" ? autoSections(tab, hass, filter, areas) : tab.sections || []);
 
 /** Bring a stored layout in line with the current limits — sizes saved before they existed. */
 export function normalizeLayout(layout, rowsOf) {
