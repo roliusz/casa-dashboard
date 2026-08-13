@@ -486,7 +486,7 @@ export class CasaView extends LitElement {
     .sec{margin-bottom:22px;}
     .sec-t{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim,rgba(235,235,245,.6));margin:0 2px 10px;}
     .auto-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(94,155,255,.2);color:#9dc4ff;}
-    .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-auto-rows:minmax(var(--row),auto);gap:var(--gap);}
+    .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-auto-rows:var(--row);gap:var(--gap);}
     .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;overflow:hidden;border-radius:24px;}
     .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}

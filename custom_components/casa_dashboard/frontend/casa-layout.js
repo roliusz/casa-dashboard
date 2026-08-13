@@ -22,7 +22,7 @@ export const CARD_TYPES = {
   small:   { label: "Small",   sub: "One line",  icon: "mdi:view-sequential", w: 1, h: 1, minW: 1, maxH: 2 },
   compact: { label: "Compact", sub: "Two lines", icon: "mdi:view-agenda",     w: 1, h: 2, minW: 1, maxH: 4 },
   tile:    { label: "Tile",    sub: "Square",    icon: "mdi:square-rounded",  w: 1, h: 2, minW: 1, square: true },
-  full:    { label: "Full",    sub: "Media hero",icon: "mdi:view-dashboard",  w: 4, h: 5, minW: 2,
+  full:    { label: "Full",    sub: "Media hero",icon: "mdi:view-dashboard",  w: 4, h: 5, minW: 2, minH: 4,
              domains: ["media_player"] },
 };
 
@@ -96,10 +96,28 @@ export const typeAllowed = (type, entity) => {
   return t.domains.includes(String(entity || "").split(".")[0]);
 };
 
+/**
+ * The shortest each design can be drawn without losing something. Rows are a fixed height — that is
+ * what stops one card from resizing its neighbours — so a card given fewer rows than its design
+ * needs has nowhere to put the overflow. The resize handle stops here instead.
+ */
+export const MIN_ROWS = {
+  climate: 3,        // the reading, its label, and the target stepper
+  media_player: 2,   // name, volume, transport
+  cover: 2,          // name, position, the three buttons
+};
+
+export function minRows(card) {
+  const t = CARD_TYPES[card.type] || CARD_TYPES.small;
+  if (t.square) return 1;                                   // tiles follow their width
+  const byDesign = MIN_ROWS[String(card.entity || "").split(".")[0]] || 1;
+  return Math.max(1, t.minH || 1, card.type === "full" ? 1 : byDesign);
+}
+
 export function clampCard(card, cols) {
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;
   card.w = Math.max(t.minW || 1, Math.min(cols, card.w || t.w));
-  card.h = t.square ? card.w : Math.max(1, Math.min(t.maxH || 6, card.h || t.h));
+  card.h = t.square ? card.w : Math.max(minRows(card), Math.min(t.maxH || 6, card.h || t.h));
   return card;
 }
 
