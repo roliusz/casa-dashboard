@@ -114,10 +114,24 @@ export function minRows(card) {
   return Math.max(1, t.minH || 1, card.type === "full" ? 1 : byDesign);
 }
 
+/**
+ * The tallest each design has anything to put. A light is one line whatever you do with it, so
+ * dragging it to three rows only adds emptiness; climate, covers and media have a tall design and
+ * can use three. Past this the handle simply stops.
+ */
+export const MAX_ROWS = { climate: 3, cover: 3, media_player: 3 };
+
+export function maxRows(card) {
+  const t = CARD_TYPES[card.type] || CARD_TYPES.small;
+  if (t.square) return 99;                                  // a tile's height is its width
+  if (card.type === "full") return t.maxH || 6;
+  return MAX_ROWS[String(card.entity || "").split(".")[0]] || 1;
+}
+
 export function clampCard(card, cols) {
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;
   card.w = Math.max(t.minW || 1, Math.min(cols, card.w || t.w));
-  card.h = t.square ? card.w : Math.max(minRows(card), Math.min(t.maxH || 6, card.h || t.h));
+  card.h = t.square ? card.w : Math.max(minRows(card), Math.min(maxRows(card), t.maxH || 6, card.h || t.h));
   return card;
 }
 
