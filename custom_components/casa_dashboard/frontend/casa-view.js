@@ -487,7 +487,17 @@ export class CasaView extends LitElement {
     .sec-t{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim,rgba(235,235,245,.6));margin:0 2px 10px;}
     .auto-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(94,155,255,.2);color:#9dc4ff;}
     .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-auto-rows:var(--row);gap:var(--gap);}
-    .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;overflow:hidden;border-radius:24px;}
+    /* A card stops growing at a readable width — a section with few columns would otherwise
+       stretch a two-line card across half the screen. The media hero is exempt: it is meant
+       to be wide. */
+    /* A card stops growing at a readable size. A section with few columns would otherwise stretch
+       a two-line card across half the screen, and extra rows would stretch it down the page —
+       none of these designs has anything to put in the space. Tiles are square by definition and
+       the media hero is meant to be big, so both are exempt. */
+    .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;
+      max-width:var(--card-max,420px);max-height:var(--card-max-h,250px);overflow:hidden;border-radius:24px;}
+    .card.t-tile{max-height:none;}
+    .card.t-full{max-width:none;max-height:none;}
     .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
