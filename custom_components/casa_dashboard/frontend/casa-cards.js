@@ -17,13 +17,14 @@
 // import means a HACS update can never leave a stale module cached in someone's browser.
 const V = new URL(import.meta.url).search;
 const { html } = await import(`./lit-all.min.js${V}`);
+const { COL_W, tileRows } = await import(`./casa-layout.js${V}`);
 
 /** Three rows or more: the name, the reading large in the middle, controls underneath. */
 /**
- * Enough room for the big centred reading. A tile is square, so its height comes from its width:
- * anything two columns across is far taller than three rows and should use the tall design.
+ * Enough room for the big centred reading: more than two rows. A tile is square, so its height is
+ * measured from its width — even a single-column tile is about three rows tall.
  */
-const isTall = (c) => (c.type === "tile" ? (c.w || 1) >= 2 : (c.h || 2) >= 3);
+const isTall = (c) => (c.type === "tile" ? tileRows(COL_W, c.w || 1) : (c.h || 2)) >= 3;
 
 const tallBody = (icon, name, value, label, controls, onMore, text = false) => html`
   <div class="cc-head rclick" @click=${onMore}>
