@@ -40,7 +40,9 @@ export function tileRows(colWidth, w = 1) {
   // Nearest whole row: a tile fills the rows it reserves, so every card height composes with
   // every other. That makes a tile approximately square rather than exactly square — the price
   // of a three-row card being the same height as a two-row and a one-row stacked beside it.
-  return Math.max(1, Math.round((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
+  // Never fewer than two rows: in a narrow column — sections sitting side by side, say — a square
+  // would resolve to a single row and stand shorter than every compact card beside it.
+  return Math.max(2, Math.round((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
 }
 
 /** Sidebar pieces a user can add. */
