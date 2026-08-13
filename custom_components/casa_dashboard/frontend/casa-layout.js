@@ -103,7 +103,7 @@ export const typeAllowed = (type, entity) => {
  */
 export const MIN_ROWS = {
   climate: 1,        // three rows or more switches to the full design with its stepper
-  media_player: 2,   // the speaker card still carries volume and transport
+  media_player: 1,
   cover: 1,
 };
 

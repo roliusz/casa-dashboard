@@ -63,6 +63,17 @@ function speakerCard(ctx, c) {
   const e = c.entity, muted = attr(ctx, e, "is_volume_muted");
   const v = attr(ctx, e, "volume_level");
   const vol = v != null ? Math.round(v * 100) : 0;
+  if (readingOnly(c))
+    return html`<div class="gcard spk-card reading ${isActive(ctx, e) ? "playing" : ""}">
+      <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
+        <ha-icon class="spk-ic" icon=${muted ? "mdi:volume-off" : (c.icon || "mdi:speaker")}></ha-icon>
+        <div class="hl-meta">
+          <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "Speaker"}</div>
+          <div class="hl-sub">${muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle"}</div>
+        </div>
+        <div class="cmp-val">${vol}%</div>
+      </div>
+    </div>`;
   return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
     <div class="spk-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${muted ? "mdi:volume-off" : (c.icon || "mdi:speaker")}></ha-icon>
@@ -91,13 +102,12 @@ function tvCard(ctx, c) {
     ctx.call("media_player", "media_seek", { entity_id: e, seek_position: Math.max(0, Math.min(dur, at + d)) });
   };
   return html`<div class="gcard media-tile ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
-    <div class="spk-head rclick" @click=${() => ctx.more(e)}>
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${c.icon || "mdi:television"}></ha-icon>
-      <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "TV"}</div>
-    </div>
-    <div class="tv-lines">
-      <div class="tv-app">${on ? (a.app_name || a.source || "On") : "Off"}</div>
-      <div class="tv-title">${on ? (a.media_title || "") : ""}</div>
+      <div class="hl-meta">
+        <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "TV"}</div>
+        <div class="hl-sub">${on ? [a.app_name || a.source, a.media_title].filter(Boolean).join(" \u00b7 ") || "On" : "Off"}</div>
+      </div>
     </div>
     ${readingOnly(c) ? "" : html`<div class="spk-btns">
       <button ?disabled=${!dur} @click=${() => seek(-10)}><ha-icon icon="mdi:rewind-10"></ha-icon></button>
@@ -292,9 +302,6 @@ export const cardStyles = `
   .shade2.on .spk-ic{color:#8ec5ff;} .shade2.closed .spk-ic{color:#7db2ff;}
   .media-tile.on{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
-  .tv-lines{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:46px;min-width:0;}
-  .tv-app{font-size:15px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .tv-title{font-size:13px;color:var(--dim);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .spk-btns{display:flex;align-items:center;gap:10px;}
   .spk-btns button{flex:1;height:52px;border-radius:15px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
