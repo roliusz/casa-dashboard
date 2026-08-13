@@ -85,13 +85,6 @@ export class CasaView extends LitElement {
     if (d === "sensor") return `${s.state}${a.unit_of_measurement ? " " + a.unit_of_measurement : ""}`;
     return s.state;
   }
-  _tap(c) {
-    if (this.editing) return;
-    const d = String(c.entity || "").split(".")[0];
-    if (["light", "switch", "fan", "input_boolean"].includes(d)) this.hass.callService("homeassistant", "toggle", { entity_id: c.entity });
-    else if (d === "scene" || d === "script") this.hass.callService(d, "turn_on", { entity_id: c.entity });
-    else if (c.entity) this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId: c.entity }, bubbles: true, composed: true }));
-  }
 
   /* ------------------------------------------------------------- mutate */
   _patch(obj, patch) { Object.assign(obj, patch); this._emit(); }
@@ -187,7 +180,7 @@ export class CasaView extends LitElement {
     return html`
       <div class="card t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
            data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows}"
-           @pointerdown=${(e) => !auto && this._dragStart(e, si, ci)} @click=${() => this._tap(c)}>
+           @pointerdown=${(e) => !auto && this._dragStart(e, si, ci)}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
         ${this.editing && !auto ? html`

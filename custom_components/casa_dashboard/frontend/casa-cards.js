@@ -206,12 +206,19 @@ function shadeCard(ctx, c) {
 /* ------------------------------------------------------------------ scene */
 function sceneCard(ctx, c) {
   const e = c.entity, d = String(e).split(".")[0];
-  const run = () => ctx.call(d === "scene" ? "scene" : "script", "turn_on", { entity_id: e });
-  // One row reads like every other one-row card: icon beside the name. Taller, the two stack and
-  // sit together in the middle — pinned to opposite ends they drift metres apart on a big tile.
-  return html`<button class="scene-card ${readingOnly(c) ? "row" : ""}" @click=${run}>
-    <ha-icon icon=${c.icon || attr(ctx, e, "icon") || "mdi:creation"}></ha-icon>
-    <span>${c.name || attr(ctx, e, "friendly_name") || e}</span>
+  const domain = d === "scene" ? "scene" : d === "automation" ? "automation" : "script";
+  const kind = d === "scene" ? "Scene" : d === "automation" ? "Automation" : "Script";
+  // Reads like a light card: icon, name, what it is. Running it is the whole card, so there is
+  // nothing to press inside it.
+  return html`<button class="gcard scene2 reading"
+      @click=${() => ctx.call(domain, "turn_on", { entity_id: e })}>
+    <div class="cmp-head">
+      <ha-icon class="spk-ic" icon=${c.icon || attr(ctx, e, "icon") || "mdi:creation"}></ha-icon>
+      <div class="hl-meta">
+        <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || e}</div>
+        <div class="hl-sub">${kind}</div>
+      </div>
+    </div>
   </button>`;
 }
 
@@ -330,7 +337,7 @@ export function renderCard(ctx, c) {
   if (d === "light") return lightCard(ctx, c);
   if (d === "cover") return shadeCard(ctx, c);
   if (d === "climate") return isTall(c) ? climateCard(ctx, c) : climateCompact(ctx, c);
-  if (d === "scene" || d === "script") return sceneCard(ctx, c);
+  if (d === "scene" || d === "script" || d === "automation") return sceneCard(ctx, c);
   if (d === "media_player") return looksLikeTv(ctx, c.entity) ? tvCard(ctx, c) : speakerCard(ctx, c);
   return plainCard(ctx, c);
 }
@@ -381,19 +388,11 @@ export const cardStyles = `
   .spk-btns button ha-icon{--mdc-icon-size:18px;}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
   /* scene */
-  .scene-card{border-radius:18px;background:var(--card);border:1px solid var(--cardBorder);
-    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);
-    display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;padding:15px;
-    cursor:pointer;font-family:inherit;color:var(--text);height:100%;min-height:0;
+  .scene2{padding:15px;cursor:pointer;font-family:inherit;color:var(--text);text-align:left;width:100%;
     transition:transform .15s,border-color .5s ease,background .5s ease;}
-  .scene-card:active{transform:scale(.97);}
-  .scene-card:focus{outline:none;}
-  .scene-card:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:2px;}
-  .scene-card.row{flex-direction:row;align-items:center;gap:11px;padding:0 15px;}
-  .scene-card ha-icon{--mdc-icon-size:22px;color:var(--dim);flex:none;}
-  .scene-card span{font-size:13.5px;font-weight:600;min-width:0;max-width:100%;text-align:left;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .scene-card.row span{-webkit-line-clamp:1;white-space:nowrap;text-overflow:ellipsis;}
+  .scene2:active{transform:scale(.97);}
+  .scene2:focus{outline:none;}
+  .scene2:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:2px;}
   /* full media hero */
   /* The hero fills its grid cell rather than assuming a fixed 320px artwork — at a fixed size it
      overflowed short cells and painted over the cards around it. */

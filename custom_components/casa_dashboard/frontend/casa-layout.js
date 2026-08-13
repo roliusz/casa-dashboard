@@ -69,7 +69,7 @@ export const CATEGORIES = [
   { key: "shades",  name: "Shades",     icon: "mdi:blinds",       domains: ["cover"],                 card: "compact", h: 2 },
   { key: "locks",   name: "Door locks", icon: "mdi:lock",         domains: ["lock"],                  card: "small", h: 1  },
   { key: "fans",    name: "Fans",       icon: "mdi:fan",          domains: ["fan"],                   card: "small", h: 1  },
-  { key: "scenes",  name: "Scenes",     icon: "mdi:creation",     domains: ["scene", "script"],       card: "tile"   },
+  { key: "scenes",  name: "Scenes",     icon: "mdi:creation",     domains: ["scene", "script", "automation"], card: "tile" },
   { key: "power",   name: "Switches",   icon: "mdi:toggle-switch",domains: ["switch", "input_boolean"], card: "small", h: 1 },
   { key: "sensors", name: "Sensors",    icon: "mdi:gauge",        domains: ["sensor", "binary_sensor"], card: "small", h: 1 },
   { key: "other",   name: "Other",      icon: "mdi:shape-outline",domains: [],                        card: "small"  },
