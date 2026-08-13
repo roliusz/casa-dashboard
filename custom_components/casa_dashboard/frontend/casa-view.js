@@ -39,6 +39,7 @@ export class CasaView extends LitElement {
     _q: { state: true },
     _af: { state: true },       // active filter chip, per auto tab
     _anim: { state: true },     // flips so the entry animation replays
+    _roomOver: { state: true }, // section a card is being dragged onto
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -193,7 +194,7 @@ export class CasaView extends LitElement {
     return html`
       <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
            data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}"
-           @pointerdown=${(e) => !auto && this._dragStart(e, si, ci)}>
+           @pointerdown=${(e) => (auto ? this._dragToRoom(e, si, ci, c.entity) : this._dragStart(e, si, ci))}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
         ${this.editing && !auto ? html`
@@ -201,6 +202,28 @@ export class CasaView extends LitElement {
             <ha-icon icon="mdi:pencil"></ha-icon></button>
           <div class="grip" @pointerdown=${(e) => this._resize(e, si, ci)}></div>` : ""}
       </div>`;
+  }
+
+  /** In an auto tab a card belongs to a room, so dragging it means changing which room. */
+  _dragToRoom(e, si, ci, entity) {
+    if (!this.editing || !entity || e.target.closest(".pencil, .grip")) return;
+    e.preventDefault();
+    let over = si;
+    const move = (ev) => {
+      const el = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY);
+      const sec = el?.closest?.(".sec");
+      const idx = sec ? Number(sec.dataset.si) : -1;
+      if (idx >= 0 && idx !== over) { over = idx; this._roomOver = idx; }
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      this._roomOver = null;
+      if (over !== si) this._setRoom(entity, this._secs?.[over]?.room ?? "");
+      else this.requestUpdate();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
   }
 
   _dragStart(e, si, ci) {
@@ -473,7 +496,9 @@ export class CasaView extends LitElement {
     const auto = tab.kind === "auto";
     const cats = auto ? autoCategories(tab) : [];
     const af = this._af[tab.id] || "";
-    const sections = sectionsOf(tab, this.hass, af, this._rooms);
+    const all = sectionsOf(tab, this.hass, af, this._rooms, this.layout?.roomNames || []);
+    const sections = auto && !this.editing ? all.filter((sec) => sec.cards.length) : all;
+    this._secs = sections;
     return html`
       ${this._headerBar()}
       <div class="cols">
@@ -503,6 +528,13 @@ export class CasaView extends LitElement {
             </div>` : "")}
           </div>
           ${auto && !sections.length ? html`<div class="empty">Open this tab's pencil and choose some entities.</div>` : ""}
+          ${this.editing && auto ? html`<button class="mini add wide" @click=${() => {
+            const name = prompt("Room name");
+            if (!name) return;
+            const list = this.layout.roomNames || [];
+            if (!list.includes(name)) this.layout.roomNames = [...list, name];
+            this._emit();
+          }}>+ Add room</button>` : ""}
           ${this.editing && !auto ? html`<button class="mini add wide"
             @click=${() => { tab.sections.push(newSection(`Section ${tab.sections.length + 1}`)); this._emit(); }}>+ Add section</button>` : ""}
         </main>
@@ -583,6 +615,7 @@ export class CasaView extends LitElement {
     /* No overflow clip here: the inner card fills the cell exactly, so clipping would cut off the
        drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
     .card.t-full{overflow:hidden;}
+    .sec.drop{outline:2px dashed rgba(255,255,255,.35);outline-offset:6px;border-radius:14px;}
     .subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 14px;}
     .sub{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;cursor:pointer;
       border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);font:inherit;font-size:12.5px;

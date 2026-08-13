@@ -215,12 +215,12 @@ export function isVisible(item, narrow, hass) {
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */
-export function autoSections(tab, hass, filter, areas) {
+export function autoSections(tab, hass, filter, areas, extraRooms = []) {
   const only = filter || tab.filter;
   const entities = (tab.entities || []).filter((e) => !only || categoryFor(e).key === only);
 
   const build = (name, id, items) => ({
-    id, name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
+    id, name, room: name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
     cards: items.reduce((acc, e) => {
       const cat = categoryFor(e);
       const card = newCard(cat.card, e);
@@ -242,11 +242,14 @@ export function autoSections(tab, hass, filter, areas) {
     if (!rooms.has(room)) rooms.set(room, []);
     rooms.get(room).push(e);
   }
-  if (!rooms.size) return [build("", "auto-all", loose)];      // no areas anywhere: one plain list
+  // Rooms added here that nothing lives in yet still get a section, so there is somewhere to drag
+  // cards to. The view drops the empty ones once editing stops.
+  for (const r of extraRooms) if (!rooms.has(r)) rooms.set(r, []);
+  if (!rooms.size) return [build("", "auto-all", loose)];      // no rooms anywhere: one plain list
   return [
     ...[...rooms.entries()].sort(([a], [b]) => a.localeCompare(b))
       .map(([room, items]) => build(room, `auto-room-${room}`, items)),
-    ...(loose.length ? [build("Other", "auto-room-other", loose)] : []),
+    ...(loose.length ? [{ ...build("Other", "auto-room-other", loose), room: "" }] : []),
   ];
 }
 
@@ -257,8 +260,8 @@ export function autoCategories(tab) {
 }
 
 /** Sections to render for a tab, whichever kind it is. */
-export const sectionsOf = (tab, hass, filter, areas) =>
-  (tab.kind === "auto" ? autoSections(tab, hass, filter, areas) : tab.sections || []);
+export const sectionsOf = (tab, hass, filter, areas, extraRooms) =>
+  (tab.kind === "auto" ? autoSections(tab, hass, filter, areas, extraRooms) : tab.sections || []);
 
 /** Bring a stored layout in line with the current limits — sizes saved before they existed. */
 export function normalizeLayout(layout, rowsOf) {
