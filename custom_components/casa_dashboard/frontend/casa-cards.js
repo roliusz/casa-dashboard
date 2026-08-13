@@ -90,18 +90,8 @@ function speakerCard(ctx, c) {
   const e = c.entity, muted = attr(ctx, e, "is_volume_muted");
   const v = attr(ctx, e, "volume_level");
   const vol = v != null ? Math.round(v * 100) : 0;
-  if (readingOnly(c))
-    return html`<div class="gcard spk-card reading ${isActive(ctx, e) ? "playing" : ""}">
-      <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
-        <ha-icon class="spk-ic" icon=${muted ? "mdi:volume-off" : (c.icon || "mdi:speaker")}></ha-icon>
-        <div class="hl-meta">
-          <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "Speaker"}</div>
-          <div class="hl-sub">${muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle"}</div>
-        </div>
-        <div class="cmp-val">${vol}%</div>
-      </div>
-    </div>`;
-  const spkName = c.name || attr(ctx, e, "friendly_name") || "Speaker";
+  const name = c.name || attr(ctx, e, "friendly_name") || "Speaker";
+  const icon = muted ? "mdi:volume-off" : (c.icon || "mdi:speaker");
   const volBtns = html`<div class="spk-btns">
     <button @click=${() => volNudge(ctx, e, -0.01)}><ha-icon icon="mdi:minus"></ha-icon></button>
     <button class=${muted ? "act" : ""} @click=${() => ctx.call("media_player", "volume_mute", { entity_id: e, is_volume_muted: !muted })}>
@@ -110,21 +100,18 @@ function speakerCard(ctx, c) {
   </div>`;
   if (isTall(c))
     return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
-      ${tallBody(muted ? "mdi:volume-off" : (c.icon || "mdi:speaker"), spkName,
-        muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
+      ${tallBody(icon, name, muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
     </div>`;
-  return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
-    <div class="spk-head rclick" @click=${() => ctx.more(e)}>
-      <ha-icon class="spk-ic" icon=${muted ? "mdi:volume-off" : (c.icon || "mdi:speaker")}></ha-icon>
-      <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Speaker"}</div>
+  return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
+      <ha-icon class="spk-ic" icon=${icon}></ha-icon>
+      <div class="hl-meta">
+        <div class="hl-name">${name}</div>
+        <div class="hl-sub">${muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle"}</div>
+      </div>
+      <div class="cmp-val">${vol}%</div>
     </div>
-    <div class="spk-level">${muted ? "Muted" : vol + "%"}</div>
-    <div class="spk-btns">
-      <button @click=${() => volNudge(ctx, e, -0.01)}><ha-icon icon="mdi:minus"></ha-icon></button>
-      <button class=${muted ? "act" : ""} @click=${() => ctx.call("media_player", "volume_mute", { entity_id: e, is_volume_muted: !muted })}>
-        <ha-icon icon=${muted ? "mdi:volume-off" : "mdi:volume-mute"}></ha-icon></button>
-      <button @click=${() => volNudge(ctx, e, 0.01)}><ha-icon icon="mdi:plus"></ha-icon></button>
-    </div>
+    ${readingOnly(c) ? "" : volBtns}
   </div>`;
 }
 
@@ -364,8 +351,6 @@ export const cardStyles = `
   .spk-card .spk-head,.media-tile .spk-head{cursor:pointer;}
   .spk-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
   .spk-name{font-size:13.5px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .spk-level{font-size:29px;font-weight:300;letter-spacing:-1px;}
-  .spk-level.sm{font-size:19px;font-weight:600;letter-spacing:0;}
   .spk-card.playing .spk-ic{color:var(--green);}
   .shade2.on .spk-ic{color:#8ec5ff;} .shade2.closed .spk-ic{color:#7db2ff;}
   .media-tile.on{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
