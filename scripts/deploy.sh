@@ -13,6 +13,8 @@ if [ -z "$HA_CONFIG" ]; then
 fi
 [ -d "$HA_CONFIG" ] || { echo "No such directory: $HA_CONFIG" >&2; exit 1; }
 mkdir -p "$HA_CONFIG/custom_components"
-rsync -a --delete --exclude='__pycache__' \
+# --inplace/--no-perms keep this working over an SMB mount, where rsync cannot create its
+# usual temporary files
+rsync -a --delete --inplace --no-perms --no-owner --no-group --exclude='__pycache__' \
   "$(dirname "$0")/../custom_components/casa_dashboard" "$HA_CONFIG/custom_components/"
 echo "Deployed to $HA_CONFIG/custom_components/casa_dashboard"

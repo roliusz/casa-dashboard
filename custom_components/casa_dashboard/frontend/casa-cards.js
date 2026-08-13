@@ -13,7 +13,10 @@
  *
  * `ctx` is the host view: { hass, call(domain,service,data), more(entity), openPopup(type,entity) }.
  */
-import { html } from "./lit-all.min.js";
+// The panel is loaded with a ?v=<integration version> query. Propagating that query to every
+// import means a HACS update can never leave a stale module cached in someone's browser.
+const V = new URL(import.meta.url).search;
+const { html } = await import(`./lit-all.min.js${V}`);
 
 const st = (ctx, e) => ctx.hass?.states?.[e];
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];

@@ -6,13 +6,16 @@
  * that opens an inspector for just that item. Each inspector carries the mobile / desktop toggles,
  * and refuses to let you switch both off.
  */
-import { LitElement, html, css, unsafeCSS } from "./lit-all.min.js";
-import {
+// The panel is loaded with a ?v=<integration version> query. Propagating that query to every
+// import means a HACS update can never leave a stale module cached in someone's browser.
+const V = new URL(import.meta.url).search;
+const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
+const {
   CARD_TYPES, CATEGORIES, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, tileRows,
   bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
-} from "./casa-layout.js";
-import { renderCard, cardStyles } from "./casa-cards.js";
+} = await import(`./casa-layout.js${V}`);
+const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
 
 const DOMAIN_ICON = {
   light: "mdi:lightbulb", switch: "mdi:toggle-switch", media_player: "mdi:speaker", cover: "mdi:blinds",

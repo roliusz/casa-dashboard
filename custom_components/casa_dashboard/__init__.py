@@ -21,6 +21,7 @@ from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
+from homeassistant.loader import async_get_integration
 
 from .const import (
     DOMAIN,
@@ -47,12 +48,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ]
     )
 
+    # The version is carried in the URL and the panel propagates it to its own imports, so an
+    # update is picked up instead of a stale module being served from the browser cache.
+    version = (await async_get_integration(hass, DOMAIN)).version
+
     # add the sidebar entry ourselves — no panel_custom: block in configuration.yaml
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL_PATH,
         webcomponent_name="casa-panel",
-        module_url=f"{URL_BASE}/casa-panel.js",
+        module_url=f"{URL_BASE}/casa-panel.js?v={version}",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
         require_admin=False,

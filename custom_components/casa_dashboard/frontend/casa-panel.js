@@ -6,9 +6,12 @@
  * any particular home in here — no entities, no rooms, no personal anything. Whatever a user sees
  * comes from their saved layout.
  */
-import { LitElement, html, css } from "./lit-all.min.js";
-import "./casa-view.js";
-import { starterLayout } from "./casa-layout.js";
+// The panel is loaded with a ?v=<integration version> query. Propagating that query to every
+// import means a HACS update can never leave a stale module cached in someone's browser.
+const V = new URL(import.meta.url).search;
+const { LitElement, html, css } = await import(`./lit-all.min.js${V}`);
+const { starterLayout } = await import(`./casa-layout.js${V}`);
+await import(`./casa-view.js${V}`);
 
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
