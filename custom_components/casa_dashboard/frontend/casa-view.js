@@ -307,12 +307,35 @@ export class CasaView extends LitElement {
     if (!this.editing || e.target.closest(".pencil")) return;
     const sec = this._cur.sections?.[si];
     if (!sec?.cards[ci]) return;
+    e.preventDefault();                                   // no text selection while dragging
+    const start = e.currentTarget.getBoundingClientRect();
+    const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
     const x0 = e.clientX, y0 = e.clientY;
     let idx = ci, moved = false;
+
+    // Where the card sits in the grid right now, ignoring the offset it is being dragged by. After
+    // a reorder its cell has moved, so the offset has to be measured afresh or the card jumps.
+    const origin = () => {
+      const el = this.renderRoot.querySelector(`[data-grid="${si}"] [data-ci="${idx}"]`);
+      if (!el) return null;
+      const held = el.style.transform;
+      el.style.transform = "none";
+      const r = el.getBoundingClientRect();
+      el.style.transform = held;
+      return r;
+    };
+
+    const follow = (ev) => {
+      const o = origin();
+      this._lift = o
+        ? { si, ci: idx, dx: ev.clientX - o.left - grabX, dy: ev.clientY - o.top - grabY }
+        : { si, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 };
+    };
+
     const move = (ev) => {
       if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
       moved = true;
-      this._lift = { si, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 };
+      follow(ev);
       const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".card");
       const to = over && over.closest(".grid")?.dataset.grid === String(si)
         ? Number(over.dataset.ci) : -1;
@@ -321,13 +344,13 @@ export class CasaView extends LitElement {
         const [card] = sec.cards.splice(idx, 1);
         sec.cards.splice(to, 0, card);
         idx = to;
-        this._lift = { si, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 };
         this._emit();
-        this._flipAfter();
+        this._flipAfter().then(() => follow(ev));          // re-anchor to the new cell
       } else {
         this.requestUpdate();
       }
     };
+
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
@@ -720,7 +743,9 @@ export class CasaView extends LitElement {
     /* Last on purpose: the entry animation also sets transform, and this has to win over it.
        The lifted card must not swallow the hit-test either, or it would always be the element
        under the cursor and there would be nothing to drop onto. */
-    :host([editing]) .card{cursor:grab;}
+    /* Dragging a card must not paint a text selection across everything it passes over. */
+    :host([editing]) .card{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+    :host([editing]) .card *{user-select:none;-webkit-user-select:none;}
     .card.lifted{z-index:40;pointer-events:none;animation:none;
       transform:translate(var(--lx,0),var(--ly,0)) scale(1.08);
       filter:drop-shadow(0 22px 34px rgba(0,0,0,.55));cursor:grabbing;}
