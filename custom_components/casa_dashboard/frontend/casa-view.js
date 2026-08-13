@@ -495,7 +495,7 @@ export class CasaView extends LitElement {
        none of these designs has anything to put in the space. Tiles are square by definition and
        the media hero is meant to be big, so both are exempt. */
     .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;
-      max-width:var(--card-max,420px);overflow:hidden;border-radius:24px;}
+      max-width:var(--card-max,380px);overflow:hidden;border-radius:20px;}
     .card.t-full{max-width:none;}
     .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}

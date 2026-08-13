@@ -13,6 +13,8 @@ const { LitElement, html, css } = await import(`./lit-all.min.js${V}`);
 const { starterLayout, normalizeLayout } = await import(`./casa-layout.js${V}`);
 await import(`./casa-view.js${V}`);
 
+console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`);
+
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
 

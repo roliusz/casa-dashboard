@@ -308,7 +308,7 @@ export function renderCard(ctx, c) {
 
 /** The bedroom panel's card styling, verbatim where it matters. */
 export const cardStyles = `
-  .gcard{position:relative;background:var(--card);border:1px solid var(--cardBorder);border-radius:24px;
+  .gcard{position:relative;background:var(--card);border:1px solid var(--cardBorder);border-radius:20px;
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);
     overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0;height:100%;}
   /* light */
@@ -318,44 +318,44 @@ export const cardStyles = `
   .hlight.on{border-color:rgba(248,222,111,.32);}
   .hl-gear{position:absolute;top:12px;right:12px;z-index:3;width:32px;height:32px;border-radius:50%;border:none;
     background:rgba(10,14,18,.5);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-  .hl-gear ha-icon{--mdc-icon-size:17px;}
-  .hl-body{position:relative;z-index:1;display:flex;align-items:center;gap:14px;padding:0 20px;width:100%;}
-  .hl-ic{--mdc-icon-size:26px;color:var(--dim);}
+  .hl-gear ha-icon{--mdc-icon-size:15px;}
+  .hl-body{position:relative;z-index:1;display:flex;align-items:center;gap:12px;padding:0 17px;width:100%;}
+  .hl-ic{--mdc-icon-size:23px;color:var(--dim);}
   .hlight.on .hl-ic{color:var(--yellow);}
   .hl-meta{min-width:0;}
-  .hl-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .hl-sub{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hl-name{font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hl-sub{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
-  .spk-card,.shade2,.media-tile,.clim2{padding:20px;justify-content:space-between;}
+  .spk-card,.shade2,.media-tile,.clim2{padding:17px;justify-content:space-between;}
   /* a one-row card has only its head — centre it rather than letting it hug the top */
   .reading{justify-content:center;gap:10px;}
-  .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
+  .c2-tgt{flex:0 0 auto;min-width:52px;text-align:center;font-size:18px;font-weight:600;}
   .spk-head{display:flex;align-items:center;gap:10px;min-width:0;max-width:100%;}
   .spk-card .spk-head,.media-tile .spk-head{cursor:pointer;}
-  .spk-ic{--mdc-icon-size:25px;color:var(--dim);flex:none;}
-  .spk-name{font-size:16px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .spk-level{font-size:38px;font-weight:300;letter-spacing:-1px;}
-  .spk-level.sm{font-size:24px;font-weight:600;letter-spacing:0;}
+  .spk-ic{--mdc-icon-size:22px;color:var(--dim);flex:none;}
+  .spk-name{font-size:14.5px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .spk-level{font-size:33px;font-weight:300;letter-spacing:-1px;}
+  .spk-level.sm{font-size:21px;font-weight:600;letter-spacing:0;}
   .spk-card.playing .spk-ic{color:var(--green);}
   .shade2.on .spk-ic{color:#8ec5ff;} .shade2.closed .spk-ic{color:#7db2ff;}
   .media-tile.on{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
   .spk-btns{display:flex;align-items:center;gap:10px;}
-  .spk-btns button{flex:1;height:52px;border-radius:15px;border:1px solid var(--cardBorder);background:var(--chip);
+  .spk-btns button{flex:1;height:45px;border-radius:13px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
   .spk-btns button.act{background:rgba(251,110,29,.2);border-color:rgba(251,110,29,.4);color:var(--orange);}
-  .spk-btns button ha-icon{--mdc-icon-size:22px;}
+  .spk-btns button ha-icon{--mdc-icon-size:20px;}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
   /* scene */
-  .scene-card{border-radius:24px;background:var(--card);border:1px solid var(--cardBorder);
+  .scene-card{border-radius:20px;background:var(--card);border:1px solid var(--cardBorder);
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);
-    display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:18px;
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:15px;
     cursor:pointer;font-family:inherit;color:var(--text);height:100%;min-height:0;
     transition:transform .15s,border-color .5s ease,background .5s ease;}
   .scene-card:active{transform:scale(.97);}
-  .scene-card ha-icon{--mdc-icon-size:28px;color:var(--dim);}
-  .scene-card span{font-size:16px;font-weight:600;}
+  .scene-card ha-icon{--mdc-icon-size:25px;color:var(--dim);}
+  .scene-card span{font-size:14.5px;font-weight:600;}
   /* full media hero */
   /* The hero fills its grid cell rather than assuming a fixed 320px artwork — at a fixed size it
      overflowed short cells and painted over the cards around it. */
@@ -378,32 +378,32 @@ export const cardStyles = `
   .np-ic{--mdc-icon-size:clamp(22px,3vw,34px);color:var(--dim);cursor:pointer;}
   .np-play{--mdc-icon-size:clamp(38px,5vw,64px);color:var(--green);cursor:pointer;}
   /* climate */
-  .clim-card{padding:22px;justify-content:space-between;align-items:flex-start;}
+  .clim-card{padding:18px;justify-content:space-between;align-items:flex-start;}
   /* compact head, same shape as the light card: icon, name over status, value on the right */
-  .cmp-head{display:flex;align-items:center;gap:14px;min-width:0;cursor:pointer;}
-  .cmp-val{margin-left:auto;padding-left:10px;flex:none;font-size:24px;font-weight:600;}
+  .cmp-head{display:flex;align-items:center;gap:12px;min-width:0;cursor:pointer;}
+  .cmp-val{margin-left:auto;padding-left:10px;flex:none;font-size:21px;font-weight:600;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
-  .cc-head{display:flex;align-items:center;gap:9px;min-width:0;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
-  .cc-title{font-size:16px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-head{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;}
+  .cc-title{font-size:14.5px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .shade2.on .cc-ic{color:#8ec5ff;} .shade2.closed .cc-ic{color:#7db2ff;} .media-tile.on .cc-ic{color:var(--green);}
-  .cc-ic{--mdc-icon-size:20px;}
+  .cc-ic{--mdc-icon-size:18px;}
   .clim-card.heat .cc-ic{color:var(--orange);} .clim-card.cool .cc-ic{color:#7db2ff;}
   .clim-card.heat{border-color:rgba(251,110,29,.3);} .clim-card.cool{border-color:rgba(125,178,255,.3);}
   .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
-  .cc-cur{font-size:66px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cc-now{font-size:13px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-cur{font-size:56px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-now{font-size:12px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-stepper{display:flex;align-items:center;gap:12px;width:100%;}
-  .cc-stepper button{width:52px;height:52px;border-radius:16px;border:1px solid var(--cardBorder);background:var(--chip);
+  .cc-stepper button{width:45px;height:45px;border-radius:14px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
-  .cc-stepper button ha-icon{--mdc-icon-size:24px;}
+  .cc-stepper button ha-icon{--mdc-icon-size:21px;}
   .cc-tgt{flex:1;text-align:center;}
-  .cc-tgt-v{font-size:26px;font-weight:600;}
+  .cc-tgt-v{font-size:22px;font-weight:600;}
   .cc-tgt-l{font-size:11px;color:var(--dim);}
   /* plain fallback */
-  .plain{padding:14px 18px;justify-content:center;cursor:pointer;}
+  .plain{padding:12px 16px;justify-content:center;cursor:pointer;}
   .plain.one .pl-body{align-items:center;}
   .pl-body{display:flex;align-items:center;gap:13px;min-width:0;}
-  .pl-ic{--mdc-icon-size:24px;color:var(--dim);flex:none;}
+  .pl-ic{--mdc-icon-size:21px;color:var(--dim);flex:none;}
   .plain.on .pl-ic{color:var(--yellow);}
   .pl-meta{min-width:0;flex:1;}
   @media (max-width:760px){ .full{flex-direction:column;align-items:stretch;gap:18px;}
