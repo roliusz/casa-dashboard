@@ -16,8 +16,10 @@ from pathlib import Path
 
 import voluptuous as vol
 
+from aiohttp import web
+
 from homeassistant.components import panel_custom, websocket_api
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
@@ -37,16 +39,13 @@ from .const import (
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Serve the bundled frontend, register the panel, expose the config API."""
     store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
-    hass.data[DOMAIN] = {"store": store, "config": await store.async_load() or {}}
+    served = hass.data.get(DOMAIN, {}).get("view", False)
+    hass.data[DOMAIN] = {"store": store, "config": await store.async_load() or {}, "view": served}
 
     # serve <integration>/frontend as /casa_dashboard/... so no files need copying to /www
-    await hass.http.async_register_static_paths(
-        [
-            StaticPathConfig(
-                URL_BASE, str(Path(__file__).parent / "frontend"), cache_headers=False
-            )
-        ]
-    )
+    if not hass.data[DOMAIN].get("view"):
+        hass.http.register_view(CasaFrontendView())
+        hass.data[DOMAIN]["view"] = True
 
     # The version is carried in the URL and the panel propagates it to its own imports, so an
     # update is picked up instead of a stale module being served from the browser cache.
@@ -74,8 +73,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from homeassistant.components import frontend
 
     frontend.async_remove_panel(hass, PANEL_URL_PATH)
-    hass.data.pop(DOMAIN, None)
+    hass.data[DOMAIN] = {"view": hass.data.get(DOMAIN, {}).get("view", False)}
     return True
+
+
+class CasaFrontendView(HomeAssistantView):
+    """Serve the bundled frontend, always revalidated.
+
+    The default static handler lets a browser decide for itself how long a file stays fresh, which
+    is how an edited panel can keep loading an old module. `no-cache` does not mean "do not cache":
+    the browser keeps the file but asks every time, so an unchanged file costs a 304 and a changed
+    one arrives immediately. No restart, no version bump — just reload the page.
+    """
+
+    url = URL_BASE + "/{filename:.+}"
+    name = f"{DOMAIN}:frontend"
+    requires_auth = False
+
+    async def get(self, request: web.Request, filename: str) -> web.StreamResponse:
+        root = (Path(__file__).parent / "frontend").resolve()
+        target = (root / filename).resolve()
+        if not target.is_relative_to(root) or not target.is_file():   # no escaping frontend/
+            return web.Response(status=404)
+        return web.FileResponse(target, headers={"Cache-Control": "no-cache"})
 
 
 @callback

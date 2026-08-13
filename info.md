@@ -66,8 +66,9 @@ Deploy to a real Home Assistant:
 HA_CONFIG=/path/to/your/homeassistant ./scripts/deploy.sh
 ```
 
-Restart Home Assistant after the first copy. Frontend changes afterwards only need a hard refresh
-of the panel.
+Restart Home Assistant after the first copy. After that, only Python changes need a restart —
+the frontend is served with `Cache-Control: no-cache`, so editing a `.js` file and reloading the
+page is enough.
 
 There is also a standalone harness in `dev/` that runs the dashboard against a fake home, with no
 Home Assistant involved — useful for working on layout and for taking screenshots:
