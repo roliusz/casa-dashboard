@@ -171,6 +171,33 @@ export function slotFree(cards, card, x, y, cols, rowsOf) {
  * overlaps something does it look for the closest free slot instead, so a drag never fails
  * silently and never buries one card under another.
  */
+/**
+ * Settle a section so nothing overlaps: take the cards in the order they should win their space,
+ * and drop each one down the grid until it lands clear of everything already placed. Gravity, not
+ * a free-for-all — a card can be put anywhere, including directly under another, and whatever it
+ * lands on moves down instead of being painted over.
+ *
+ * `first` is the card being dragged: it keeps the cell it was dropped on and the rest give way.
+ */
+export function compactCards(cards, cols, rowsOf = (c) => c.h, first = null) {
+  const hits = (a, ay, b) => {
+    const ah = rowsOf(a), bh = rowsOf(b);
+    return a.x < b.x + b.w && b.x < a.x + a.w && ay < b.y + bh && b.y < ay + ah;
+  };
+  const rest = cards.filter((c) => c !== first).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const order = first ? [first, ...rest] : rest;
+  const placed = [];
+  for (const c of order) {
+    c.w = Math.max(1, Math.min(cols, c.w | 0 || 1));
+    c.x = Math.max(0, Math.min(cols - c.w, c.x | 0));
+    let y = Math.max(0, c.y | 0);
+    while (placed.some((p) => hits(c, y, p))) y++;
+    c.y = y;
+    placed.push(c);
+  }
+  return cards;
+}
+
 export function placeNear(cards, card, wantX, wantY, cols, rowsOf) {
   const x0 = Math.max(0, Math.min(cols - card.w, Math.round(wantX)));
   const y0 = Math.max(0, Math.round(wantY));
@@ -225,16 +252,20 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
       const cat = categoryFor(e);
       const card = newCard(cat.card, e);
       if (cat.h) card.h = cat.h;
-      const size = sizes[e];                       // a size the user set for this entity
+      const size = sizes[e];                       // size and position the user set for this entity
       if (size?.type) card.type = size.type;
       if (size?.w) card.w = size.w;
       if (size?.h) card.h = size.h;
       clampCard(card, DEFAULT_COLS);
-      Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
+      if (size?.x != null) card.x = size.x;
+      if (size?.y != null) card.y = size.y;
+      if (size?.x == null) Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
       acc.push(card);
       return acc;
     }, []),
   });
+
+  const settle = (sec) => (compactCards(sec.cards, sec.cols), sec);
 
   // Sections are rooms, always. The chips above already do the sorting by kind, so doing it
   // again here would just repeat them.
@@ -249,11 +280,11 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
   // Rooms added here that nothing lives in yet still get a section, so there is somewhere to drag
   // cards to. The view drops the empty ones once editing stops.
   for (const r of extraRooms) if (!rooms.has(r)) rooms.set(r, []);
-  if (!rooms.size) return [build("", "auto-all", loose)];      // no rooms anywhere: one plain list
+  if (!rooms.size) return [settle(build("", "auto-all", loose))];      // no rooms anywhere: one plain list
   return [
     ...[...rooms.entries()].sort(([a], [b]) => a.localeCompare(b))
-      .map(([room, items]) => build(room, `auto-room-${room}`, items)),
-    ...(loose.length ? [{ ...build("Other", "auto-room-other", loose), room: "" }] : []),
+      .map(([room, items]) => settle(build(room, `auto-room-${room}`, items))),
+    ...(loose.length ? [{ ...settle(build("Other", "auto-room-other", loose)), room: "" }] : []),
   ];
 }
 

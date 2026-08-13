@@ -13,7 +13,7 @@ const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`
 const {
   CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
   autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
-  newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
+  compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
 
@@ -261,10 +261,10 @@ export class CasaView extends LitElement {
     return html`
       <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${this._lift?.si === si && this._lift?.ci === ci ? "lifted" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
            data-ci=${ci} data-key=${c.id || `${si}:${c.entity}`}
-           style="--w:${c.w};--h:${rows};--i:${ci}${
+           style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}${
              this._lift?.si === si && this._lift?.ci === ci
                ? `;--lx:${this._lift.dx}px;--ly:${this._lift.dy}px` : ""}"
-           @pointerdown=${(e) => (auto ? this._dragToRoom(e, si, ci, c.entity) : this._dragStart(e, si, ci))}>
+           @pointerdown=${(e) => this._dragCard(e, si, ci, c, auto)}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
         ${this.editing ? html`
@@ -273,88 +273,90 @@ export class CasaView extends LitElement {
       </div>`;
   }
 
-  /** In an auto tab a card belongs to a room, so dragging it means changing which room. */
-  _dragToRoom(e, si, ci, entity) {
-    if (!this.editing || !entity || e.target.closest(".pencil")) return;
-    e.preventDefault();
-    let over = si;
-    const x0 = e.clientX, y0 = e.clientY;
-    const move = (ev) => {
-      if (!this._lift && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
-      this._lift = { si, ci, dx: ev.clientX - x0, dy: ev.clientY - y0 };
-      const el = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY);
-      const sec = el?.closest?.(".sec");
-      const idx = sec ? Number(sec.dataset.si) : -1;
-      if (idx >= 0 && idx !== over) { over = idx; this._roomOver = idx; }
-    };
-    const up = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      this._roomOver = null; this._lift = null;
-      if (over !== si) this._setRoom(entity, this._secs?.[over]?.room ?? "");
-      else this.requestUpdate();
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-  }
-
   /**
-   * Dragging reorders the list. Crossing another card moves this one to that card's index and the
-   * grid reflows around it — the same idea as a reorderable list, which is what makes overlap
-   * impossible: a card no longer owns a cell, it owns a position in the order.
+   * One drag for the whole app. A card follows the pointer; dropping it inside its own section
+   * puts it in that cell, and dropping it on another section moves it there — which for an auto
+   * tab means changing the entity's room. Sections settle after every move, so a card can be
+   * stacked directly under another and the one below simply gives way.
    */
-  _dragStart(e, si, ci) {
+  _dragCard(e, si, ci, card, auto) {
     if (!this.editing || e.target.closest(".pencil")) return;
-    const sec = this._cur.sections?.[si];
-    if (!sec?.cards[ci]) return;
-    e.preventDefault();                                   // no text selection while dragging
+    e.preventDefault();
     const start = e.currentTarget.getBoundingClientRect();
     const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
     const x0 = e.clientX, y0 = e.clientY;
-    let idx = ci, moved = false;
+    let idx = ci, host = si, moved = false;
 
-    // Where the card sits in the grid right now, ignoring the offset it is being dragged by. After
-    // a reorder its cell has moved, so the offset has to be measured afresh or the card jumps.
-    const origin = () => {
-      const el = this.renderRoot.querySelector(`[data-grid="${si}"] [data-ci="${idx}"]`);
-      if (!el) return null;
+    const secAt = (i) => (auto ? this._secs?.[i] : this._cur.sections?.[i]);
+    const cellOf = (ev, sec, i) => {
+      const grid = this.renderRoot.querySelector(`[data-grid="${i}"]`);
+      if (!grid) return null;
+      const r = grid.getBoundingClientRect();
+      const colW = (r.width - GRID_GAP * (sec.cols - 1)) / sec.cols;
+      return {
+        x: Math.max(0, Math.min(sec.cols - card.w,
+          Math.round((ev.clientX - grabX - r.left) / (colW + GRID_GAP)))),
+        y: Math.max(0, Math.round((ev.clientY - grabY - r.top) / (GRID_ROW + GRID_GAP))),
+      };
+    };
+    const follow = (ev) => {
+      const el = this.renderRoot.querySelector(`[data-grid="${host}"] [data-ci="${idx}"]`);
+      if (!el) { this._lift = { si: host, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 }; return; }
       const held = el.style.transform;
       el.style.transform = "none";
       const r = el.getBoundingClientRect();
       el.style.transform = held;
-      return r;
-    };
-
-    const follow = (ev) => {
-      const o = origin();
-      this._lift = o
-        ? { si, ci: idx, dx: ev.clientX - o.left - grabX, dy: ev.clientY - o.top - grabY }
-        : { si, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 };
+      this._lift = { si: host, ci: idx, dx: ev.clientX - r.left - grabX, dy: ev.clientY - r.top - grabY };
     };
 
     const move = (ev) => {
       if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
       moved = true;
       follow(ev);
-      const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".card");
-      const to = over && over.closest(".grid")?.dataset.grid === String(si)
-        ? Number(over.dataset.ci) : -1;
-      if (to >= 0 && to !== idx) {
+      const overSec = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".sec");
+      const target = overSec ? Number(overSec.dataset.si) : host;
+      this._roomOver = target !== host ? target : null;
+
+      if (target !== host && target >= 0) {                       // into another section
+        const dest = secAt(target);
+        if (!dest) return;
         this._flipBefore();
-        const [card] = sec.cards.splice(idx, 1);
-        sec.cards.splice(to, 0, card);
-        idx = to;
-        this._emit();
-        this._flipAfter().then(() => follow(ev));          // re-anchor to the new cell
-      } else {
-        this.requestUpdate();
+        if (auto) {
+          this._setRoom(card.entity, dest.room ?? "");
+        } else {
+          const from = secAt(host);
+          from.cards.splice(idx, 1);
+          dest.cards.push(card);
+          idx = dest.cards.length - 1;
+          host = target;
+          compactCards(dest.cards, dest.cols);
+          this._emit();
+        }
+        this._flipAfter().then(() => follow(ev));
+        return;
       }
+
+      const sec = secAt(host);
+      const at = sec && cellOf(ev, sec, host);
+      if (!at || (at.x === card.x && at.y === card.y)) { this.requestUpdate(); return; }
+      this._flipBefore();
+      card.x = at.x; card.y = at.y;
+      compactCards(sec.cards, sec.cols, (k) => k.h, card);
+      if (auto) {
+        const sizes = { ...(this.layout.cardSizes || {}) };
+        for (const k of sec.cards)
+          sizes[k.entity] = { ...(sizes[k.entity] || {}), w: k.w, h: k.h, x: k.x, y: k.y };
+        this.layout.cardSizes = sizes;
+      }
+      idx = sec.cards.indexOf(card);
+      this._emit();
+      this._flipAfter().then(() => follow(ev));
     };
 
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
-      this._lift = null;
+      this._lift = null; this._roomOver = null;
       if (moved) this._emit(); else this.requestUpdate();
     };
     window.addEventListener("pointermove", move);
@@ -625,7 +627,8 @@ export class CasaView extends LitElement {
                 ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
               <div class="grid" data-grid=${si}
-                   style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px">
+                   style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${
+                     Math.max(1, ...sec.cards.map((k) => (k.y | 0) + k.h))}">
                 ${sec.cards.map((c, ci) => this._card(si, ci, c, auto, sec.cols))}
                 ${this._drag?.si === si ? html`<div class="ph"
                   style="--x:${this._drag.x};--y:${this._drag.y};--w:${this._drag.w};--h:${this._drag.h}"></div>` : ""}
@@ -707,7 +710,7 @@ export class CasaView extends LitElement {
        four column section 600px per card on a wide monitor; now the section is as wide as its
        columns need and no wider, and still shrinks below that on a narrow screen. */
     .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));
-      grid-auto-rows:var(--row);grid-auto-flow:row dense;
+      grid-template-rows:repeat(var(--rows,1),var(--row));grid-auto-rows:var(--row);
       gap:var(--gap);max-width:calc(var(--cols) * var(--colw) + (var(--cols) - 1) * var(--gap));}
     /* A card stops growing at a readable width — a section with few columns would otherwise
        stretch a two-line card across half the screen. The media hero is exempt: it is meant
@@ -716,10 +719,10 @@ export class CasaView extends LitElement {
        a two-line card across half the screen, and extra rows would stretch it down the page —
        none of these designs has anything to put in the space. Tiles are square by definition and
        the media hero is meant to be big, so both are exempt. */
-    /* Cards flow in the order they are listed rather than sitting at a stored cell. Dragging
-       reorders the list, so the grid reflows around it and nothing can overlap. */
-    .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;
-      border-radius:18px;}
+    /* A card sits where it was put. Overlap is prevented by settling the section after every
+       move — whatever a card lands on gives way downwards — not by taking the choice away. */
+    .card{position:relative;grid-column:calc(var(--x) + 1) / span var(--w);
+      grid-row:calc(var(--y) + 1) / span var(--h);min-width:0;min-height:0;border-radius:18px;}
     /* No overflow clip here: the inner card fills the cell exactly, so clipping would cut off the
        drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
     .card.t-full{overflow:hidden;}
