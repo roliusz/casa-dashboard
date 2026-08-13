@@ -214,26 +214,32 @@ export function autoSections(tab, hass, filter) {
     }, []),
   });
 
-  // Grouped by room. Anything Home Assistant has no area for — entities outside the registry,
-  // helpers, anything never assigned — falls back to its kind rather than a heap called Other.
+  // "All" is grouped by kind, so its sections read as the filter chips above it.
+  if (!only) {
+    const kinds = new Map();
+    for (const e of entities) {
+      const key = categoryFor(e).key;
+      if (!kinds.has(key)) kinds.set(key, []);
+      kinds.get(key).push(e);
+    }
+    return CATEGORIES.filter((c) => kinds.has(c.key))
+      .map((c) => build(c.name, `auto-${c.key}`, kinds.get(c.key)));
+  }
+
+  // A single kind is grouped by room instead — that is what the kind is for.
   const rooms = new Map();
-  const loose = new Map();
+  const loose = [];
   for (const e of entities) {
     const room = areaOf(hass, e);
-    if (room) {
-      if (!rooms.has(room)) rooms.set(room, []);
-      rooms.get(room).push(e);
-    } else {
-      const cat = categoryFor(e);
-      if (!loose.has(cat.key)) loose.set(cat.key, []);
-      loose.get(cat.key).push(e);
-    }
+    if (!room) { loose.push(e); continue; }
+    if (!rooms.has(room)) rooms.set(room, []);
+    rooms.get(room).push(e);
   }
+  if (!rooms.size) return [build("", "auto-all", loose)];      // no areas anywhere: one plain list
   return [
     ...[...rooms.entries()].sort(([a], [b]) => a.localeCompare(b))
       .map(([room, items]) => build(room, `auto-room-${room}`, items)),
-    ...CATEGORIES.filter((c) => loose.has(c.key))
-      .map((c) => build(c.name, `auto-${c.key}`, loose.get(c.key))),
+    ...(loose.length ? [build("Other", "auto-room-other", loose)] : []),
   ];
 }
 
