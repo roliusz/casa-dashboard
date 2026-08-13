@@ -112,13 +112,13 @@ function shadeCard(ctx, c) {
   const pos = s.attributes.current_position, open = s.state === "open";
   const closed = s.state === "closed" || pos === 0;
   return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
-    <div class="spk-head">
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
-      <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Shade"}</div>
-    </div>
-    <div class="lvl-row">
-      <div class="spk-level sm">${pos != null ? pos + "%" : s.state[0].toUpperCase() + s.state.slice(1)}</div>
-      ${pos != null ? html`<div class="lvl-sub">open</div>` : ""}
+      <div class="hl-meta">
+        <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "Shade"}</div>
+        <div class="hl-sub">${pos != null ? "open" : s.state[0].toUpperCase() + s.state.slice(1)}</div>
+      </div>
+      ${pos != null ? html`<div class="cmp-val">${pos}%</div>` : ""}
     </div>
     <div class="spk-btns">
       <button @click=${() => ctx.call("cover", "open_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-up"></ha-icon></button>
@@ -206,13 +206,13 @@ function climateCompact(ctx, c) {
   const status = heating ? "Heating" : cooling ? "Cooling"
     : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1);
   return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""}">
-    <div class="spk-head rclick" @click=${() => ctx.more(e)}>
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
-      <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
-    </div>
-    <div class="lvl-row">
-      <div class="spk-level sm">${cur != null ? cur + "\u00b0" : "\u2013"}</div>
-      <div class="lvl-sub">${status}</div>
+      <div class="hl-meta">
+        <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
+        <div class="hl-sub">${status}</div>
+      </div>
+      <div class="cmp-val">${cur != null ? cur + "\u00b0" : "\u2013"}</div>
     </div>
     <div class="spk-btns c2-btns">
       <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
@@ -270,8 +270,9 @@ export const cardStyles = `
   .hl-body{position:relative;z-index:1;display:flex;align-items:center;gap:14px;padding:0 20px;width:100%;}
   .hl-ic{--mdc-icon-size:26px;color:var(--dim);}
   .hlight.on .hl-ic{color:var(--yellow);}
-  .hl-name{font-size:16px;font-weight:600;}
-  .hl-sub{font-size:13px;color:var(--dim);}
+  .hl-meta{min-width:0;}
+  .hl-name{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hl-sub{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
   .spk-card,.shade2,.media-tile,.clim2{padding:20px;justify-content:space-between;}
@@ -326,9 +327,9 @@ export const cardStyles = `
   .np-play{--mdc-icon-size:clamp(38px,5vw,64px);color:var(--green);cursor:pointer;}
   /* climate */
   .clim-card{padding:22px;justify-content:space-between;align-items:flex-start;}
-  /* a reading with its status beside it — climate and shade share this */
-  .lvl-row{display:flex;align-items:baseline;gap:8px;min-width:0;}
-  .lvl-sub{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* compact head, same shape as the light card: icon, name over status, value on the right */
+  .cmp-head{display:flex;align-items:center;gap:14px;min-width:0;cursor:pointer;}
+  .cmp-val{margin-left:auto;padding-left:10px;flex:none;font-size:24px;font-weight:600;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
   .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
   .cc-head{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
