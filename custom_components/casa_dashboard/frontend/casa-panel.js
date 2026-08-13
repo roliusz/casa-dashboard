@@ -10,7 +10,7 @@
 // import means a HACS update can never leave a stale module cached in someone's browser.
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css } = await import(`./lit-all.min.js${V}`);
-const { starterLayout } = await import(`./casa-layout.js${V}`);
+const { starterLayout, normalizeLayout } = await import(`./casa-layout.js${V}`);
 await import(`./casa-view.js${V}`);
 
 const WS_GET = "casa_dashboard/get";
@@ -47,7 +47,7 @@ class CasaPanel extends LitElement {
     this._loading = true;
     try {
       const cfg = await this.hass.connection.sendMessagePromise({ type: WS_GET });
-      this._layout = cfg?.layout || starterLayout();
+      this._layout = normalizeLayout(cfg?.layout || starterLayout());
       this._settings = { ...DEFAULT_SETTINGS, ...(cfg?.settings || {}) };
     } catch (e) {
       // integration missing or not ready — still usable, just can't persist

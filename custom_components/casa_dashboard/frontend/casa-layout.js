@@ -172,6 +172,14 @@ export function autoSections(tab) {
 /** Sections to render for a tab, whichever kind it is. */
 export const sectionsOf = (tab) => (tab.kind === "auto" ? autoSections(tab) : tab.sections || []);
 
+/** Bring a stored layout in line with the current limits — sizes saved before they existed. */
+export function normalizeLayout(layout) {
+  for (const tab of layout?.tabs || [])
+    for (const sec of tab.sections || [])
+      for (const card of sec.cards || []) clampCard(card, sec.cols || DEFAULT_COLS);
+  return layout;
+}
+
 /** A blank dashboard: nothing assumed about the home, one empty tab to build in. */
 export const starterLayout = () => ({
   header: { pills: [] },
