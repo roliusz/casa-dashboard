@@ -206,7 +206,10 @@ function shadeCard(ctx, c) {
 /* ------------------------------------------------------------------ scene */
 function sceneCard(ctx, c) {
   const e = c.entity, d = String(e).split(".")[0];
-  return html`<button class="scene-card" @click=${() => ctx.call(d === "scene" ? "scene" : "script", "turn_on", { entity_id: e })}>
+  const run = () => ctx.call(d === "scene" ? "scene" : "script", "turn_on", { entity_id: e });
+  // One row reads like every other one-row card: icon beside the name. Taller, the two stack and
+  // sit together in the middle — pinned to opposite ends they drift metres apart on a big tile.
+  return html`<button class="scene-card ${readingOnly(c) ? "row" : ""}" @click=${run}>
     <ha-icon icon=${c.icon || attr(ctx, e, "icon") || "mdi:creation"}></ha-icon>
     <span>${c.name || attr(ctx, e, "friendly_name") || e}</span>
   </button>`;
@@ -378,12 +381,15 @@ export const cardStyles = `
   /* scene */
   .scene-card{border-radius:18px;background:var(--card);border:1px solid var(--cardBorder);
     backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);box-shadow:var(--shadow);
-    display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:13px;
+    display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;padding:15px;
     cursor:pointer;font-family:inherit;color:var(--text);height:100%;min-height:0;
     transition:transform .15s,border-color .5s ease,background .5s ease;}
   .scene-card:active{transform:scale(.97);}
-  .scene-card ha-icon{--mdc-icon-size:22px;color:var(--dim);}
-  .scene-card span{font-size:13.5px;font-weight:600;}
+  .scene-card.row{flex-direction:row;align-items:center;gap:11px;padding:0 15px;}
+  .scene-card ha-icon{--mdc-icon-size:22px;color:var(--dim);flex:none;}
+  .scene-card span{font-size:13.5px;font-weight:600;min-width:0;max-width:100%;text-align:left;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .scene-card.row span{-webkit-line-clamp:1;white-space:nowrap;text-overflow:ellipsis;}
   /* full media hero */
   /* The hero fills its grid cell rather than assuming a fixed 320px artwork — at a fixed size it
      overflowed short cells and painted over the cards around it. */
