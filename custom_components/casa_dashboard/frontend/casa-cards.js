@@ -43,6 +43,12 @@ const tallBody = (icon, name, state, value, label, controls, onMore, text = fals
 /** A one-row card is a reading only — every taller card, and every tile, keeps its controls. */
 const readingOnly = (c) => (c.h || 2) <= 1 && c.type !== "tile";
 
+/** States are shown to people, so they read as words: "open" -> "Open", "not_home" -> "Not home". */
+const cap = (t) => {
+  const v = String(t ?? "").replace(/_/g, " ");
+  return v ? v[0].toUpperCase() + v.slice(1) : "";
+};
+
 const st = (ctx, e) => ctx.hass?.states?.[e];
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
 const isOn = (ctx, e) => {
@@ -182,16 +188,16 @@ function shadeCard(ctx, c) {
   if (isTall(c))
     return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
       ${tallBody(open ? "mdi:blinds-open" : "mdi:blinds", name,
-        s.state[0].toUpperCase() + s.state.slice(1),
-        pos != null ? pos + "%" : s.state[0].toUpperCase() + s.state.slice(1),
-        pos != null ? "open" : "", btns, () => ctx.more(e))}
+        cap(s.state),
+        pos != null ? pos + "%" : cap(s.state),
+        pos != null ? "Position" : "", btns, () => ctx.more(e))}
     </div>`;
   return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
       <div class="hl-meta">
         <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || "Shade"}</div>
-        <div class="hl-sub">${pos != null ? "open" : s.state[0].toUpperCase() + s.state.slice(1)}</div>
+        <div class="hl-sub">${cap(s.state)}</div>
       </div>
       ${pos != null ? html`<div class="cmp-val">${pos}%</div>` : ""}
     </div>
@@ -259,13 +265,13 @@ function climateCard(ctx, c) {
   const heating = (mode === "heat" || mode === "auto") && tgt > cur;
   const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
   const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
-  return html`<div class="gcard clim-card ${heating ? "heat" : cooling ? "cool" : ""}">
+  return html`<div class="gcard clim-card ${mode !== "off" ? "on" : ""} ${heating ? "heat" : cooling ? "cool" : ""}">
     <div class="cc-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="cc-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
       <div class="hl-meta">
         <div class="cc-title">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
         <div class="hl-sub">${heating ? "Heating" : cooling ? "Cooling"
-          : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1)}</div>
+          : cap(mode)}</div>
       </div>
     </div>
     <div class="cc-mid">
@@ -292,8 +298,8 @@ function climateCompact(ctx, c) {
   const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
   const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
   const status = heating ? "Heating" : cooling ? "Cooling"
-    : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1);
-  return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""} ${readingOnly(c) ? "reading" : ""}">
+    : cap(mode);
+  return html`<div class="gcard clim2 ${mode !== "off" ? "on" : ""} ${heating ? "heat" : cooling ? "cool" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
       <div class="hl-meta">
@@ -312,10 +318,12 @@ function climateCompact(ctx, c) {
 
 /* ----------------------------------------------------------------- plain */
 function plainCard(ctx, c) {
-  const e = c.entity, s = st(ctx, e), on = isOn(ctx, e);
+  const e = c.entity, s = st(ctx, e);
   const d = String(e || "").split(".")[0];
-  const sub = s ? (d === "climate" ? `${s.attributes.current_temperature ?? "–"}° · ${s.state}`
-    : `${s.state}${s.attributes.unit_of_measurement ? " " + s.attributes.unit_of_measurement : ""}`) : "not set";
+  // Only something switchable can be "on" — a sensor reading "Not home" is not active, it is data.
+  const on = ["switch", "input_boolean", "fan", "lock", "binary_sensor"].includes(d) && isOn(ctx, e);
+  const sub = s ? (d === "climate" ? `${s.attributes.current_temperature ?? "–"}° · ${cap(s.state)}`
+    : `${cap(s.state)}${s.attributes.unit_of_measurement ? " " + s.attributes.unit_of_measurement : ""}`) : "Not set";
   return html`<div class="gcard plain ${on ? "on" : ""} ${c.type === "small" ? "one" : ""}"
       @click=${() => (["switch", "input_boolean", "fan", "lock"].includes(d)
         ? ctx.call("homeassistant", "toggle", { entity_id: e }) : ctx.more(e))}>
@@ -379,7 +387,14 @@ export const cardStyles = `
   .spk-name{font-size:13.5px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .spk-card.playing .spk-ic{color:var(--green);}
   .shade2.on .spk-ic{color:#8ec5ff;} .shade2.closed .spk-ic{color:#7db2ff;}
-  .media-tile.on{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
+  /* An active card carries a wash of its own colour and a tinted border — the TV had this and
+     nothing else did, so a playing speaker or an open shade looked identical to an idle one. */
+  .media-tile.on,.spk-card.playing{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
+  .shade2.on{background:linear-gradient(135deg,rgba(142,197,255,.16),rgba(142,197,255,.05));border-color:rgba(142,197,255,.28);}
+  .clim2.on,.clim-card.on{background:linear-gradient(135deg,rgba(251,110,29,.10),rgba(251,110,29,.03));border-color:rgba(251,110,29,.20);}
+  .clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
+  .clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
+  .plain.on{background:linear-gradient(135deg,rgba(248,222,111,.14),rgba(248,222,111,.04));border-color:rgba(248,222,111,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
   .spk-btns{display:flex;align-items:center;gap:10px;}
   .spk-btns button{flex:1;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
@@ -425,7 +440,6 @@ export const cardStyles = `
   .shade2.on .cc-ic{color:#8ec5ff;} .shade2.closed .cc-ic{color:#7db2ff;} .media-tile.on .cc-ic{color:var(--green);}
   .cc-ic{--mdc-icon-size:17px;}
   .clim-card.heat .cc-ic{color:var(--orange);} .clim-card.cool .cc-ic{color:#7db2ff;}
-  .clim-card.heat{border-color:rgba(251,110,29,.3);} .clim-card.cool{border-color:rgba(125,178,255,.3);}
   .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
   .cc-cur{font-size:48px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-cur.text{font-size:21px;font-weight:600;letter-spacing:0;line-height:1.25;white-space:normal;
