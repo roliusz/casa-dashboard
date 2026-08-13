@@ -30,7 +30,8 @@ export class CasaView extends LitElement {
     layout: { attribute: false },
     editing: { type: Boolean, reflect: true },
     narrow: { type: Boolean },
-    areas: { attribute: false },   // entity_id -> room name
+    areas: { attribute: false },      // entity_id -> room name, from Home Assistant
+    areaNames: { attribute: false },  // every room Home Assistant knows
     _tab: { state: true },
     _insp: { state: true },     // {kind:'pill'|'side'|'card'|'tab', …ids}
     _drag: { state: true },
@@ -64,6 +65,15 @@ export class CasaView extends LitElement {
     this.dispatchEvent(new CustomEvent("layout-changed", { detail: this.layout, bubbles: true, composed: true }));
     this.requestUpdate();
   }
+  /** Rooms as this dashboard sees them: Home Assistant's, overridden by anything set here. */
+  get _rooms() { return { ...(this.areas || {}), ...(this.layout?.rooms || {}) }; }
+
+  _setRoom(entity, room) {
+    this.layout.rooms = { ...(this.layout.rooms || {}) };
+    if (room) this.layout.rooms[entity] = room; else delete this.layout.rooms[entity];
+    this._emit();
+  }
+
   _vis(item) { return this.editing || isVisible(item, this.narrow, this.hass); }
 
   /* -------------------------------------------------------- live values */
@@ -425,7 +435,16 @@ export class CasaView extends LitElement {
           <div class="grow">
             <div class="pr-t">
               <span class="pr-n">${this._st(id).attributes.friendly_name || id}</span>
-              ${areaOf(this.hass, id, this.areas) ? html`<span class="pr-room">${areaOf(this.hass, id, this.areas)}</span>` : ""}
+              ${mode === "auto"
+                ? html`<select class="pr-room" @click=${(ev) => ev.stopPropagation()}
+                    @change=${(ev) => this._setRoom(id, ev.target.value)}>
+                    <option value="" ?selected=${!areaOf(this.hass, id, this._rooms)}>No room</option>
+                    ${[...new Set([...(this.areaNames || []), ...Object.values(this.layout?.rooms || {})])]
+                      .sort((a, b) => a.localeCompare(b)).map((r) => html`
+                        <option value=${r} ?selected=${areaOf(this.hass, id, this._rooms) === r}>${r}</option>`)}
+                  </select>`
+                : areaOf(this.hass, id, this._rooms)
+                  ? html`<span class="pr-room">${areaOf(this.hass, id, this._rooms)}</span>` : ""}
             </div>
             <div class="pr-id">${id}</div>
           </div>
@@ -454,7 +473,7 @@ export class CasaView extends LitElement {
     const auto = tab.kind === "auto";
     const cats = auto ? autoCategories(tab) : [];
     const af = this._af[tab.id] || "";
-    const sections = sectionsOf(tab, this.hass, af, this.areas);
+    const sections = sectionsOf(tab, this.hass, af, this._rooms);
     return html`
       ${this._headerBar()}
       <div class="cols">
@@ -624,6 +643,8 @@ export class CasaView extends LitElement {
     .pr-t{display:flex;align-items:baseline;gap:7px;min-width:0;}
     .pr-n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .pr-room{flex:none;font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.65;white-space:nowrap;}
+    select.pr-room{opacity:1;border:1px solid var(--cardBorder);background:rgba(0,0,0,.25);color:inherit;
+      border-radius:7px;padding:1px 4px;font:inherit;font-size:10.5px;max-width:150px;cursor:pointer;}
     .pr-id{font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.6;white-space:nowrap;
       overflow:hidden;text-overflow:ellipsis;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
     .pr ha-icon{--mdc-icon-size:18px;color:var(--dim,rgba(235,235,245,.6));}

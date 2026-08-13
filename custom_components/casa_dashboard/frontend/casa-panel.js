@@ -34,6 +34,7 @@ class CasaPanel extends LitElement {
     _showSettings: { state: true },
     _loaded: { state: true },
     _areas: { state: true },
+    _areaNames: { state: true },
   };
 
   constructor() {
@@ -74,10 +75,11 @@ class CasaPanel extends LitElement {
         this.hass.callWS({ type: "config/entity_registry/list" }),
       ]);
       this._areas = areaMap(areas, devices, entities);
+      this._areaNames = areas.map((a) => a.name).sort((a, b) => a.localeCompare(b));
       console.info(`Casa Dashboard: ${Object.keys(this._areas).length} entities matched to ${areas.length} rooms`);
     } catch (e) {
       console.warn("Casa Dashboard: could not read the area registry, grouping without rooms", e);
-      this._areas = {};
+      this._areas = {}; this._areaNames = [];
     }
   }
 
@@ -136,7 +138,7 @@ class CasaPanel extends LitElement {
             <ha-icon icon="mdi:cog-outline"></ha-icon></button>
         </header>
 
-        <casa-view .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} ?editing=${this._edit} ?narrow=${this.narrow}
+        <casa-view .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}></casa-view>
 
         ${this._showSettings ? this._settingsSheet() : ""}
