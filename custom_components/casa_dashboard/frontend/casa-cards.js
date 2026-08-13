@@ -349,8 +349,10 @@ export const cardStyles = `
   .hl-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(248,222,111,.22),rgba(248,222,111,.06));
     transition:width .25s ease;}
   .hlight.on{border-color:rgba(248,222,111,.32);}
-  .hl-gear{position:absolute;top:12px;right:12px;z-index:3;width:32px;height:32px;border-radius:50%;border:none;
-    background:rgba(10,14,18,.5);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  /* same chip as the control buttons on the taller cards, so the two never read as different UI */
+  .hl-gear{position:absolute;top:12px;right:12px;z-index:3;width:32px;height:32px;border-radius:50%;
+    border:1px solid var(--cardBorder);background:var(--chip);color:var(--text);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .hl-gear ha-icon{--mdc-icon-size:14px;}
   .hl-body{position:relative;z-index:1;display:flex;align-items:center;gap:11px;padding:0 15px;width:100%;}
   .hl-ic{--mdc-icon-size:21px;color:var(--dim);}
