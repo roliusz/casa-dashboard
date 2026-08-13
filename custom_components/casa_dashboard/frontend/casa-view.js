@@ -11,7 +11,7 @@
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
-  CARD_TYPES, CATEGORIES, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, tileRows,
+  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, tileRows,
   bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
@@ -422,7 +422,7 @@ export class CasaView extends LitElement {
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec">
               ${sec.name ? html`<div class="sec-t">${sec.name}${auto ? html`<span class="auto-tag">auto</span>` : ""}</div>` : ""}
-              <div class="grid" data-grid=${si} style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px">
+              <div class="grid" data-grid=${si} style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px">
                 ${sec.cards.map((c, ci) => html`
                   ${this._drag?.si === si && this._drag?.over === ci ? html`<div class="ph"></div>` : ""}
                   ${this._card(si, ci, c, auto, sec.cols)}`)}
@@ -486,7 +486,11 @@ export class CasaView extends LitElement {
     .sec{margin-bottom:22px;}
     .sec-t{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim,rgba(235,235,245,.6));margin:0 2px 10px;}
     .auto-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(94,155,255,.2);color:#9dc4ff;}
-    .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-auto-rows:var(--row);gap:var(--gap);}
+    /* A column is a fixed width, not a share of the screen. Stretching the columns to fill made a
+       four column section 600px per card on a wide monitor; now the section is as wide as its
+       columns need and no wider, and still shrinks below that on a narrow screen. */
+    .grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));grid-auto-rows:var(--row);
+      gap:var(--gap);max-width:calc(var(--cols) * var(--colw) + (var(--cols) - 1) * var(--gap));}
     /* A card stops growing at a readable width — a section with few columns would otherwise
        stretch a two-line card across half the screen. The media hero is exempt: it is meant
        to be wide. */
@@ -495,8 +499,7 @@ export class CasaView extends LitElement {
        none of these designs has anything to put in the space. Tiles are square by definition and
        the media hero is meant to be big, so both are exempt. */
     .card{position:relative;grid-column:span var(--w);grid-row:span var(--h);min-width:0;min-height:0;
-      max-width:var(--card-max,380px);overflow:hidden;border-radius:20px;}
-    .card.t-full{max-width:none;}
+      overflow:hidden;border-radius:20px;}
     .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}

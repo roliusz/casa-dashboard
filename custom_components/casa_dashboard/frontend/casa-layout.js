@@ -16,6 +16,7 @@
 //   light 1 row = 74px · shade/speaker/TV 2 rows = 162px · climate 3 rows = 250px
 export const GRID_ROW = 64;
 export const GRID_GAP = 12;
+export const COL_W = 250;        // px per column — what one card's width actually is
 export const DEFAULT_COLS = 4;   // four cards across a full-width section
 
 export const CARD_TYPES = {
