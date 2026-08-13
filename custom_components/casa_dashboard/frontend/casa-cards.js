@@ -28,7 +28,7 @@ const isTall = (c) => (c.type === "tile" ? tileRows(COL_W, c.w || 1) : (c.h || 2
 
 const tallBody = (icon, name, state, value, label, controls, onMore, text = false) => html`
   <div class="cc-head rclick" @click=${onMore}>
-    <ha-icon class="cc-ic" icon=${icon}></ha-icon>
+    <ha-icon class="spk-ic" icon=${icon}></ha-icon>
     <div class="hl-meta">
       <div class="cc-title">${name}</div>
       ${state ? html`<div class="hl-sub">${state}</div>` : ""}
@@ -267,7 +267,7 @@ function climateCard(ctx, c) {
   const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
   return html`<div class="gcard clim-card ${mode !== "off" ? "on" : ""} ${heating ? "heat" : cooling ? "cool" : ""}">
     <div class="cc-head rclick" @click=${() => ctx.more(e)}>
-      <ha-icon class="cc-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
+      <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
       <div class="hl-meta">
         <div class="cc-title">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
         <div class="hl-sub">${heating ? "Heating" : cooling ? "Cooling"
@@ -434,12 +434,10 @@ export const cardStyles = `
   /* compact head, same shape as the light card: icon, name over status, value on the right */
   .cmp-head{display:flex;align-items:center;gap:11px;min-width:0;cursor:pointer;}
   .cmp-val{margin-left:auto;padding-left:9px;flex:none;font-size:19px;font-weight:600;}
-  .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
-  .cc-head{display:flex;align-items:center;gap:11px;min-width:0;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
+  .clim2.heat .spk-ic,.clim-card.heat .spk-ic{color:var(--orange);}
+  .clim2.cool .spk-ic,.clim-card.cool .spk-ic{color:#7db2ff;}
+  .cc-head{display:flex;align-items:center;gap:11px;min-width:0;color:var(--dim);cursor:pointer;}
   .cc-title{font-size:13.5px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .shade2.on .cc-ic{color:#8ec5ff;} .shade2.closed .cc-ic{color:#7db2ff;} .media-tile.on .cc-ic{color:var(--green);}
-  .cc-ic{--mdc-icon-size:17px;}
-  .clim-card.heat .cc-ic{color:var(--orange);} .clim-card.cool .cc-ic{color:#7db2ff;}
   .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
   .cc-cur{font-size:48px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-cur.text{font-size:21px;font-weight:600;letter-spacing:0;line-height:1.25;white-space:normal;
