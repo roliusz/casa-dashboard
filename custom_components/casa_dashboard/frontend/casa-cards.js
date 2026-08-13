@@ -391,6 +391,8 @@ export const cardStyles = `
      nothing else did, so a playing speaker or an open shade looked identical to an idle one. */
   .media-tile.on,.spk-card.playing{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
   .shade2.on{background:linear-gradient(135deg,rgba(142,197,255,.16),rgba(142,197,255,.05));border-color:rgba(142,197,255,.28);}
+  /* closed is a state worth seeing too, in the deeper blue its icon already uses */
+  .shade2.closed{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.28);}
   .clim2.on,.clim-card.on{background:linear-gradient(135deg,rgba(251,110,29,.10),rgba(251,110,29,.03));border-color:rgba(251,110,29,.20);}
   .clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
   .clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
