@@ -102,9 +102,9 @@ export const typeAllowed = (type, entity) => {
  * needs has nowhere to put the overflow. The resize handle stops here instead.
  */
 export const MIN_ROWS = {
-  climate: 2,        // two rows switches to the compact design; below that nothing fits
-  media_player: 2,   // name, volume, transport
-  cover: 2,          // name, position, the three buttons
+  climate: 1,        // three rows or more switches to the full design with its stepper
+  media_player: 2,   // the speaker card still carries volume and transport
+  cover: 1,
 };
 
 export function minRows(card) {
