@@ -189,6 +189,36 @@ function climateCard(ctx, c) {
   </div>`;
 }
 
+/**
+ * Climate at two rows. The full card wants three — reading, label, stepper — so at two it becomes
+ * the shade card's shape instead of losing something: name, temperature, status, controls.
+ */
+function climateCompact(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard clim2"></div>`;
+  const cur = s.attributes.current_temperature, tgt = s.attributes.temperature, mode = s.state;
+  const heating = (mode === "heat" || mode === "auto") && tgt > cur;
+  const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
+  const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
+  const status = heating ? "Heating" : cooling ? "Cooling"
+    : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1);
+  return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""}">
+    <div class="spk-head rclick" @click=${() => ctx.more(e)}>
+      <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
+      <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
+    </div>
+    <div class="c2-mid">
+      <div class="spk-level sm">${cur != null ? cur + "\u00b0" : "\u2013"}</div>
+      <div class="c2-state">${status}</div>
+    </div>
+    <div class="spk-btns c2-btns">
+      <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
+      <div class="c2-tgt">${tgt != null ? tgt + "\u00b0" : "\u2013"}</div>
+      <button @click=${() => setT((tgt ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+    </div>
+  </div>`;
+}
+
 /* ----------------------------------------------------------------- plain */
 function plainCard(ctx, c) {
   const e = c.entity, s = st(ctx, e), on = isOn(ctx, e);
@@ -215,7 +245,7 @@ export function renderCard(ctx, c) {
   if (c.type === "full") return fullCard(ctx, c);
   if (d === "light") return lightCard(ctx, c);
   if (d === "cover") return shadeCard(ctx, c);
-  if (d === "climate") return climateCard(ctx, c);
+  if (d === "climate") return (c.h || 3) <= 2 ? climateCompact(ctx, c) : climateCard(ctx, c);
   if (d === "scene" || d === "script") return sceneCard(ctx, c);
   if (d === "media_player") return looksLikeTv(ctx, c.entity) ? tvCard(ctx, c) : speakerCard(ctx, c);
   return plainCard(ctx, c);
@@ -241,7 +271,7 @@ export const cardStyles = `
   .hl-sub{font-size:13px;color:var(--dim);}
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
-  .spk-card,.shade2,.media-tile{padding:20px;justify-content:space-between;}
+  .spk-card,.shade2,.media-tile,.clim2{padding:20px;justify-content:space-between;}
   .spk-head{display:inline-flex;align-items:center;gap:10px;}
   .spk-card .spk-head,.media-tile .spk-head{cursor:pointer;}
   .spk-ic{--mdc-icon-size:25px;color:var(--dim);}
@@ -293,6 +323,11 @@ export const cardStyles = `
   .np-play{--mdc-icon-size:clamp(38px,5vw,64px);color:var(--green);cursor:pointer;}
   /* climate */
   .clim-card{padding:22px;justify-content:space-between;align-items:flex-start;}
+  /* two-row climate */
+  .c2-mid{display:flex;flex-direction:column;min-height:0;}
+  .c2-state{font-size:13px;color:var(--dim);margin-top:1px;}
+  .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
+  .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
   .cc-head{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
   .cc-ic{--mdc-icon-size:20px;}
   .clim-card.heat .cc-ic{color:var(--orange);} .clim-card.cool .cc-ic{color:#7db2ff;}
