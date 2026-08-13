@@ -59,7 +59,15 @@ const fmt = (s) => { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s
 /* ------------------------------------------------------------------ light */
 function lightCard(ctx, c) {
   const e = c.entity, on = isOn(ctx, e), pct = briPct(ctx, e);
-  return html`<div class="gcard hlight ${on ? "on" : ""}" @click=${() => ctx.call("light", "toggle", { entity_id: e })}>
+  // Only a dimmable light gets the brightness row, and only when it has been given the height.
+  const dimmable = (attr(ctx, e, "supported_color_modes") || []).some((m) => m !== "onoff");
+  const dim = dimmable && !readingOnly(c);
+  const step = (ev, d) => {
+    ev.stopPropagation();
+    ctx.call("light", "turn_on", { entity_id: e, brightness_step_pct: d });
+  };
+  return html`<div class="gcard hlight ${on ? "on" : ""} ${dim ? "tall" : ""}"
+      @click=${() => ctx.call("light", "toggle", { entity_id: e })}>
     <div class="hl-fill" style="width:${on ? Math.max(pct, 6) : 0}%"></div>
     <button class="hl-gear" @click=${(ev) => { ev.stopPropagation(); ctx.more(e); }}><ha-icon icon="mdi:tune-variant"></ha-icon></button>
     <div class="hl-body">
@@ -69,6 +77,11 @@ function lightCard(ctx, c) {
         <div class="hl-sub">${on ? pct + "%" : "Off"}</div>
       </div>
     </div>
+    ${dim ? html`<div class="spk-btns">
+      <button @click=${(ev) => step(ev, -10)}><ha-icon icon="mdi:minus"></ha-icon></button>
+      <div class="c2-tgt">${on ? pct + "%" : "Off"}</div>
+      <button @click=${(ev) => step(ev, 10)}><ha-icon icon="mdi:plus"></ha-icon></button>
+    </div>` : ""}
   </div>`;
 }
 
@@ -313,6 +326,10 @@ export const cardStyles = `
     overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0;height:100%;}
   /* light */
   .hlight{flex-direction:row;align-items:center;cursor:pointer;}
+  /* with the brightness row the card becomes a column, like the shade */
+  .hlight.tall{flex-direction:column;align-items:stretch;justify-content:space-between;padding:15px;}
+  .hlight.tall .hl-body{padding:0;}
+  .hlight.tall .spk-btns{position:relative;z-index:2;}
   .hl-fill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,rgba(248,222,111,.22),rgba(248,222,111,.06));
     transition:width .25s ease;}
   .hlight.on{border-color:rgba(248,222,111,.32);}

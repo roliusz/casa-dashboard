@@ -2,9 +2,9 @@
 const st = (id, state, attrs = {}) => [id, { entity_id: id, state, attributes: attrs }];
 
 export const DEMO_STATES = Object.fromEntries([
-  st("light.kitchen", "on", { friendly_name: "Kitchen", brightness: 180 }),
-  st("light.living_room", "off", { friendly_name: "Living Room" }),
-  st("light.hallway", "on", { friendly_name: "Hallway", brightness: 60 }),
+  st("light.kitchen", "on", { friendly_name: "Kitchen", brightness: 180, supported_color_modes: ["brightness"] }),
+  st("light.living_room", "off", { friendly_name: "Living Room", supported_color_modes: ["brightness"] }),
+  st("light.hallway", "on", { friendly_name: "Hallway", brightness: 60, supported_color_modes: ["onoff"] }),
 
   st("climate.living_room", "heat", {
     friendly_name: "Living Room", current_temperature: 21.4, temperature: 20,
