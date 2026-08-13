@@ -18,6 +18,9 @@
 const V = new URL(import.meta.url).search;
 const { html } = await import(`./lit-all.min.js${V}`);
 
+/** A one-row card is a reading only — every taller card, and every tile, keeps its controls. */
+const readingOnly = (c) => (c.h || 2) <= 1 && c.type !== "tile";
+
 const st = (ctx, e) => ctx.hass?.states?.[e];
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
 const isOn = (ctx, e) => {
@@ -79,7 +82,15 @@ function speakerCard(ctx, c) {
 function tvCard(ctx, c) {
   const e = c.entity, s = st(ctx, e), a = s?.attributes || {};
   const on = s && !["off", "unavailable", "unknown", "standby"].includes(s.state);
-  return html`<div class="gcard media-tile ${on ? "on" : ""}">
+  const playing = on && s.state === "playing";
+  const dur = a.media_duration;
+  const seek = (d) => {
+    if (!dur) return;
+    let at = a.media_position || 0;
+    if (playing && a.media_position_updated_at) at += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
+    ctx.call("media_player", "media_seek", { entity_id: e, seek_position: Math.max(0, Math.min(dur, at + d)) });
+  };
+  return html`<div class="gcard media-tile ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="spk-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${c.icon || "mdi:television"}></ha-icon>
       <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "TV"}</div>
@@ -88,6 +99,12 @@ function tvCard(ctx, c) {
       <div class="tv-app">${on ? (a.app_name || a.source || "On") : "Off"}</div>
       <div class="tv-title">${on ? (a.media_title || "") : ""}</div>
     </div>
+    ${readingOnly(c) ? "" : html`<div class="spk-btns">
+      <button ?disabled=${!dur} @click=${() => seek(-10)}><ha-icon icon="mdi:rewind-10"></ha-icon></button>
+      <button @click=${() => ctx.call("media_player", "media_play_pause", { entity_id: e })}>
+        <ha-icon icon=${playing ? "mdi:pause" : "mdi:play"}></ha-icon></button>
+      <button ?disabled=${!dur} @click=${() => seek(10)}><ha-icon icon="mdi:fast-forward-10"></ha-icon></button>
+    </div>`}
   </div>`;
 }
 
@@ -97,7 +114,7 @@ function shadeCard(ctx, c) {
   if (!s) return html`<div class="gcard shade2"></div>`;
   const pos = s.attributes.current_position, open = s.state === "open";
   const closed = s.state === "closed" || pos === 0;
-  return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
+  return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
       <div class="hl-meta">
@@ -106,6 +123,11 @@ function shadeCard(ctx, c) {
       </div>
       ${pos != null ? html`<div class="cmp-val">${pos}%</div>` : ""}
     </div>
+    ${readingOnly(c) ? "" : html`<div class="spk-btns">
+      <button @click=${() => ctx.call("cover", "open_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-up"></ha-icon></button>
+      <button @click=${() => ctx.call("cover", "stop_cover", { entity_id: e })}><ha-icon icon="mdi:stop"></ha-icon></button>
+      <button @click=${() => ctx.call("cover", "close_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-down"></ha-icon></button>
+    </div>`}
   </div>`;
 }
 
@@ -183,9 +205,10 @@ function climateCompact(ctx, c) {
   const cur = s.attributes.current_temperature, tgt = s.attributes.temperature, mode = s.state;
   const heating = (mode === "heat" || mode === "auto") && tgt > cur;
   const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
+  const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
   const status = heating ? "Heating" : cooling ? "Cooling"
     : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1);
-  return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""}">
+  return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
       <div class="hl-meta">
@@ -194,6 +217,11 @@ function climateCompact(ctx, c) {
       </div>
       <div class="cmp-val">${cur != null ? cur + "\u00b0" : "\u2013"}</div>
     </div>
+    ${readingOnly(c) ? "" : html`<div class="spk-btns">
+      <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
+      <div class="c2-tgt">${tgt != null ? tgt + "\u00b0" : "\u2013"}</div>
+      <button @click=${() => setT((tgt ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+    </div>`}
   </div>`;
 }
 
@@ -251,8 +279,9 @@ export const cardStyles = `
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
   .spk-card,.shade2,.media-tile,.clim2{padding:20px;justify-content:space-between;}
-  /* no control row on these — the content centres rather than hugging the top */
-  .shade2,.clim2,.media-tile{justify-content:center;gap:10px;}
+  /* a one-row card has only its head — centre it rather than letting it hug the top */
+  .reading{justify-content:center;gap:10px;}
+  .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
   .spk-head{display:flex;align-items:center;gap:10px;min-width:0;max-width:100%;}
   .spk-card .spk-head,.media-tile .spk-head{cursor:pointer;}
   .spk-ic{--mdc-icon-size:25px;color:var(--dim);flex:none;}
