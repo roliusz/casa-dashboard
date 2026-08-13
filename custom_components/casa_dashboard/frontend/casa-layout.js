@@ -37,7 +37,10 @@ export const CARD_TYPES = {
 export function tileRows(colWidth, w = 1) {
   if (!colWidth) return CARD_TYPES.tile.h;
   const side = colWidth * w + GRID_GAP * (w - 1);
-  return Math.max(1, Math.round((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
+  // Round *up*: a tile is square, so if it reserved fewer rows than it paints it would overhang
+  // its own cell and shove everything below it down — a three-row card would no longer line up
+  // with a two-row and a one-row stacked beside it.
+  return Math.max(1, Math.ceil((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
 }
 
 /** Sidebar pieces a user can add. */

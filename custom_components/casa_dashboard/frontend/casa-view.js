@@ -180,7 +180,7 @@ export class CasaView extends LitElement {
   _card(si, ci, c, auto, cols = 4) {
     if (!this._vis(c)) return "";
     // A square card can't use its stored height: rows are fixed, columns aren't.
-    const rows = c.type === "tile" ? tileRows(this._colw(cols), c.w) : c.h;
+    const rows = c.type === "tile" ? tileRows(this._colw(cols) || COL_W, c.w) : c.h;
     const on = this._isOn(c), t = c.type;
     const dragging = this._drag?.si === si && this._drag?.ci === ci;
     const art = t === "full" ? this._st(c.entity)?.attributes?.entity_picture : null;
@@ -232,7 +232,7 @@ export class CasaView extends LitElement {
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
   }
   /** Rows a card occupies — a tile's height follows its width, so it can't use the stored value. */
-  _rows(c, cols) { return c.type === "tile" ? tileRows(this._colw(cols), c.w) : c.h; }
+  _rows(c, cols) { return c.type === "tile" ? tileRows(this._colw(cols) || COL_W, c.w) : c.h; }
 
   _resize(e, si, ci) {
     e.stopPropagation(); e.preventDefault();
