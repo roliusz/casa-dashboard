@@ -79,21 +79,55 @@ export class CasaView extends LitElement {
     if (!before) return;
     this._flip = null;
     await this.updateComplete;
+    if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
     for (const el of this.renderRoot.querySelectorAll(".card")) {
       if (el.classList.contains("lifted")) continue;          // that one follows the pointer
       const was = before.get(el.dataset.key);
       if (!was) continue;
+      const carry = el._spring;                               // keep the velocity it already had
+      el.style.transform = "";                                // measure where it has actually landed
       const now = el.getBoundingClientRect();
       const dx = was.left - now.left, dy = was.top - now.top;
-      if (!dx && !dy) continue;
-      el.style.transition = "none";
-      el.style.transform = `translate(${dx}px,${dy}px)`;
-      requestAnimationFrame(() => {
-        el.style.transition = "transform .2s cubic-bezier(.2,.7,.3,1)";
-        el.style.transform = "";
-      });
+      if (!dx && !dy && !carry) continue;
+      el._spring = { x: dx, y: dy, vx: carry?.vx || 0, vy: carry?.vy || 0 };
+      this._springs.add(el);
     }
+    if (this._springs.size && !this._springRaf)
+      this._springRaf = requestAnimationFrame(this._springStep);
   }
+
+  /**
+   * A spring, not a fixed-length ease. Interrupting one mid-flight keeps its velocity, which is
+   * what makes a card being dragged past several others read as one continuous motion instead of
+   * a sequence of restarts. Stiffness and damping match the feel of a spring at 350/30.
+   */
+  _springs = new Set();
+  _springRaf = 0;
+  _springLast = 0;
+
+  _springStep = (now) => {
+    const dt = Math.min(0.032, this._springLast ? (now - this._springLast) / 1000 : 0.016);
+    this._springLast = now;
+    const k = 350, c = 30;
+    for (const el of this._springs) {
+      const sp = el._spring;
+      sp.vx += (-k * sp.x - c * sp.vx) * dt;
+      sp.vy += (-k * sp.y - c * sp.vy) * dt;
+      sp.x += sp.vx * dt;
+      sp.y += sp.vy * dt;
+      const settled = Math.abs(sp.x) < 0.3 && Math.abs(sp.y) < 0.3
+        && Math.abs(sp.vx) < 3 && Math.abs(sp.vy) < 3;
+      if (settled) {
+        el.style.transform = "";
+        el._spring = null;
+        this._springs.delete(el);
+      } else {
+        el.style.transform = `translate(${sp.x.toFixed(2)}px,${sp.y.toFixed(2)}px)`;
+      }
+    }
+    this._springRaf = this._springs.size ? requestAnimationFrame(this._springStep) : 0;
+    if (!this._springRaf) this._springLast = 0;
+  };
 
   _emit() {
     this.dispatchEvent(new CustomEvent("layout-changed", { detail: this.layout, bubbles: true, composed: true }));
@@ -732,7 +766,7 @@ export class CasaView extends LitElement {
        under the cursor and there would be nothing to drop onto. */
     :host([editing]) .card{cursor:grab;}
     .card.lifted{z-index:40;pointer-events:none;animation:none;
-      transform:translate(var(--lx,0),var(--ly,0)) scale(1.04);
+      transform:translate(var(--lx,0),var(--ly,0)) scale(1.08);
       filter:drop-shadow(0 22px 34px rgba(0,0,0,.55));cursor:grabbing;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
