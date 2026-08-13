@@ -12,7 +12,7 @@ const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
   CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
-  bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
+  autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newSidebarItem, newTab, placeNear, sectionRows, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
@@ -35,9 +35,11 @@ export class CasaView extends LitElement {
     _drag: { state: true },
     _pick: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
     _q: { state: true },
+    _af: { state: true },       // active filter chip, per auto tab
+    _anim: { state: true },     // flips so the entry animation replays
   };
 
-  constructor() { super(); this._tab = 0; this._q = ""; }
+  constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
 
   // handed to casa-cards so the real cards can act
   get _ctx() {
@@ -178,8 +180,8 @@ export class CasaView extends LitElement {
     const dragging = this._drag?.si === si && this._drag?.ci === ci;
     const art = t === "full" ? this._st(c.entity)?.attributes?.entity_picture : null;
     return html`
-      <div class="card t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
-           data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows}"
+      <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${dragging ? "dragging" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
+           data-ci=${ci} style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}"
            @pointerdown=${(e) => !auto && this._dragStart(e, si, ci)}>
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
@@ -346,7 +348,7 @@ export class CasaView extends LitElement {
         ${t.kind === "auto" ? html`
           <div class="f"><label>Entities (sorted into sections automatically)</label>
             <div class="chosen">${(t.entities || []).map((e, n) => html`
-              <span class="tagx">${e}<button @click=${() => { t.entities.splice(n, 1); if (!t.filter) syncAutoTabs(this.layout, t); this._emit(); }}>✕</button></span>`)}</div>
+              <span class="tagx">${e}<button @click=${() => { t.entities.splice(n, 1); this._emit(); }}>✕</button></span>`)}</div>
             <button class="mini" @click=${() => this._pick = { mode: "auto" }}>+ Choose entities</button>
             <div class="hint">Lights, Climate, Media, Shades, Door locks… each gets its own section.</div></div>` : ""}
         ${this._showChips(t)}${this._condition(t)}`;
@@ -431,7 +433,6 @@ export class CasaView extends LitElement {
                 <button class="mini ${chosen ? "on" : ""}" @click=${() => {
                   tab.entities = tab.entities || [];
                   chosen ? tab.entities.splice(tab.entities.indexOf(id), 1) : tab.entities.push(id);
-                  if (!tab.filter) syncAutoTabs(this.layout, tab);   // the All tab owns the set
                   this._emit();
                 }}>${chosen ? "✓" : "+"}</button>`
             : Object.keys(CARD_TYPES).filter((t) => typeAllowed(t, id)).map((t) => html`
@@ -449,14 +450,23 @@ export class CasaView extends LitElement {
   render() {
     if (!this.hass) return html``;
     const tab = this._cur;
-    const sections = sectionsOf(tab, this.hass);
     const auto = tab.kind === "auto";
+    const cats = auto ? autoCategories(tab) : [];
+    const af = this._af[tab.id] || "";
+    const sections = sectionsOf(tab, this.hass, af);
     return html`
       ${this._headerBar()}
       <div class="cols">
         ${this._sidebar()}
         <main class="main">
           ${this._tabBar()}
+          ${auto && cats.length > 1 ? html`<div class="subtabs">
+            ${[{ key: "", name: "All", icon: "mdi:apps" }, ...cats].map((c) => html`
+              <button class="sub ${af === c.key ? "on" : ""}" @click=${() => {
+                this._af = { ...this._af, [tab.id]: c.key };
+                this._anim = this._anim ^ 1;                 // replay the entry animation
+              }}><ha-icon icon=${c.icon}></ha-icon>${c.name}</button>`)}
+          </div>` : ""}
           <div class="secs" style="--tabcols:${TAB_COLS};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec" style="--span:${sec.cols}">
@@ -553,6 +563,19 @@ export class CasaView extends LitElement {
     /* No overflow clip here: the inner card fills the cell exactly, so clipping would cut off the
        drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
     .card.t-full{overflow:hidden;}
+    .subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 14px;}
+    .sub{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;cursor:pointer;
+      border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);font:inherit;font-size:12.5px;
+      transition:background .2s,color .2s,border-color .2s;}
+    .sub.on{background:#fff;color:#0e1620;border-color:transparent;}
+    .sub ha-icon{--mdc-icon-size:15px;}
+    /* Two identical animations under different names: alternating them restarts the entry
+       stagger when the filter changes, which a single name would not do. */
+    @keyframes cardIn0{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
+    @keyframes cardIn1{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
+    .card.in0{animation:cardIn0 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
+    .card.in1{animation:cardIn1 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
+    @media (prefers-reduced-motion:reduce){ .card.in0,.card.in1{animation:none;} }
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
     .card.dragging{opacity:.35;}

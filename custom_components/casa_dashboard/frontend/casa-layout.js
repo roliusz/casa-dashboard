@@ -197,8 +197,9 @@ export function isVisible(item, narrow, hass) {
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */
-export function autoSections(tab, hass) {
-  const entities = (tab.entities || []).filter((e) => !tab.filter || categoryFor(e).key === tab.filter);
+export function autoSections(tab, hass, filter) {
+  const only = filter || tab.filter;
+  const entities = (tab.entities || []).filter((e) => !only || categoryFor(e).key === only);
 
   const build = (name, id, items) => ({
     id, name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
@@ -213,55 +214,38 @@ export function autoSections(tab, hass) {
     }, []),
   });
 
-  // by room, when Home Assistant knows any
+  // Grouped by room. Anything Home Assistant has no area for — entities outside the registry,
+  // helpers, anything never assigned — falls back to its kind rather than a heap called Other.
   const rooms = new Map();
+  const loose = new Map();
   for (const e of entities) {
-    const room = areaOf(hass, e) || "";
-    if (!rooms.has(room)) rooms.set(room, []);
-    rooms.get(room).push(e);
+    const room = areaOf(hass, e);
+    if (room) {
+      if (!rooms.has(room)) rooms.set(room, []);
+      rooms.get(room).push(e);
+    } else {
+      const cat = categoryFor(e);
+      if (!loose.has(cat.key)) loose.set(cat.key, []);
+      loose.get(cat.key).push(e);
+    }
   }
-  if ([...rooms.keys()].some(Boolean)) {
-    return [...rooms.entries()]
-      .sort(([a], [b]) => (!a ? 1 : !b ? -1 : a.localeCompare(b)))          // unassigned last
-      .map(([room, items]) => build(room || "Other", `auto-room-${room || "other"}`, items));
-  }
-
-  // otherwise by kind, as before
-  const groups = new Map();
-  for (const e of entities) {
-    const cat = categoryFor(e);
-    if (!groups.has(cat.key)) groups.set(cat.key, []);
-    groups.get(cat.key).push(e);
-  }
-  return CATEGORIES.filter((c) => groups.has(c.key)).map((c) => build(c.name, `auto-${c.key}`, groups.get(c.key)));
+  return [
+    ...[...rooms.entries()].sort(([a], [b]) => a.localeCompare(b))
+      .map(([room, items]) => build(room, `auto-room-${room}`, items)),
+    ...CATEGORIES.filter((c) => loose.has(c.key))
+      .map((c) => build(c.name, `auto-${c.key}`, loose.get(c.key))),
+  ];
 }
 
-/**
- * Choosing entities on an auto tab also builds one tab per kind chosen — Lights, Climate, Shades
- * and so on — leaving the source tab as the "All" view. They are regenerated whenever the
- * selection changes, so they are marked with the id of the tab they came from.
- */
-export function autoTabsFor(tab) {
+/** The kinds present in an auto tab's selection — the filter chips shown above it. */
+export function autoCategories(tab) {
   const present = new Set((tab.entities || []).map((e) => categoryFor(e).key));
-  return CATEGORIES.filter((c) => present.has(c.key)).map((c) => ({
-    ...newAutoTab(c.name, c.icon),
-    entities: (tab.entities || []).filter((e) => categoryFor(e).key === c.key),
-    filter: c.key,
-    gen: tab.id,
-  }));
-}
-
-/** Replace the tabs generated from this one, keeping them just after it. */
-export function syncAutoTabs(layout, tab) {
-  const tabs = (layout.tabs || []).filter((t) => t.gen !== tab.id);
-  const at = tabs.indexOf(tab);
-  tabs.splice(at + 1, 0, ...autoTabsFor(tab));
-  layout.tabs = tabs;
-  return layout;
+  return CATEGORIES.filter((c) => present.has(c.key));
 }
 
 /** Sections to render for a tab, whichever kind it is. */
-export const sectionsOf = (tab, hass) => (tab.kind === "auto" ? autoSections(tab, hass) : tab.sections || []);
+export const sectionsOf = (tab, hass, filter) =>
+  (tab.kind === "auto" ? autoSections(tab, hass, filter) : tab.sections || []);
 
 /** Bring a stored layout in line with the current limits — sizes saved before they existed. */
 export function normalizeLayout(layout, rowsOf) {

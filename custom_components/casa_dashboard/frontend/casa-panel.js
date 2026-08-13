@@ -62,10 +62,19 @@ class CasaPanel extends LitElement {
   /** Persist, coalesced so a drag doesn't write once per frame. */
   _save() {
     clearTimeout(this._t);
-    this._t = setTimeout(() => {
-      this.hass?.connection?.sendMessagePromise({
-        type: WS_SET, config: { layout: this._layout, settings: this._settings },
-      }).catch(() => {});
+    this._t = setTimeout(async () => {
+      try {
+        await this.hass?.connection?.sendMessagePromise({
+          type: WS_SET, config: { layout: this._layout, settings: this._settings },
+        });
+        if (this._err) { this._err = false; this.requestUpdate(); }
+      } catch (e) {
+        // A write that fails quietly looks exactly like one that worked — until the next reload,
+        // when the work is gone. Say so instead.
+        console.error("Casa Dashboard: could not save the dashboard", e);
+        this._err = true;
+        this.requestUpdate();
+      }
     }, 500);
   }
 
@@ -97,7 +106,7 @@ class CasaPanel extends LitElement {
         <header class="bar">
           <div class="title">${this._settings.title || "Casa"}</div>
           <div class="grow"></div>
-          ${this._err ? html`<span class="warn" title="The Casa Dashboard integration isn't responding — changes won't be saved">unsaved</span>` : ""}
+          ${this._err ? html`<span class="warn" title="Changes are not being saved — see the browser console">not saving</span>` : ""}
           <button class="round ${this._edit ? "on" : ""}" title=${this._edit ? "Done" : "Edit dashboard"}
             @click=${() => (this._edit = !this._edit)}>
             <ha-icon icon=${this._edit ? "mdi:check" : "mdi:pencil-outline"}></ha-icon></button>
