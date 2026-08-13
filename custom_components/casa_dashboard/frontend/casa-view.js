@@ -550,7 +550,6 @@ export class CasaView extends LitElement {
        the media hero is meant to be big, so both are exempt. */
     .card{position:relative;grid-column:calc(var(--x) + 1) / span var(--w);grid-row:calc(var(--y) + 1) / span var(--h);min-width:0;min-height:0;
       overflow:hidden;border-radius:18px;}
-    .card.t-tile{aspect-ratio:1;height:auto;align-self:start;}
     .edit-veil{position:absolute;inset:0;border-radius:24px;z-index:2;}
     .card.editing{cursor:grab;touch-action:none;}
     .card.dragging{opacity:.35;}

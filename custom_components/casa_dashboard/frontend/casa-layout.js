@@ -37,10 +37,10 @@ export const CARD_TYPES = {
 export function tileRows(colWidth, w = 1) {
   if (!colWidth) return CARD_TYPES.tile.h;
   const side = colWidth * w + GRID_GAP * (w - 1);
-  // Round *up*: a tile is square, so if it reserved fewer rows than it paints it would overhang
-  // its own cell and shove everything below it down — a three-row card would no longer line up
-  // with a two-row and a one-row stacked beside it.
-  return Math.max(1, Math.ceil((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
+  // Nearest whole row: a tile fills the rows it reserves, so every card height composes with
+  // every other. That makes a tile approximately square rather than exactly square — the price
+  // of a three-row card being the same height as a two-row and a one-row stacked beside it.
+  return Math.max(1, Math.round((side + GRID_GAP) / (GRID_ROW + GRID_GAP)));
 }
 
 /** Sidebar pieces a user can add. */

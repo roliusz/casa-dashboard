@@ -26,10 +26,13 @@ const { COL_W, tileRows } = await import(`./casa-layout.js${V}`);
  */
 const isTall = (c) => (c.type === "tile" ? tileRows(COL_W, c.w || 1) : (c.h || 2)) >= 3;
 
-const tallBody = (icon, name, value, label, controls, onMore, text = false) => html`
+const tallBody = (icon, name, state, value, label, controls, onMore, text = false) => html`
   <div class="cc-head rclick" @click=${onMore}>
     <ha-icon class="cc-ic" icon=${icon}></ha-icon>
-    <span class="cc-title">${name}</span>
+    <div class="hl-meta">
+      <div class="cc-title">${name}</div>
+      ${state ? html`<div class="hl-sub">${state}</div>` : ""}
+    </div>
   </div>
   <div class="cc-mid">
     <div class="cc-cur ${text ? "text" : ""}">${value}</div>
@@ -105,7 +108,8 @@ function speakerCard(ctx, c) {
   </div>`;
   if (isTall(c))
     return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
-      ${tallBody(icon, name, muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
+      ${tallBody(icon, name, muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle",
+        muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
     </div>`;
   return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
@@ -141,7 +145,7 @@ function tvCard(ctx, c) {
   </div>`;
   if (isTall(c))
     return html`<div class="gcard media-tile ${on ? "on" : ""}">
-      ${tallBody(c.icon || "mdi:television", tvName,
+      ${tallBody(c.icon || "mdi:television", tvName, on ? "On" : "Off",
         on ? (a.media_title || a.app_name || a.source || "On") : "Off",
         on ? (a.media_title ? (a.app_name || a.source || "") : "") : "",
         transport, () => ctx.more(e), true)}
@@ -178,6 +182,7 @@ function shadeCard(ctx, c) {
   if (isTall(c))
     return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
       ${tallBody(open ? "mdi:blinds-open" : "mdi:blinds", name,
+        s.state[0].toUpperCase() + s.state.slice(1),
         pos != null ? pos + "%" : s.state[0].toUpperCase() + s.state.slice(1),
         pos != null ? "open" : "", btns, () => ctx.more(e))}
     </div>`;
@@ -247,7 +252,11 @@ function climateCard(ctx, c) {
   return html`<div class="gcard clim-card ${heating ? "heat" : cooling ? "cool" : ""}">
     <div class="cc-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="cc-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
-      <span class="cc-title">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</span>
+      <div class="hl-meta">
+        <div class="cc-title">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
+        <div class="hl-sub">${heating ? "Heating" : cooling ? "Cooling"
+          : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1)}</div>
+      </div>
     </div>
     <div class="cc-mid">
       <div class="cc-cur">${cur != null ? cur + "°" : "–"}</div>
@@ -402,7 +411,7 @@ export const cardStyles = `
   .cmp-head{display:flex;align-items:center;gap:11px;min-width:0;cursor:pointer;}
   .cmp-val{margin-left:auto;padding-left:9px;flex:none;font-size:19px;font-weight:600;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
-  .cc-head{display:flex;align-items:center;gap:8px;min-width:0;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
+  .cc-head{display:flex;align-items:center;gap:11px;min-width:0;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
   .cc-title{font-size:13.5px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .shade2.on .cc-ic{color:#8ec5ff;} .shade2.closed .cc-ic{color:#7db2ff;} .media-tile.on .cc-ic{color:var(--green);}
   .cc-ic{--mdc-icon-size:17px;}
