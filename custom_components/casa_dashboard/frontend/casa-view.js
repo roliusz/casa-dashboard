@@ -199,8 +199,8 @@ export class CasaView extends LitElement {
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
         ${this.editing && !auto ? html`
           <button class="pencil" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "card", si, ci }; }}>
-            <ha-icon icon="mdi:pencil"></ha-icon></button>
-          <div class="grip" @pointerdown=${(e) => this._resize(e, si, ci)}></div>` : ""}
+            <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}
+        ${this.editing ? html`<div class="grip" @pointerdown=${(e) => this._resize(e, si, ci)}></div>` : ""}
       </div>`;
   }
 
@@ -265,15 +265,28 @@ export class CasaView extends LitElement {
 
   _resize(e, si, ci) {
     e.stopPropagation(); e.preventDefault();
-    const s = this._cur.sections?.[si], card = s?.cards[ci];
+    const auto = this._cur.kind === "auto";
+    // An auto tab's cards are generated fresh on every render, so a size set here is remembered
+    // against the entity rather than the card object, which would not survive the next render.
+    const s = auto ? this._secs?.[si] : this._cur.sections?.[si];
+    const card = s?.cards[ci];
     if (!card) return;
     const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
     const colW = (grid.getBoundingClientRect().width - GRID_GAP * (s.cols - 1)) / s.cols;
     const x0 = e.clientX, y0 = e.clientY, w0 = card.w, h0 = card.h;
     const move = (ev) => {
-      Object.assign(card, { w: w0 + Math.round((ev.clientX - x0) / (colW + GRID_GAP)),
-                            h: h0 + Math.round((ev.clientY - y0) / (GRID_ROW + GRID_GAP)) });
-      clampCard(card, s.cols); this._emit();
+      const w = w0 + Math.round((ev.clientX - x0) / (colW + GRID_GAP));
+      const h = h0 + Math.round((ev.clientY - y0) / (GRID_ROW + GRID_GAP));
+      if (auto) {
+        const sizes = { ...(this.layout.cardSizes || {}) };
+        sizes[card.entity] = { ...(sizes[card.entity] || {}),
+          w: Math.max(1, Math.min(s.cols, w)), h: Math.max(1, h) };
+        this.layout.cardSizes = sizes;
+      } else {
+        Object.assign(card, { w, h });
+        clampCard(card, s.cols);
+      }
+      this._emit();
     };
     const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
     window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
@@ -496,7 +509,8 @@ export class CasaView extends LitElement {
     const auto = tab.kind === "auto";
     const cats = auto ? autoCategories(tab) : [];
     const af = this._af[tab.id] || "";
-    const all = sectionsOf(tab, this.hass, af, this._rooms, this.layout?.roomNames || []);
+    const all = sectionsOf(tab, this.hass, af, this._rooms, this.layout?.roomNames || [],
+      this.layout?.cardSizes || {});
     const sections = auto && !this.editing ? all.filter((sec) => sec.cards.length) : all;
     this._secs = sections;
     return html`
@@ -514,7 +528,7 @@ export class CasaView extends LitElement {
           </div>` : ""}
           <div class="secs" style="--tabcols:${TAB_COLS};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
-            <div class="sec" style="--span:${sec.cols}">
+            <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si} style="--span:${sec.cols}">
               ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}${auto ? html`<span class="auto-tag">auto</span>` : ""}
                 ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
@@ -616,6 +630,8 @@ export class CasaView extends LitElement {
        drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
     .card.t-full{overflow:hidden;}
     .sec.drop{outline:2px dashed rgba(255,255,255,.35);outline-offset:6px;border-radius:14px;}
+    /* An empty room would be zero pixels tall and impossible to drop onto. */
+    :host([editing]) .sec .grid:empty{min-height:64px;border:1px dashed rgba(255,255,255,.16);border-radius:14px;}
     .subtabs{display:flex;flex-wrap:wrap;gap:8px;margin:-4px 0 14px;}
     .sub{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;cursor:pointer;
       border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);font:inherit;font-size:12.5px;

@@ -215,7 +215,7 @@ export function isVisible(item, narrow, hass) {
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */
-export function autoSections(tab, hass, filter, areas, extraRooms = []) {
+export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = {}) {
   const only = filter || tab.filter;
   const entities = (tab.entities || []).filter((e) => !only || categoryFor(e).key === only);
 
@@ -225,6 +225,10 @@ export function autoSections(tab, hass, filter, areas, extraRooms = []) {
       const cat = categoryFor(e);
       const card = newCard(cat.card, e);
       if (cat.h) card.h = cat.h;
+      const size = sizes[e];                       // a size the user set for this entity
+      if (size?.type) card.type = size.type;
+      if (size?.w) card.w = size.w;
+      if (size?.h) card.h = size.h;
       clampCard(card, DEFAULT_COLS);
       Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
       acc.push(card);
@@ -260,8 +264,8 @@ export function autoCategories(tab) {
 }
 
 /** Sections to render for a tab, whichever kind it is. */
-export const sectionsOf = (tab, hass, filter, areas, extraRooms) =>
-  (tab.kind === "auto" ? autoSections(tab, hass, filter, areas, extraRooms) : tab.sections || []);
+export const sectionsOf = (tab, hass, filter, areas, extraRooms, sizes) =>
+  (tab.kind === "auto" ? autoSections(tab, hass, filter, areas, extraRooms, sizes) : tab.sections || []);
 
 /** Bring a stored layout in line with the current limits — sizes saved before they existed. */
 export function normalizeLayout(layout, rowsOf) {
