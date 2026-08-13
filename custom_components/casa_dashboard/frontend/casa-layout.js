@@ -83,7 +83,11 @@ export const bothShown = () => ({ mobile: true, desktop: true });
 
 export const newCard = (type, entity = "") => {
   const t = CARD_TYPES[type] || CARD_TYPES.small;
-  return { id: uid("c"), type, entity, x: 0, y: 0, w: t.w, h: t.square ? t.w : t.h, show: bothShown() };
+  // A design that needs more room than its type's default gets it — the same height an auto tab
+  // would give it, so a card added by hand matches one generated for you.
+  const cat = entity ? categoryFor(entity) : null;
+  const h = t.square ? t.w : (type === "full" ? t.h : Math.max(t.h, cat?.h || 0));
+  return { id: uid("c"), type, entity, x: 0, y: 0, w: t.w, h, show: bothShown() };
 };
 /** `cols` is the section's width in tab columns *and* the number of card columns inside it. */
 export const newSection = (name = "Section") => ({ id: uid("s"), name, cols: DEFAULT_COLS, cards: [], show: bothShown() });

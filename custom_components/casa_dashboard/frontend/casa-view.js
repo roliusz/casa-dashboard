@@ -199,7 +199,8 @@ export class CasaView extends LitElement {
 
   _dragStart(e, si, ci) {
     if (!this.editing || e.target.closest(".pencil, .grip")) return;
-    const sec = this._cur.sections[si], card = sec.cards[ci];
+    const sec = this._cur.sections?.[si], card = sec?.cards[ci];
+    if (!card) return;
     const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
     if (!grid) return;
     const r = grid.getBoundingClientRect();
@@ -235,7 +236,8 @@ export class CasaView extends LitElement {
 
   _resize(e, si, ci) {
     e.stopPropagation(); e.preventDefault();
-    const s = this._cur.sections[si], card = s.cards[ci];
+    const s = this._cur.sections?.[si], card = s?.cards[ci];
+    if (!card) return;
     const grid = this.renderRoot.querySelector(`[data-grid="${si}"]`);
     const colW = (grid.getBoundingClientRect().width - GRID_GAP * (s.cols - 1)) / s.cols;
     const x0 = e.clientX, y0 = e.clientY, w0 = card.w, h0 = card.h;
@@ -279,7 +281,7 @@ export class CasaView extends LitElement {
     let title = "", body = "", onDelete = null;
 
     if (k === "section") {
-      const sec = this._cur.sections[this._insp.si];
+      const sec = this._cur.sections?.[this._insp.si];
       if (!sec) return "";
       title = "Section";
       onDelete = () => this._removeFrom(this._cur.sections, this._insp.si);
@@ -358,7 +360,7 @@ export class CasaView extends LitElement {
     }
 
     if (k === "card") {
-      const s = this._cur.sections[this._insp.si];
+      const s = this._cur.sections?.[this._insp.si];
       const c = s?.cards[this._insp.ci];
       if (!c) return "";
       const ct = CARD_TYPES[c.type];
@@ -434,7 +436,8 @@ export class CasaView extends LitElement {
                 }}>${chosen ? "✓" : "+"}</button>`
             : Object.keys(CARD_TYPES).filter((t) => typeAllowed(t, id)).map((t) => html`
                 <button class="mini" @click=${() => {
-                  const s = this._cur.sections[si];
+                  const s = this._cur.sections?.[si];
+                  if (!s) return;
                   s.cards.push(clampCard(newCard(t, id), s.cols)); close(); this._emit();
                 }}>${CARD_TYPES[t].label}</button>`)}
         </div>`;
