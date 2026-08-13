@@ -116,7 +116,10 @@ function shadeCard(ctx, c) {
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
       <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Shade"}</div>
     </div>
-    <div class="spk-level sm">${pos != null ? pos + "% open" : s.state[0].toUpperCase() + s.state.slice(1)}</div>
+    <div class="lvl-row">
+      <div class="spk-level sm">${pos != null ? pos + "%" : s.state[0].toUpperCase() + s.state.slice(1)}</div>
+      ${pos != null ? html`<div class="lvl-sub">open</div>` : ""}
+    </div>
     <div class="spk-btns">
       <button @click=${() => ctx.call("cover", "open_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-up"></ha-icon></button>
       <button @click=${() => ctx.call("cover", "stop_cover", { entity_id: e })}><ha-icon icon="mdi:stop"></ha-icon></button>
@@ -207,9 +210,9 @@ function climateCompact(ctx, c) {
       <ha-icon class="spk-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
       <div class="spk-name">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</div>
     </div>
-    <div class="c2-mid">
+    <div class="lvl-row">
       <div class="spk-level sm">${cur != null ? cur + "\u00b0" : "\u2013"}</div>
-      <div class="c2-state">${status}</div>
+      <div class="lvl-sub">${status}</div>
     </div>
     <div class="spk-btns c2-btns">
       <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
@@ -323,9 +326,9 @@ export const cardStyles = `
   .np-play{--mdc-icon-size:clamp(38px,5vw,64px);color:var(--green);cursor:pointer;}
   /* climate */
   .clim-card{padding:22px;justify-content:space-between;align-items:flex-start;}
-  /* two-row climate */
-  .c2-mid{display:flex;align-items:baseline;gap:8px;min-width:0;}
-  .c2-state{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* a reading with its status beside it — climate and shade share this */
+  .lvl-row{display:flex;align-items:baseline;gap:8px;min-width:0;}
+  .lvl-sub{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
   .c2-tgt{flex:0 0 auto;min-width:58px;text-align:center;font-size:20px;font-weight:600;}
   .cc-head{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
