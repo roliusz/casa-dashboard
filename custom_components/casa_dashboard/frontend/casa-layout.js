@@ -177,7 +177,10 @@ export const sectionRows = (section, rowsOf) =>
 export function clampCard(card, cols) {
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;
   card.w = Math.max(t.minW || 1, Math.min(cols, card.w || t.w));
-  card.h = t.square ? card.w : Math.max(minRows(card), Math.min(t.maxH || 6, card.h || t.h));
+  // A tile's height is the rows it actually occupies, not its column span — placing it by the
+  // span stacked tiles on top of each other.
+  card.h = t.square ? tileRows(COL_W, card.w)
+    : Math.max(minRows(card), Math.min(t.maxH || 6, card.h || t.h));
   card.x = Math.max(0, Math.min(cols - card.w, card.x | 0));
   card.y = Math.max(0, card.y | 0);
   return card;
@@ -214,19 +217,8 @@ export function autoSections(tab, hass, filter) {
     }, []),
   });
 
-  // "All" is grouped by kind, so its sections read as the filter chips above it.
-  if (!only) {
-    const kinds = new Map();
-    for (const e of entities) {
-      const key = categoryFor(e).key;
-      if (!kinds.has(key)) kinds.set(key, []);
-      kinds.get(key).push(e);
-    }
-    return CATEGORIES.filter((c) => kinds.has(c.key))
-      .map((c) => build(c.name, `auto-${c.key}`, kinds.get(c.key)));
-  }
-
-  // A single kind is grouped by room instead — that is what the kind is for.
+  // Sections are rooms, always. The chips above already do the sorting by kind, so doing it
+  // again here would just repeat them.
   const rooms = new Map();
   const loose = [];
   for (const e of entities) {
