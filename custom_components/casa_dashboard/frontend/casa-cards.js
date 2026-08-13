@@ -18,6 +18,20 @@
 const V = new URL(import.meta.url).search;
 const { html } = await import(`./lit-all.min.js${V}`);
 
+/** Three rows or more: the name, the reading large in the middle, controls underneath. */
+const isTall = (c) => (c.h || 2) >= 3 && c.type !== "tile";
+
+const tallBody = (icon, name, value, label, controls, onMore) => html`
+  <div class="cc-head rclick" @click=${onMore}>
+    <ha-icon class="cc-ic" icon=${icon}></ha-icon>
+    <span class="cc-title">${name}</span>
+  </div>
+  <div class="cc-mid">
+    <div class="cc-cur">${value}</div>
+    <div class="cc-now">${label}</div>
+  </div>
+  ${controls}`;
+
 /** A one-row card is a reading only — every taller card, and every tile, keeps its controls. */
 const readingOnly = (c) => (c.h || 2) <= 1 && c.type !== "tile";
 
@@ -101,6 +115,19 @@ function tvCard(ctx, c) {
     if (playing && a.media_position_updated_at) at += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
     ctx.call("media_player", "media_seek", { entity_id: e, seek_position: Math.max(0, Math.min(dur, at + d)) });
   };
+  const tvName = c.name || attr(ctx, e, "friendly_name") || "TV";
+  const transport = html`<div class="spk-btns">
+    <button ?disabled=${!dur} @click=${() => seek(-10)}><ha-icon icon="mdi:rewind-10"></ha-icon></button>
+    <button @click=${() => ctx.call("media_player", "media_play_pause", { entity_id: e })}>
+      <ha-icon icon=${playing ? "mdi:pause" : "mdi:play"}></ha-icon></button>
+    <button ?disabled=${!dur} @click=${() => seek(10)}><ha-icon icon="mdi:fast-forward-10"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard media-tile ${on ? "on" : ""}">
+      ${tallBody(c.icon || "mdi:television", tvName,
+        on ? (a.app_name || a.source || "On") : "Off", on ? (a.media_title || "") : "",
+        transport, () => ctx.more(e))}
+    </div>`;
   return html`<div class="gcard media-tile ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${c.icon || "mdi:television"}></ha-icon>
@@ -124,6 +151,18 @@ function shadeCard(ctx, c) {
   if (!s) return html`<div class="gcard shade2"></div>`;
   const pos = s.attributes.current_position, open = s.state === "open";
   const closed = s.state === "closed" || pos === 0;
+  const name = c.name || attr(ctx, e, "friendly_name") || "Shade";
+  const btns = html`<div class="spk-btns">
+    <button @click=${() => ctx.call("cover", "open_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-up"></ha-icon></button>
+    <button @click=${() => ctx.call("cover", "stop_cover", { entity_id: e })}><ha-icon icon="mdi:stop"></ha-icon></button>
+    <button @click=${() => ctx.call("cover", "close_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-down"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
+      ${tallBody(open ? "mdi:blinds-open" : "mdi:blinds", name,
+        pos != null ? pos + "%" : s.state[0].toUpperCase() + s.state.slice(1),
+        pos != null ? "open" : "", btns, () => ctx.more(e))}
+    </div>`;
   return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
@@ -190,12 +229,12 @@ function climateCard(ctx, c) {
   return html`<div class="gcard clim-card ${heating ? "heat" : cooling ? "cool" : ""}">
     <div class="cc-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="cc-ic" icon=${heating ? "mdi:fire" : cooling ? "mdi:snowflake" : "mdi:thermostat"}></ha-icon>
-      <span>${heating ? `Heating · ${cur}° → ${tgt}°` : cooling ? `Cooling · ${cur}° → ${tgt}°`
-        : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1)}</span>
+      <span class="cc-title">${c.name || attr(ctx, e, "friendly_name") || "Climate"}</span>
     </div>
     <div class="cc-mid">
       <div class="cc-cur">${cur != null ? cur + "°" : "–"}</div>
-      <div class="cc-now">${c.name || "Current temperature"}</div>
+      <div class="cc-now">${heating ? "Heating" : cooling ? "Cooling"
+        : mode === "off" ? "Off" : mode[0].toUpperCase() + mode.slice(1)}</div>
     </div>
     <div class="cc-stepper">
       <button @click=${() => setT((tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
@@ -344,13 +383,15 @@ export const cardStyles = `
   .cmp-head{display:flex;align-items:center;gap:14px;min-width:0;cursor:pointer;}
   .cmp-val{margin-left:auto;padding-left:10px;flex:none;font-size:24px;font-weight:600;}
   .clim2.heat .spk-ic{color:var(--orange);} .clim2.cool .spk-ic{color:#7db2ff;}
-  .cc-head{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
+  .cc-head{display:flex;align-items:center;gap:9px;min-width:0;font-size:14px;font-weight:600;color:var(--dim);cursor:pointer;}
+  .cc-title{font-size:16px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .shade2.on .cc-ic{color:#8ec5ff;} .shade2.closed .cc-ic{color:#7db2ff;} .media-tile.on .cc-ic{color:var(--green);}
   .cc-ic{--mdc-icon-size:20px;}
   .clim-card.heat .cc-ic{color:var(--orange);} .clim-card.cool .cc-ic{color:#7db2ff;}
   .clim-card.heat{border-color:rgba(251,110,29,.3);} .clim-card.cool{border-color:rgba(125,178,255,.3);}
   .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
-  .cc-cur{font-size:66px;font-weight:300;letter-spacing:-2px;line-height:1;}
-  .cc-now{font-size:13px;color:var(--dim);margin-top:2px;}
+  .cc-cur{font-size:66px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cc-now{font-size:13px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-stepper{display:flex;align-items:center;gap:12px;width:100%;}
   .cc-stepper button{width:52px;height:52px;border-radius:16px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none;}
