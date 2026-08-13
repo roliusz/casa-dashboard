@@ -19,7 +19,11 @@ const V = new URL(import.meta.url).search;
 const { html } = await import(`./lit-all.min.js${V}`);
 
 /** Three rows or more: the name, the reading large in the middle, controls underneath. */
-const isTall = (c) => (c.h || 2) >= 3 && c.type !== "tile";
+/**
+ * Enough room for the big centred reading. A tile is square, so its height comes from its width:
+ * anything two columns across is far taller than three rows and should use the tall design.
+ */
+const isTall = (c) => (c.type === "tile" ? (c.w || 1) >= 2 : (c.h || 2) >= 3);
 
 const tallBody = (icon, name, value, label, controls, onMore, text = false) => html`
   <div class="cc-head rclick" @click=${onMore}>
@@ -312,7 +316,7 @@ export function renderCard(ctx, c) {
   if (c.type === "full") return fullCard(ctx, c);
   if (d === "light") return lightCard(ctx, c);
   if (d === "cover") return shadeCard(ctx, c);
-  if (d === "climate") return (c.h || 3) <= 2 ? climateCompact(ctx, c) : climateCard(ctx, c);
+  if (d === "climate") return isTall(c) ? climateCard(ctx, c) : climateCompact(ctx, c);
   if (d === "scene" || d === "script") return sceneCard(ctx, c);
   if (d === "media_player") return looksLikeTv(ctx, c.entity) ? tvCard(ctx, c) : speakerCard(ctx, c);
   return plainCard(ctx, c);
