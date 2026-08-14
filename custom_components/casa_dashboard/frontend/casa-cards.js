@@ -434,13 +434,13 @@ export const cardStyles = `
   /* climate */
   .clim-card{padding:16px;justify-content:space-between;align-items:flex-start;}
   /* compact head, same shape as the light card: icon, name over status, value on the right */
-  .cmp-head{display:flex;align-items:center;gap:11px;min-width:0;cursor:pointer;}
+  .cmp-head{display:flex;align-items:center;gap:11px;min-width:0;max-width:100%;width:100%;cursor:pointer;}
   .cmp-val{margin-left:auto;padding-left:9px;flex:none;font-size:19px;font-weight:600;}
   .clim2.heat .spk-ic,.clim-card.heat .spk-ic{color:var(--orange);}
   .clim2.cool .spk-ic,.clim-card.cool .spk-ic{color:#7db2ff;}
-  .cc-head{display:flex;align-items:center;gap:11px;min-width:0;color:var(--dim);cursor:pointer;}
+  .cc-head{display:flex;align-items:center;gap:11px;min-width:0;max-width:100%;width:100%;color:var(--dim);cursor:pointer;}
   .cc-title{font-size:13.5px;font-weight:600;color:var(--text);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .cc-mid{align-self:flex-start;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;}
+  .cc-mid{align-self:stretch;flex:1;min-height:0;min-width:0;display:flex;flex-direction:column;justify-content:center;}
   .cc-cur{font-size:48px;font-weight:300;letter-spacing:-2px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cc-cur.text{font-size:21px;font-weight:600;letter-spacing:0;line-height:1.25;white-space:normal;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
