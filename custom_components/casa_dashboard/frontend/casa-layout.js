@@ -179,7 +179,9 @@ export function slotFree(cards, card, x, y, cols, rowsOf) {
  *
  * `first` is the card being dragged: it keeps the cell it was dropped on and the rest give way.
  */
-export function compactCards(cards, cols, rowsOf = (c) => c.h, first = null) {
+export const cardRows = (c) => (c.type === "tile" ? tileRows(COL_W, c.w || 1) : c.h);
+
+export function compactCards(cards, cols, rowsOf = cardRows, first = null) {
   const hits = (a, ay, b) => {
     const ah = rowsOf(a), bh = rowsOf(b);
     return a.x < b.x + b.w && b.x < a.x + a.w && ay < b.y + bh && b.y < ay + ah;

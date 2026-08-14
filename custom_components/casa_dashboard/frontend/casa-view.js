@@ -329,7 +329,7 @@ export class CasaView extends LitElement {
           dest.cards.push(card);
           idx = dest.cards.length - 1;
           host = target;
-          compactCards(dest.cards, dest.cols);
+          compactCards(dest.cards, dest.cols, (k) => this._rows(k, dest.cols));
           this._emit();
         }
         this._flipAfter().then(() => follow(ev));
@@ -341,7 +341,7 @@ export class CasaView extends LitElement {
       if (!at || (at.x === card.x && at.y === card.y)) { this.requestUpdate(); return; }
       this._flipBefore();
       card.x = at.x; card.y = at.y;
-      compactCards(sec.cards, sec.cols, (k) => k.h, card);
+      compactCards(sec.cards, sec.cols, (k) => this._rows(k, sec.cols), card);
       if (auto) {
         const sizes = { ...(this.layout.cardSizes || {}) };
         for (const k of sec.cards)
