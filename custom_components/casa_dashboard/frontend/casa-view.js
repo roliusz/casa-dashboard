@@ -279,16 +279,29 @@ export class CasaView extends LitElement {
    * tab means changing the entity's room. Sections settle after every move, so a card can be
    * stacked directly under another and the one below simply gives way.
    */
-  _dragCard(e, si, ci, card, auto) {
+  _dragCard(e, si, ci, card0, auto) {
     if (!this.editing || e.target.closest(".pencil")) return;
+    if (auto && this._af[this._cur.id]) return;      // filtered view: a filter shows, it does not arrange
     e.preventDefault();
     const start = e.currentTarget.getBoundingClientRect();
     const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
     const x0 = e.clientX, y0 = e.clientY;
+    const entity = card0.entity;
     let idx = ci, host = si, moved = false;
 
     const secAt = (i) => (auto ? this._secs?.[i] : this._cur.sections?.[i]);
-    const cellOf = (ev, sec, i) => {
+
+    // An auto tab's cards are rebuilt from the entity list on every render, so the object this
+    // drag started with is thrown away the moment anything is saved. Look the card up again each
+    // time instead of holding a reference that quietly goes stale.
+    const live = () => {
+      const sec = secAt(host);
+      if (!sec) return null;
+      if (!auto) return sec.cards.includes(card0) ? card0 : null;
+      return sec.cards.find((k) => k.entity === entity) || null;
+    };
+
+    const cellOf = (ev, sec, i, card) => {
       const grid = this.renderRoot.querySelector(`[data-grid="${i}"]`);
       if (!grid) return null;
       const r = grid.getBoundingClientRect();
@@ -299,6 +312,7 @@ export class CasaView extends LitElement {
         y: Math.max(0, Math.round((ev.clientY - grabY - r.top) / (GRID_ROW + GRID_GAP))),
       };
     };
+
     const follow = (ev) => {
       const el = this.renderRoot.querySelector(`[data-grid="${host}"] [data-ci="${idx}"]`);
       if (!el) { this._lift = { si: host, ci: idx, dx: ev.clientX - x0, dy: ev.clientY - y0 }; return; }
@@ -313,6 +327,9 @@ export class CasaView extends LitElement {
       if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
       moved = true;
       follow(ev);
+      const card = live();
+      if (!card) return;
+
       const overSec = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".sec");
       const target = overSec ? Number(overSec.dataset.si) : host;
       this._roomOver = target !== host ? target : null;
@@ -322,22 +339,23 @@ export class CasaView extends LitElement {
         if (!dest) return;
         this._flipBefore();
         if (auto) {
-          this._setRoom(card.entity, dest.room ?? "");
+          this._setRoom(entity, dest.room ?? "");
+          host = target;
         } else {
           const from = secAt(host);
-          from.cards.splice(idx, 1);
+          from.cards.splice(from.cards.indexOf(card), 1);
           dest.cards.push(card);
-          idx = dest.cards.length - 1;
           host = target;
           compactCards(dest.cards, dest.cols, (k) => this._rows(k, dest.cols));
           this._emit();
         }
+        idx = Math.max(0, (secAt(host)?.cards || []).findIndex((k) => k.entity === entity));
         this._flipAfter().then(() => follow(ev));
         return;
       }
 
       const sec = secAt(host);
-      const at = sec && cellOf(ev, sec, host);
+      const at = sec && cellOf(ev, sec, host, card);
       if (!at || (at.x === card.x && at.y === card.y)) { this.requestUpdate(); return; }
       this._flipBefore();
       card.x = at.x; card.y = at.y;
