@@ -153,7 +153,11 @@ export class CasaView extends LitElement {
   _iconOf(c) { return c.icon || this._st(c.entity)?.attributes?.icon || iconFor(c.entity); }
   _isOn(c) {
     const s = this._st(c.entity);
-    return !!s && !["off", "unavailable", "unknown", "idle", "closed"].includes(s.state);
+    if (!s) return false;
+    // A cover reads the other way round: open is its resting state, closed is the one worth
+    // showing, so a closed blind is the one that lights up.
+    if (String(c.entity).startsWith("cover.")) return s.state === "closed" || s.attributes.current_position === 0;
+    return !["off", "unavailable", "unknown", "idle", "closed"].includes(s.state);
   }
   _sub(c) {
     const s = this._st(c.entity);

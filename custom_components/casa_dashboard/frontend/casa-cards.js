@@ -186,13 +186,13 @@ function shadeCard(ctx, c) {
     <button @click=${() => ctx.call("cover", "close_cover", { entity_id: e })}><ha-icon icon="mdi:chevron-down"></ha-icon></button>
   </div>`;
   if (isTall(c))
-    return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""}">
+    return html`<div class="gcard shade2 ${closed ? "on" : ""}">
       ${tallBody(open ? "mdi:blinds-open" : "mdi:blinds", name,
         cap(s.state),
         pos != null ? pos + "%" : cap(s.state),
         pos != null ? "Position" : "", btns, () => ctx.more(e))}
     </div>`;
-  return html`<div class="gcard shade2 ${open ? "on" : ""} ${closed ? "closed" : ""} ${readingOnly(c) ? "reading" : ""}">
+  return html`<div class="gcard shade2 ${closed ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${open ? "mdi:blinds-open" : "mdi:blinds"}></ha-icon>
       <div class="hl-meta">
@@ -386,13 +386,12 @@ export const cardStyles = `
   .spk-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
   .spk-name{font-size:13.5px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .spk-card.playing .spk-ic{color:var(--green);}
-  .shade2.on .spk-ic{color:#8ec5ff;} .shade2.closed .spk-ic{color:#7db2ff;}
+  .shade2.on .spk-ic,.shade2.on .cc-ic{color:#8ec5ff;}
   /* An active card carries a wash of its own colour and a tinted border — the TV had this and
      nothing else did, so a playing speaker or an open shade looked identical to an idle one. */
   .media-tile.on,.spk-card.playing{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.28);}
   .shade2.on{background:linear-gradient(135deg,rgba(142,197,255,.16),rgba(142,197,255,.05));border-color:rgba(142,197,255,.28);}
   /* closed is a state worth seeing too, in the deeper blue its icon already uses */
-  .shade2.closed{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.28);}
   .clim2.on,.clim-card.on{background:linear-gradient(135deg,rgba(251,110,29,.10),rgba(251,110,29,.03));border-color:rgba(251,110,29,.20);}
   .clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
   .clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
