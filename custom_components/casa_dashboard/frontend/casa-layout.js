@@ -259,9 +259,11 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
       if (size?.w) card.w = size.w;
       if (size?.h) card.h = size.h;
       clampCard(card, DEFAULT_COLS);
-      if (size?.x != null) card.x = size.x;
-      if (size?.y != null) card.y = size.y;
-      if (size?.x == null) Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
+      // Stored positions belong to the unfiltered view. A filter shows a subset, so keeping them
+      // would leave a hole wherever a hidden card used to sit — pack instead.
+      if (!only && size?.x != null) card.x = size.x;
+      if (!only && size?.y != null) card.y = size.y;
+      if (only || size?.x == null) Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
       acc.push(card);
       return acc;
     }, []),
