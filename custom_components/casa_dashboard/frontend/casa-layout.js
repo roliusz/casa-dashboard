@@ -186,13 +186,17 @@ export function compactCards(cards, cols, rowsOf = cardRows, first = null) {
     const ah = rowsOf(a), bh = rowsOf(b);
     return a.x < b.x + b.w && b.x < a.x + a.w && ay < b.y + bh && b.y < ay + ah;
   };
-  const rest = cards.filter((c) => c !== first).sort((a, b) => (a.y - b.y) || (a.x - b.x));
-  const order = first ? [first, ...rest] : rest;
+  // Order by where each card currently sits — that is the arrangement the user can see — with the
+  // card being dragged winning any tie, so dropping it on an occupied cell takes that cell.
+  const order = [...cards].sort((p, q) =>
+    (p.y - q.y) || (p.x - q.x) || (p === first ? -1 : q === first ? 1 : 0));
   const placed = [];
   for (const c of order) {
     c.w = Math.max(1, Math.min(cols, c.w | 0 || 1));
     c.x = Math.max(0, Math.min(cols - c.w, c.x | 0));
-    let y = Math.max(0, c.y | 0);
+    // Gravity: every card falls to the first row that will hold it. Nothing floats, so a card
+    // dropped near the bottom settles under its neighbour rather than leaving rows of empty space.
+    let y = 0;
     while (placed.some((p) => hits(c, y, p))) y++;
     c.y = y;
     placed.push(c);
