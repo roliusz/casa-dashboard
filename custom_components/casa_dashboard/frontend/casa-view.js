@@ -800,6 +800,9 @@ export class CasaView extends LitElement {
     .side{flex:0 0 240px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
+    /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
+       pin it to the item's top corner instead */
+    .sit .mini-pencil{position:absolute;top:4px;right:4px;margin-left:0;}
     .sit.editable{cursor:pointer;}
     .sit.editable:hover{background:rgba(255,255,255,.05);}
     .clock{font-size:44px;font-weight:300;letter-spacing:-1px;line-height:1.05;}
