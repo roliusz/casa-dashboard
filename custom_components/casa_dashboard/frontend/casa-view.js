@@ -869,7 +869,7 @@ export class CasaView extends LitElement {
           <div class="secs" style="--tabcols:${TAB_COLS};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si} style="--span:${sec.cols}">
-              ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}${auto ? html`<span class="auto-tag">auto</span>` : ""}
+              ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}
                 ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
               <div class="grid" data-grid=${si}
@@ -974,7 +974,6 @@ export class CasaView extends LitElement {
       cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;vertical-align:middle;}
     .sec-pen ha-icon{--mdc-icon-size:14px;}
     .sec-t{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim,rgba(235,235,245,.6));margin:0 2px 10px;}
-    .auto-tag{font-size:10px;padding:2px 7px;border-radius:8px;background:rgba(94,155,255,.2);color:#9dc4ff;}
     /* A column is a fixed width, not a share of the screen. Stretching the columns to fill made a
        four column section 600px per card on a wide monitor; now the section is as wide as its
        columns need and no wider, and still shrinks below that on a narrow screen. */

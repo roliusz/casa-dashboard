@@ -22,6 +22,10 @@ export const DEMO_STATES = Object.fromEntries([
   }),
   st("media_player.kitchen", "idle", { friendly_name: "Kitchen Speaker", volume_level: 0.2 }),
 
+  st("lock.front_door", "locked", { friendly_name: "Front Door", device_class: "lock" }),
+  st("lock.back_door", "unlocked", { friendly_name: "Back Door", device_class: "lock" }),
+  st("lock.garage", "jammed", { friendly_name: "Garage Door", device_class: "lock" }),
+
   st("switch.porch", "on", { friendly_name: "Porch" }),
   st("scene.movie_night", "unknown", { friendly_name: "Movie Night" }),
   st("scene.good_morning", "unknown", { friendly_name: "Good Morning" }),
