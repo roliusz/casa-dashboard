@@ -492,7 +492,12 @@ export class CasaView extends LitElement {
       .filter((e) => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.room.toLowerCase().includes(q))
       .sort((a, b) => (a.id.toLowerCase().startsWith(q) ? -1 : 0) - (b.id.toLowerCase().startsWith(q) ? -1 : 0))
       .slice(0, 8);
-    const set = (v) => { this._acq = { ...(this._acq || {}), [key]: v }; this._ac = key; };
+    const set = (v) => {
+      this._acq = { ...(this._acq || {}), [key]: v };
+      this._ac = key;
+      this.updateComplete.then(() =>
+        this.renderRoot.querySelector(".aclist")?.scrollIntoView({ block: "nearest" }));
+    };
     return html`<div class="acwrap">
       <input placeholder="entity id" .value=${value || ""}
         @focus=${(e) => set(e.target.value)}
@@ -519,16 +524,20 @@ export class CasaView extends LitElement {
       this._emit();
     };
     const states = c.entity ? statesFor(this.hass, c.entity) : [];
+    const picked = c.state == null ? [] : Array.isArray(c.state) ? c.state : [c.state];
     return html`<div class="f"><label>Only show when (optional)</label>
       ${this._entityField(c.entity, (v) => put({ entity: v }), `cond:${item.id}`)}
       ${c.entity ? html`
         <div class="chips tight">
           <button class="chip ${!c.state ? "on" : ""}" @click=${() => put({ state: undefined })}>Active</button>
           ${states.map((v) => html`
-            <button class="chip ${c.state === v ? "on" : ""}" @click=${() => put({ state: v })}>${v}</button>`)}
+            <button class="chip ${picked.includes(v) ? "on" : ""}" @click=${() => {
+              const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
+              put({ state: next.length ? next : undefined });
+            }}>${v}</button>`)}
         </div>
-        <div class="hint">${c.state
-          ? `Shown only while it is "${c.state}".`
+        <div class="hint">${picked.length
+          ? `Shown while it is ${picked.map((v) => `"${v}"`).join(" or ")}.`
           : "Shown whenever it is anything other than off, idle, unknown or unavailable."}</div>`
         : html`<div class="hint">Left blank it's always shown.</div>`}
     </div>`;
@@ -834,9 +843,11 @@ export class CasaView extends LitElement {
     ${unsafeCSS(cardStyles)}
     .dim{color:var(--dim,rgba(235,235,245,.6));}
     .acwrap{position:relative;}
-    .aclist{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);max-height:232px;overflow:auto;
-      padding:4px;border-radius:12px;background:rgba(18,24,30,.98);border:1px solid var(--cardBorder);
-      box-shadow:0 16px 36px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:2px;}
+    /* In the sheet's flow, not floating over it: the sheet scrolls, so anything absolutely
+       positioned inside gets clipped at its edge. */
+    .aclist{margin-top:6px;max-height:216px;overflow:auto;padding:4px;border-radius:12px;
+      background:rgba(255,255,255,.045);border:1px solid var(--cardBorder);
+      display:flex;flex-direction:column;gap:2px;}
     .acrow{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;border-radius:8px;
       background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
     .acrow:hover{background:rgba(255,255,255,.08);}

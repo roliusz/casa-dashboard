@@ -288,7 +288,8 @@ export function isVisible(item, narrow, hass) {
   const st = hass?.states?.[c.entity];
   if (!st) return false;
   if (c.notState) return st.state !== c.notState;
-  if (c.state) return st.state === c.state;
+  // `state` may be one state or several — any of them counts as a match.
+  if (c.state) return (Array.isArray(c.state) ? c.state : [c.state]).includes(st.state);
   return !["off", "unavailable", "unknown", "idle"].includes(st.state);   // "is active"
 }
 
