@@ -111,6 +111,40 @@ export function areaMap(areaList, deviceList, entityList) {
   return out;
 }
 
+/**
+ * The states a domain realistically sits in, for the "only show when" picker. Home Assistant does
+ * not publish a domain's possible states, so this is the practical list; the entity's own current
+ * state is always offered alongside, and anything can still be typed by hand.
+ */
+export const DOMAIN_STATES = {
+  light: ["on", "off"],
+  switch: ["on", "off"],
+  input_boolean: ["on", "off"],
+  fan: ["on", "off"],
+  binary_sensor: ["on", "off"],
+  media_player: ["playing", "paused", "idle", "off", "on", "standby", "buffering"],
+  cover: ["open", "closed", "opening", "closing"],
+  climate: ["off", "heat", "cool", "heat_cool", "auto", "dry", "fan_only"],
+  lock: ["locked", "unlocked", "locking", "unlocking", "jammed"],
+  person: ["home", "not_home"],
+  device_tracker: ["home", "not_home"],
+  alarm_control_panel: ["disarmed", "armed_home", "armed_away", "arming", "pending", "triggered"],
+  vacuum: ["cleaning", "docked", "paused", "idle", "returning", "error"],
+  update: ["on", "off"],
+  timer: ["idle", "active", "paused"],
+  weather: ["sunny", "cloudy", "partlycloudy", "rainy", "pouring", "snowy", "fog", "windy"],
+};
+
+/** Every state worth offering for an entity: its domain's list, plus whatever it is right now. */
+export function statesFor(hass, entity) {
+  const st = hass?.states?.[entity];
+  const list = [...(DOMAIN_STATES[String(entity || "").split(".")[0]] || [])];
+  if (st?.state && !list.includes(st.state)) list.unshift(st.state);
+  if (Array.isArray(st?.attributes?.options)) for (const o of st.attributes.options)
+    if (!list.includes(o)) list.push(o);              // select / input_select publish their own
+  return list;
+}
+
 export const categoryFor = (entity) => {
   const d = String(entity || "").split(".")[0];
   return CATEGORIES.find((c) => c.domains.includes(d)) || CATEGORIES[CATEGORIES.length - 1];

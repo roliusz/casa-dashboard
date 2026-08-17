@@ -11,7 +11,8 @@
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
-  CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
+  CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS,
+  areaOf, statesFor, tileRows,
   autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
@@ -42,6 +43,8 @@ export class CasaView extends LitElement {
     _roomOver: { state: true }, // section a card is being dragged onto
     _lift: { state: true },     // the card currently under the pointer
     _sideLift: { state: true }, // the sidebar item currently under the pointer
+    _ac: { state: true },       // which entity field is completing
+    _acq: { state: true },      // what has been typed into it
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -476,12 +479,59 @@ export class CasaView extends LitElement {
         <ha-icon icon="mdi:monitor"></ha-icon> Desktop</button>
     </div><div class="hint">At least one has to stay selected.</div></div>`;
   }
+/**
+   * An entity field that completes as it is typed. Matches on the entity id, its friendly name and
+   * its room, so "kitchen" finds light.spotlights if that is where it lives. Typing something that
+   * matches nothing is still accepted — an entity may not exist yet.
+   */
+  _entityField(value, onPick, key) {
+    const q = (this._acq?.[key] ?? value ?? "").toLowerCase().trim();
+    const open = this._ac === key && q.length > 0;
+    const matches = !open ? [] : Object.keys(this.hass?.states || {})
+      .map((id) => ({ id, name: this._st(id)?.attributes?.friendly_name || "", room: areaOf(this.hass, id, this._rooms) || "" }))
+      .filter((e) => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.room.toLowerCase().includes(q))
+      .sort((a, b) => (a.id.toLowerCase().startsWith(q) ? -1 : 0) - (b.id.toLowerCase().startsWith(q) ? -1 : 0))
+      .slice(0, 8);
+    const set = (v) => { this._acq = { ...(this._acq || {}), [key]: v }; this._ac = key; };
+    return html`<div class="acwrap">
+      <input placeholder="entity id" .value=${value || ""}
+        @focus=${(e) => set(e.target.value)}
+        @input=${(e) => set(e.target.value)}
+        @change=${(e) => { onPick(e.target.value); this._ac = null; }}
+        @blur=${() => setTimeout(() => { if (this._ac === key) this._ac = null; }, 150)}>
+      ${open && matches.length ? html`<div class="aclist">
+        ${matches.map((m) => html`<button class="acrow" @mousedown=${(e) => e.preventDefault()}
+          @click=${() => { onPick(m.id); this._acq = { ...(this._acq || {}), [key]: m.id }; this._ac = null; }}>
+          <ha-icon icon=${iconFor(m.id)}></ha-icon>
+          <span class="acname">${m.name || m.id}</span>
+          ${m.room ? html`<span class="acroom">${m.room}</span>` : ""}
+          <span class="acid">${m.id}</span>
+        </button>`)}
+      </div>` : ""}
+    </div>`;
+  }
+
   _condition(item) {
     const c = item.visibleWhen || {};
+    const put = (patch) => {
+      const next = { ...c, ...patch };
+      item.visibleWhen = next.entity ? next : undefined;
+      this._emit();
+    };
+    const states = c.entity ? statesFor(this.hass, c.entity) : [];
     return html`<div class="f"><label>Only show when (optional)</label>
-      <input placeholder="entity id" .value=${c.entity || ""}
-        @change=${(e) => { item.visibleWhen = e.target.value ? { ...c, entity: e.target.value } : undefined; this._emit(); }}>
-      <div class="hint">Left blank it's always shown. With an entity it appears only while that entity is active.</div></div>`;
+      ${this._entityField(c.entity, (v) => put({ entity: v }), `cond:${item.id}`)}
+      ${c.entity ? html`
+        <div class="chips tight">
+          <button class="chip ${!c.state ? "on" : ""}" @click=${() => put({ state: undefined })}>Active</button>
+          ${states.map((v) => html`
+            <button class="chip ${c.state === v ? "on" : ""}" @click=${() => put({ state: v })}>${v}</button>`)}
+        </div>
+        <div class="hint">${c.state
+          ? `Shown only while it is "${c.state}".`
+          : "Shown whenever it is anything other than off, idle, unknown or unavailable."}</div>`
+        : html`<div class="hint">Left blank it's always shown.</div>`}
+    </div>`;
   }
 
   _inspector() {
@@ -531,7 +581,7 @@ export class CasaView extends LitElement {
             <button class="chip ${p.type === key ? "on" : ""}" @click=${() => this._patch(p, { type: key })}>${v.label}</button>`)}
         </div></div>
         ${PILL_TYPES[p.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
-          <input .value=${p.entity || ""} @change=${(e) => this._patch(p, { entity: e.target.value })}></div>` : ""}
+          ${this._entityField(p.entity, (v) => this._patch(p, { entity: v }), `pill:${p.id}`)}</div>` : ""}
         ${this._showChips(p)}${this._condition(p)}`;
     }
 
@@ -546,7 +596,7 @@ export class CasaView extends LitElement {
             <button class="chip ${it.type === key ? "on" : ""}" @click=${() => this._patch(it, { type: key })}>${v.label}</button>`)}
         </div></div>
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
-          <input .value=${it.entity || ""} @change=${(e) => this._patch(it, { entity: e.target.value })}></div>` : ""}
+          ${this._entityField(it.entity, (v) => this._patch(it, { entity: v }), `side:${it.id}`)}</div>` : ""}
         ${SIDEBAR_TYPES[it.type]?.size != null ? html`
           <div class="f"><label>${it.type === "gap" ? "Height" : "Text size"}</label>
             <div class="stp">
@@ -632,7 +682,8 @@ export class CasaView extends LitElement {
             <button class="mini" ?disabled=${ct?.square || ct?.maxH === 1} @click=${() => patchCard({ h: c.h + 1 })}>+</button></div></div>
         </div>
         ${auto ? html`<div class="hint">${c.entity}</div>` : html`
-          <div class="f"><label>Entity</label><input .value=${c.entity || ""} @change=${(e) => patchCard({ entity: e.target.value })}></div>
+          <div class="f"><label>Entity</label>
+            ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `card:${c.id}`)}</div>
           <div class="f"><label>Name (optional)</label><input .value=${c.name || ""} placeholder=${this._nameOf(c)}
             @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>
           ${this._showChips(c)}${this._condition(c)}`}`;
@@ -782,6 +833,19 @@ export class CasaView extends LitElement {
       color:var(--text);}
     ${unsafeCSS(cardStyles)}
     .dim{color:var(--dim,rgba(235,235,245,.6));}
+    .acwrap{position:relative;}
+    .aclist{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 4px);max-height:232px;overflow:auto;
+      padding:4px;border-radius:12px;background:rgba(18,24,30,.98);border:1px solid var(--cardBorder);
+      box-shadow:0 16px 36px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:2px;}
+    .acrow{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;border-radius:8px;
+      background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
+    .acrow:hover{background:rgba(255,255,255,.08);}
+    .acrow ha-icon{--mdc-icon-size:16px;color:var(--dim,rgba(235,235,245,.6));flex:none;}
+    .acname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .acroom{font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.7;flex:none;}
+    .acid{margin-left:auto;font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.6;flex:none;
+      font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+    .chips.tight{margin-top:8px;}
     .hint{font-size:11px;color:var(--dim,rgba(235,235,245,.5));margin-top:5px;}
     .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-bottom:18px;}
     .pill{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 15px;border-radius:22px;
