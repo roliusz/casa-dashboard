@@ -47,10 +47,20 @@ export function tileRows(colWidth, w = 1) {
 
 /** Sidebar pieces a user can add. */
 export const SIDEBAR_TYPES = {
-  clock:    { label: "Clock",    icon: "mdi:clock-outline" },
-  date:     { label: "Date",     icon: "mdi:calendar" },
-  greeting: { label: "Greeting", icon: "mdi:hand-wave" },
+  clock:    { label: "Clock",    icon: "mdi:clock-outline", size: 44 },
+  date:     { label: "Date",     icon: "mdi:calendar", size: 13 },
+  greeting: { label: "Greeting", icon: "mdi:hand-wave", size: 26 },
   sensor:   { label: "Sensor pill", icon: "mdi:gauge", needsEntity: true },
+  gap:      { label: "Gap",      icon: "mdi:arrow-expand-vertical", size: 24 },
+};
+
+/** Type faces offered for the clock — families every browser has, so nothing is downloaded. */
+export const FONTS = {
+  "":         { label: "Dashboard", stack: "inherit" },
+  system:     { label: "System",    stack: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" },
+  rounded:    { label: "Rounded",   stack: "ui-rounded, 'SF Pro Rounded', 'Nunito', system-ui, sans-serif" },
+  serif:      { label: "Serif",     stack: "ui-serif, Georgia, 'Times New Roman', serif" },
+  mono:       { label: "Mono",      stack: "ui-monospace, SFMono-Regular, Menlo, monospace" },
 };
 
 /** Header pills. */
@@ -127,7 +137,8 @@ export const newTab = (name = "Tab", icon = "mdi:view-dashboard") =>
 export const newAutoTab = (name = "All", icon = "mdi:apps") =>
   ({ id: uid("t"), name, icon, kind: "auto", show: bothShown(), entities: [] });
 export const newPill = (type = "sensor", entity = "") => ({ id: uid("p"), type, entity, show: bothShown() });
-export const newSidebarItem = (type = "clock", entity = "") => ({ id: uid("b"), type, entity, show: bothShown() });
+export const newSidebarItem = (type = "clock", entity = "") =>
+  ({ id: uid("b"), type, entity, size: SIDEBAR_TYPES[type]?.size, show: bothShown() });
 
 export const typeAllowed = (type, entity) => {
   const t = CARD_TYPES[type];

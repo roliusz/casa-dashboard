@@ -11,7 +11,7 @@
 const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
-  CARD_TYPES, CATEGORIES, COL_W, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
+  CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS, areaOf, tileRows,
   autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
@@ -216,15 +216,25 @@ export class CasaView extends LitElement {
       ${items.map((it, i) => this._vis(it) ? html`
         <div class="sit ${this.editing ? "editable" : ""} ${!isVisible(it, this.narrow, this.hass) ? "ghost" : ""}"
              @click=${() => this.editing && (this._insp = { kind: "side", i })}>
-          ${it.type === "clock" ? html`<div class="clock">${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>`
-            : it.type === "date" ? html`<div class="date">${now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>`
-            : it.type === "greeting" ? html`<div class="greet">${this._greeting()}</div>`
+          ${it.type === "clock" ? html`<div class="clock" style=${this._sideStyle(it)}>${
+              now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(it.hour12 == null ? {} : { hour12: !!it.hour12 }) })}</div>`
+            : it.type === "date" ? html`<div class="date" style=${this._sideStyle(it)}>${
+              now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>`
+            : it.type === "greeting" ? html`<div class="greet" style=${this._sideStyle(it)}>${this._greeting()}</div>`
+            : it.type === "gap" ? html`<div class="sgap" style="height:${it.size ?? 24}px"></div>`
             : html`<div class="spill"><ha-icon icon=${this._iconOf(it)}></ha-icon><span>${this._sub(it)}</span></div>`}
           ${this.editing ? html`<ha-icon class="mini-pencil" icon="mdi:pencil"></ha-icon>` : ""}
         </div>` : "")}
       ${this.editing ? html`<button class="mini add" @click=${() => this._pick = { mode: "side" }}>+ Add to sidebar</button>` : ""}
     </aside>`;
   }
+  /** Font size and family for a sidebar item, when it has been given either. */
+  _sideStyle(it) {
+    const size = it.size ?? SIDEBAR_TYPES[it.type]?.size;
+    const font = FONTS[it.font || ""]?.stack;
+    return `${size ? `font-size:${size}px;` : ""}${font && font !== "inherit" ? `font-family:${font};` : ""}`;
+  }
+
   _greeting() {
     const h = new Date().getHours();
     return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
@@ -480,7 +490,25 @@ export class CasaView extends LitElement {
         </div></div>
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
           <input .value=${it.entity || ""} @change=${(e) => this._patch(it, { entity: e.target.value })}></div>` : ""}
-        ${this._showChips(it)}${this._condition(it)}`;
+        ${SIDEBAR_TYPES[it.type]?.size != null ? html`
+          <div class="f"><label>${it.type === "gap" ? "Height" : "Text size"}</label>
+            <div class="stp">
+              <button class="mini" @click=${() => this._patch(it, { size: Math.max(4, (it.size ?? SIDEBAR_TYPES[it.type].size) - 2) })}>−</button>
+              <span>${it.size ?? SIDEBAR_TYPES[it.type].size}px</span>
+              <button class="mini" @click=${() => this._patch(it, { size: Math.min(160, (it.size ?? SIDEBAR_TYPES[it.type].size) + 2) })}>+</button>
+            </div></div>` : ""}
+        ${it.type === "clock" ? html`
+          <div class="f"><label>Type face</label><div class="chips">
+            ${Object.entries(FONTS).map(([key, v]) => html`
+              <button class="chip ${(it.font || "") === key ? "on" : ""}" style=${v.stack === "inherit" ? "" : `font-family:${v.stack}`}
+                @click=${() => this._patch(it, { font: key || undefined })}>${v.label}</button>`)}
+          </div></div>
+          <div class="f"><label>Clock</label><div class="chips">
+            <button class="chip ${it.hour12 == null ? "on" : ""}" @click=${() => this._patch(it, { hour12: undefined })}>Regional</button>
+            <button class="chip ${it.hour12 === false ? "on" : ""}" @click=${() => this._patch(it, { hour12: false })}>24 hour</button>
+            <button class="chip ${it.hour12 === true ? "on" : ""}" @click=${() => this._patch(it, { hour12: true })}>12 hour</button>
+          </div></div>` : ""}
+        ${it.type === "gap" ? "" : html`${this._showChips(it)}${this._condition(it)}`}`;
     }
 
     if (k === "tab") {
@@ -713,6 +741,7 @@ export class CasaView extends LitElement {
     .mini-pencil{--mdc-icon-size:13px;margin-left:4px;opacity:.7;}
     .cols{display:flex;gap:26px;align-items:flex-start;}
     .side{flex:0 0 240px;display:flex;flex-direction:column;gap:6px;}
+    .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     .sit.editable{cursor:pointer;}
     .sit.editable:hover{background:rgba(255,255,255,.05);}
