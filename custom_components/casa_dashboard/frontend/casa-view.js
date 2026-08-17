@@ -41,6 +41,7 @@ export class CasaView extends LitElement {
     _anim: { state: true },     // flips so the entry animation replays
     _roomOver: { state: true }, // section a card is being dragged onto
     _lift: { state: true },     // the card currently under the pointer
+    _sideLift: { state: true }, // the sidebar item currently under the pointer
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -70,7 +71,7 @@ export class CasaView extends LitElement {
    */
   _flipBefore() {
     this._flip = new Map();
-    for (const el of this.renderRoot.querySelectorAll(".card"))
+    for (const el of this.renderRoot.querySelectorAll(".card, .sit"))
       this._flip.set(el.dataset.key, el.getBoundingClientRect());
   }
 
@@ -80,7 +81,7 @@ export class CasaView extends LitElement {
     this._flip = null;
     await this.updateComplete;
     if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-    for (const el of this.renderRoot.querySelectorAll(".card")) {
+    for (const el of this.renderRoot.querySelectorAll(".card, .sit")) {
       if (el.classList.contains("lifted")) continue;          // that one follows the pointer
       const was = before.get(el.dataset.key);
       if (!was) continue;
@@ -214,8 +215,11 @@ export class CasaView extends LitElement {
     const now = new Date();
     return html`<aside class="side">
       ${items.map((it, i) => this._vis(it) ? html`
-        <div class="sit ${this.editing ? "editable" : ""} ${!isVisible(it, this.narrow, this.hass) ? "ghost" : ""}"
-             @click=${() => this.editing && (this._insp = { kind: "side", i })}>
+        <div class="sit ${this.editing ? "editable" : ""} ${!isVisible(it, this.narrow, this.hass) ? "ghost" : ""} ${this._sideLift?.i === i ? "lifted" : ""}"
+             data-i=${i} data-key=${it.id}
+             style=${this._sideLift?.i === i ? `--lx:${this._sideLift.dx}px;--ly:${this._sideLift.dy}px` : ""}
+             @pointerdown=${(e) => this._dragSide(e, i)}
+             @click=${() => { if (this._sideMoved) { this._sideMoved = false; return; } this.editing && (this._insp = { kind: "side", i }); }}>
           ${it.type === "clock" ? html`<div class="clock" style=${this._sideStyle(it)}>${
               now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(it.hour12 == null ? {} : { hour12: !!it.hour12 }) })}</div>`
             : it.type === "date" ? html`<div class="date" style=${this._sideStyle(it)}>${
@@ -228,6 +232,59 @@ export class CasaView extends LitElement {
       ${this.editing ? html`<button class="mini add" @click=${() => this._pick = { mode: "side" }}>+ Add to sidebar</button>` : ""}
     </aside>`;
   }
+  /**
+   * Sidebar items reorder by dragging, the same way cards do: the item lifts and follows the
+   * pointer while the ones it passes spring out of its way.
+   */
+  _dragSide(e, i) {
+    if (!this.editing || e.target.closest(".mini-pencil")) return;
+    e.preventDefault();
+    const items = this._l.sidebar.items;
+    const item = items[i];
+    if (!item) return;
+    const start = e.currentTarget.getBoundingClientRect();
+    const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
+    const x0 = e.clientX, y0 = e.clientY;
+    let idx = i, moved = false;
+
+    const follow = (ev) => {
+      const el = this.renderRoot.querySelector(`.sit[data-i="${idx}"]`);
+      if (!el) return;
+      const held = el.style.transform;
+      el.style.transform = "none";
+      const r = el.getBoundingClientRect();
+      el.style.transform = held;
+      this._sideLift = { i: idx, dx: ev.clientX - r.left - grabX, dy: ev.clientY - r.top - grabY };
+    };
+
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      moved = true; this._sideMoved = true;
+      follow(ev);
+      const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".sit");
+      const to = over ? Number(over.dataset.i) : -1;
+      if (to >= 0 && to !== idx) {
+        this._flipBefore();
+        items.splice(idx, 1);
+        items.splice(to, 0, item);
+        idx = to;
+        this._emit();
+        this._flipAfter().then(() => follow(ev));
+      } else {
+        this.requestUpdate();
+      }
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      this._sideLift = null;
+      if (moved) this._emit(); else this.requestUpdate();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
   /** Font size and family for a sidebar item, when it has been given either. */
   _sideStyle(it) {
     const size = it.size ?? SIDEBAR_TYPES[it.type]?.size;
@@ -808,7 +865,10 @@ export class CasaView extends LitElement {
        The lifted card must not swallow the hit-test either, or it would always be the element
        under the cursor and there would be nothing to drop onto. */
     /* Dragging a card must not paint a text selection across everything it passes over. */
-    :host([editing]) .card{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+    :host([editing]) .card,:host([editing]) .sit{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+    .sit.lifted{z-index:40;position:relative;pointer-events:none;
+      transform:translate(var(--lx,0),var(--ly,0)) scale(1.04);
+      filter:drop-shadow(0 18px 30px rgba(0,0,0,.5));cursor:grabbing;}
     :host([editing]) .card *{user-select:none;-webkit-user-select:none;}
     .card.lifted{z-index:40;pointer-events:none;animation:none;
       transform:translate(var(--lx,0),var(--ly,0)) scale(1.08);
