@@ -636,10 +636,10 @@ export class CasaView extends LitElement {
     const sections = auto && !this.editing ? all.filter((sec) => sec.cards.length) : all;
     this._secs = sections;
     return html`
-      ${this._headerBar()}
       <div class="cols">
         ${this._sidebar()}
         <main class="main">
+          ${this._headerBar()}
           ${this._tabBar()}
           ${auto && cats.length > 1 ? html`<div class="subtabs">
             ${[{ key: "", name: "All", icon: "mdi:apps" }, ...cats].map((c) => html`
