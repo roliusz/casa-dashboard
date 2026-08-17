@@ -12,7 +12,7 @@ const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
   CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS,
-  areaOf, statesFor, tileRows,
+  areaOf, cardRows, statesFor, tileRows,
   autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
@@ -479,6 +479,7 @@ export class CasaView extends LitElement {
         } else {
           const from = secAt(host);
           from.cards.splice(from.cards.indexOf(card), 1);
+          card.y = Math.max(0, ...dest.cards.map((k) => (k.y | 0) + this._rows(k, dest.cols)));
           dest.cards.push(card);
           host = target;
           compactCards(dest.cards, dest.cols, (k) => this._rows(k, dest.cols));
@@ -835,7 +836,12 @@ export class CasaView extends LitElement {
                 <button class="mini" @click=${() => {
                   const s = this._cur.sections?.[si];
                   if (!s) return;
-                  s.cards.push(clampCard(newCard(t, id), s.cols)); close(); this._emit();
+                  const card = clampCard(newCard(t, id), s.cols);
+                  card.x = 0;
+                  card.y = Math.max(0, ...s.cards.map((k) => (k.y | 0) + this._rows(k, s.cols)));
+                  s.cards.push(card);
+                  compactCards(s.cards, s.cols, (k) => this._rows(k, s.cols));
+                  close(); this._emit();
                 }}>${CARD_TYPES[t].label}</button>`)}
         </div>`;
       })}</div>
