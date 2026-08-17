@@ -127,19 +127,13 @@ class CasaPanel extends LitElement {
     const wp = this._settings.wallpaper;
     return html`
       <div class="shell" style=${wp ? `background-image:url('${wp}')` : ""}>
-        <header class="bar">
-          <div class="title">${this._settings.title || "Casa"}</div>
-          <div class="grow"></div>
-          ${this._err ? html`<span class="warn" title="Changes are not being saved — see the browser console">not saving</span>` : ""}
-          <button class="round ${this._edit ? "on" : ""}" title=${this._edit ? "Done" : "Edit dashboard"}
-            @click=${() => (this._edit = !this._edit)}>
-            <ha-icon icon=${this._edit ? "mdi:check" : "mdi:pencil-outline"}></ha-icon></button>
-          <button class="round" title="Settings" @click=${() => (this._showSettings = true)}>
-            <ha-icon icon="mdi:cog-outline"></ha-icon></button>
-        </header>
+        ${this._err ? html`<div class="warnbar"><span class="warn"
+          title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
         <casa-view .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
-          @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}></casa-view>
+          @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}
+          @toggle-edit=${() => (this._edit = !this._edit)}
+          @open-settings=${() => (this._showSettings = true)}></casa-view>
 
         ${this._showSettings ? this._settingsSheet() : ""}
       </div>`;
@@ -155,18 +149,11 @@ class CasaPanel extends LitElement {
       --green:#62D621;--orange:#FB6E1D;--yellow:#F8DE6F;
       font-family:Outfit,-apple-system,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;
       color:var(--text);}
-    .shell{min-height:100%;box-sizing:border-box;padding:16px 22px 40px;overflow-y:auto;
+    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;
       background:#0b1014 radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014) center/cover no-repeat fixed;}
     .loading{padding:40px;color:var(--dim);font-size:14px;}
-    .bar{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-    .title{font-size:20px;font-weight:600;}
-    .grow{flex:1;}
+    .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
     .warn{font-size:11.5px;color:#ffcf8a;background:rgba(255,180,80,.14);padding:5px 10px;border-radius:9px;}
-    .round{width:44px;height:44px;border-radius:50%;flex:none;cursor:pointer;
-      border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);
-      display:flex;align-items:center;justify-content:center;}
-    .round.on{background:#fff;color:#0e1620;border-color:transparent;}
-    .round ha-icon{--mdc-icon-size:21px;}
     .scrim{position:fixed;inset:0;z-index:600;background:rgba(6,9,12,.72);backdrop-filter:blur(14px);
       display:flex;align-items:center;justify-content:center;padding:18px;}
     .sheet{width:min(94vw,480px);border-radius:24px;padding:18px;background:rgba(20,25,31,.97);

@@ -187,6 +187,12 @@ export class CasaView extends LitElement {
         </div>` : "")}
       ${this.editing ? html`<button class="pill add" title="Add a pill"
         @click=${() => this._pick = { mode: "pill" }}><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}
+      <button class="pill round ${this.editing ? "on" : ""}" title=${this.editing ? "Done" : "Edit dashboard"}
+        @click=${() => this.dispatchEvent(new CustomEvent("toggle-edit", { bubbles: true, composed: true }))}>
+        <ha-icon icon=${this.editing ? "mdi:check" : "mdi:pencil-outline"}></ha-icon></button>
+      <button class="pill round" title="Settings"
+        @click=${() => this.dispatchEvent(new CustomEvent("open-settings", { bubbles: true, composed: true }))}>
+        <ha-icon icon="mdi:cog-outline"></ha-icon></button>
     </div>`;
   }
   _pillBody(p) {
@@ -697,6 +703,10 @@ export class CasaView extends LitElement {
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
       font-size:14px;font-weight:500;color:inherit;}
     .pill.editable{cursor:pointer;}
+    /* the edit and settings buttons are pills too, just round ones */
+    .pill.round{width:38px;padding:0;justify-content:center;flex:none;}
+    .pill.round.on{background:#fff;color:#0e1620;border-color:transparent;}
+    .pill.round.on ha-icon{color:#0e1620;}
     .pill.add{cursor:pointer;padding:0 14px;}
     .pill ha-icon{--mdc-icon-size:19px;}
     .ghost{opacity:.4;outline:1px dashed rgba(255,255,255,.3);}
