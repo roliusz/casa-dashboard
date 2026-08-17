@@ -43,6 +43,7 @@ export class CasaView extends LitElement {
     _roomOver: { state: true }, // section a card is being dragged onto
     _lift: { state: true },     // the card currently under the pointer
     _sideLift: { state: true }, // the sidebar item currently under the pointer
+    _tabLift: { state: true },  // the tab currently under the pointer
     _ac: { state: true },       // which entity field is completing
     _acq: { state: true },      // what has been typed into it
   };
@@ -74,7 +75,7 @@ export class CasaView extends LitElement {
    */
   _flipBefore() {
     this._flip = new Map();
-    for (const el of this.renderRoot.querySelectorAll(".card, .sit"))
+    for (const el of this.renderRoot.querySelectorAll(".card, .sit, .tab"))
       this._flip.set(el.dataset.key, el.getBoundingClientRect());
   }
 
@@ -84,7 +85,7 @@ export class CasaView extends LitElement {
     this._flip = null;
     await this.updateComplete;
     if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
-    for (const el of this.renderRoot.querySelectorAll(".card, .sit")) {
+    for (const el of this.renderRoot.querySelectorAll(".card, .sit, .tab")) {
       if (el.classList.contains("lifted")) continue;          // that one follows the pointer
       const was = before.get(el.dataset.key);
       if (!was) continue;
@@ -235,6 +236,57 @@ export class CasaView extends LitElement {
       ${this.editing ? html`<button class="mini add" @click=${() => this._pick = { mode: "side" }}>+ Add to sidebar</button>` : ""}
     </aside>`;
   }
+  /** Tabs reorder by dragging along the bar, the same gesture as cards and sidebar items. */
+  _dragTab(e, i) {
+    if (!this.editing || e.target.closest(".mini-pencil")) return;
+    e.preventDefault();
+    const tabs = this._tabs, tab = tabs[i];
+    if (!tab) return;
+    const start = e.currentTarget.getBoundingClientRect();
+    const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
+    const x0 = e.clientX, y0 = e.clientY;
+    let idx = i, moved = false;
+    const wasActive = this._tab === i;
+
+    const follow = (ev) => {
+      const el = this.renderRoot.querySelector(`.tab[data-ti="${idx}"]`);
+      if (!el) return;
+      const held = el.style.transform;
+      el.style.transform = "none";
+      const r = el.getBoundingClientRect();
+      el.style.transform = held;
+      this._tabLift = { i: idx, dx: ev.clientX - r.left - grabX, dy: ev.clientY - r.top - grabY };
+    };
+
+    const move = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+      moved = true; this._tabMoved = true;
+      follow(ev);
+      const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".tab");
+      const to = over?.dataset.ti != null ? Number(over.dataset.ti) : -1;
+      if (to >= 0 && to !== idx) {
+        this._flipBefore();
+        tabs.splice(idx, 1);
+        tabs.splice(to, 0, tab);
+        idx = to;
+        if (wasActive) this._tab = to;              // keep looking at the tab being moved
+        this._emit();
+        this._flipAfter().then(() => follow(ev));
+      } else {
+        this.requestUpdate();
+      }
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      this._tabLift = null;
+      if (moved) this._emit(); else this.requestUpdate();
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+
   /**
    * Sidebar items reorder by dragging, the same way cards do: the item lifts and follows the
    * pointer while the ones it passes spring out of its way.
@@ -304,8 +356,11 @@ export class CasaView extends LitElement {
   _tabBar() {
     return html`<div class="tabs">
       ${this._tabs.map((t, i) => this._vis(t) ? html`
-        <button class="tab ${i === this._tab ? "on" : ""} ${!isVisible(t, this.narrow, this.hass) ? "ghost" : ""}"
-                @click=${() => (this._tab = i)}>
+        <button class="tab ${i === this._tab ? "on" : ""} ${!isVisible(t, this.narrow, this.hass) ? "ghost" : ""} ${this._tabLift?.i === i ? "lifted" : ""}"
+                data-ti=${i} data-key=${t.id}
+                style=${this._tabLift?.i === i ? `--lx:${this._tabLift.dx}px;--ly:${this._tabLift.dy}px` : ""}
+                @pointerdown=${(e) => this._dragTab(e, i)}
+                @click=${() => { if (this._tabMoved) { this._tabMoved = false; return; } this._tab = i; }}>
           <ha-icon icon=${t.icon}></ha-icon><span>${t.name}</span>
           ${this.editing ? html`<ha-icon class="mini-pencil" icon="mdi:pencil"
             @click=${(e) => { e.stopPropagation(); this._insp = { kind: "tab", i }; }}></ha-icon>` : ""}
@@ -492,19 +547,37 @@ export class CasaView extends LitElement {
       .filter((e) => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.room.toLowerCase().includes(q))
       .sort((a, b) => (a.id.toLowerCase().startsWith(q) ? -1 : 0) - (b.id.toLowerCase().startsWith(q) ? -1 : 0))
       .slice(0, 8);
-    const set = (v) => {
+    // The sheet scrolls, so a list positioned inside it is clipped at the sheet's edge, and one in
+    // the sheet's flow shoves the rest of the form down. Anchor it to the viewport instead: it
+    // floats over everything and nothing below it moves.
+    const set = (v, input) => {
       this._acq = { ...(this._acq || {}), [key]: v };
       this._ac = key;
-      this.updateComplete.then(() =>
-        this.renderRoot.querySelector(".aclist")?.scrollIntoView({ block: "nearest" }));
+      if (!input) return;
+      const r = input.getBoundingClientRect();
+      const vw = window.innerWidth || 360, vh = window.innerHeight || 640;
+      const room = vh - r.bottom - 12;
+      const up = room < 160 && r.top > room;
+      // Clamped to the viewport: a measurement taken while the panel is hidden or mid-transition
+      // would otherwise place the list somewhere off-screen.
+      const width = Math.min(vw - 16, Math.max(200, Math.round(r.width)));
+      this._acRect = {
+        width, up,
+        left: Math.round(Math.max(8, Math.min(r.left, vw - width - 8))),
+        y: Math.round(Math.max(8, up ? vh - r.top + 4 : r.bottom + 4)),
+        max: Math.round(Math.max(120, Math.min(240, up ? r.top - 16 : room))),
+      };
     };
     return html`<div class="acwrap">
       <input placeholder="entity id" .value=${value || ""}
-        @focus=${(e) => set(e.target.value)}
-        @input=${(e) => set(e.target.value)}
+        @focus=${(e) => set(e.target.value, e.target)}
+        @input=${(e) => set(e.target.value, e.target)}
         @change=${(e) => { onPick(e.target.value); this._ac = null; }}
         @blur=${() => setTimeout(() => { if (this._ac === key) this._ac = null; }, 150)}>
-      ${open && matches.length ? html`<div class="aclist">
+      ${open && matches.length ? html`<div class="aclist" style=${this._acRect
+        ? `left:${this._acRect.left}px;width:${this._acRect.width}px;max-height:${this._acRect.max}px;` +
+          (this._acRect.up ? `bottom:${this._acRect.y}px;` : `top:${this._acRect.y}px;`)
+        : ""}>
         ${matches.map((m) => html`<button class="acrow" @mousedown=${(e) => e.preventDefault()}
           @click=${() => { onPick(m.id); this._acq = { ...(this._acq || {}), [key]: m.id }; this._ac = null; }}>
           <ha-icon icon=${iconFor(m.id)}></ha-icon>
@@ -843,11 +916,11 @@ export class CasaView extends LitElement {
     ${unsafeCSS(cardStyles)}
     .dim{color:var(--dim,rgba(235,235,245,.6));}
     .acwrap{position:relative;}
-    /* In the sheet's flow, not floating over it: the sheet scrolls, so anything absolutely
-       positioned inside gets clipped at its edge. */
-    .aclist{margin-top:6px;max-height:216px;overflow:auto;padding:4px;border-radius:12px;
-      background:rgba(255,255,255,.045);border:1px solid var(--cardBorder);
-      display:flex;flex-direction:column;gap:2px;}
+    /* Fixed to the viewport, measured from the input each keystroke — inside the sheet it would
+       either be clipped by the sheet's scrolling or push the rest of the form down. */
+    .aclist{position:fixed;z-index:800;overflow:auto;padding:4px;border-radius:12px;
+      background:rgba(18,24,30,.98);border:1px solid var(--cardBorder);
+      box-shadow:0 18px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:2px;}
     .acrow{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;border-radius:8px;
       background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer;}
     .acrow:hover{background:rgba(255,255,255,.08);}
@@ -943,7 +1016,10 @@ export class CasaView extends LitElement {
        The lifted card must not swallow the hit-test either, or it would always be the element
        under the cursor and there would be nothing to drop onto. */
     /* Dragging a card must not paint a text selection across everything it passes over. */
-    :host([editing]) .card,:host([editing]) .sit{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+    :host([editing]) .card,:host([editing]) .sit,:host([editing]) .tab{cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;}
+    .tab.lifted{z-index:40;pointer-events:none;
+      transform:translate(var(--lx,0),var(--ly,0)) scale(1.06);
+      filter:drop-shadow(0 14px 24px rgba(0,0,0,.5));cursor:grabbing;}
     .sit.lifted{z-index:40;position:relative;pointer-events:none;
       transform:translate(var(--lx,0),var(--ly,0)) scale(1.04);
       filter:drop-shadow(0 18px 30px rgba(0,0,0,.5));cursor:grabbing;}
