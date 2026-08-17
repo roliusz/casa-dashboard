@@ -49,6 +49,18 @@ const cap = (t) => {
   return v ? v[0].toUpperCase() + v.slice(1) : "";
 };
 
+/**
+ * What a thermostat is actually doing. `hvac_action` is the honest answer when the integration
+ * reports it; otherwise fall back to the mode. Comparing target against current is not a
+ * substitute — a unit set to Cool at 21° in a 22.8° room is still cooling, and would otherwise
+ * be drawn as idle.
+ */
+const hvacOf = (s) => {
+  const act = s?.attributes?.hvac_action, mode = s?.state;
+  if (act) return { heating: act === "heating", cooling: act === "cooling" };
+  return { heating: mode === "heat", cooling: mode === "cool" };
+};
+
 const st = (ctx, e) => ctx.hass?.states?.[e];
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
 const isOn = (ctx, e) => {
@@ -262,8 +274,7 @@ function climateCard(ctx, c) {
   const e = c.entity, s = st(ctx, e);
   if (!s) return html`<div class="gcard clim-card"></div>`;
   const cur = s.attributes.current_temperature, tgt = s.attributes.temperature, mode = s.state;
-  const heating = (mode === "heat" || mode === "auto") && tgt > cur;
-  const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
+  const { heating, cooling } = hvacOf(s);
   const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
   return html`<div class="gcard clim-card ${mode !== "off" ? "on" : ""} ${heating ? "heat" : cooling ? "cool" : ""}">
     <div class="cc-head rclick" @click=${() => ctx.more(e)}>
@@ -294,8 +305,7 @@ function climateCompact(ctx, c) {
   const e = c.entity, s = st(ctx, e);
   if (!s) return html`<div class="gcard clim2"></div>`;
   const cur = s.attributes.current_temperature, tgt = s.attributes.temperature, mode = s.state;
-  const heating = (mode === "heat" || mode === "auto") && tgt > cur;
-  const cooling = (mode === "cool" || mode === "auto") && tgt < cur;
+  const { heating, cooling } = hvacOf(s);
   const setT = (t) => ctx.call("climate", "set_temperature", { entity_id: e, temperature: Math.round(t * 2) / 2 });
   const status = heating ? "Heating" : cooling ? "Cooling"
     : cap(mode);
