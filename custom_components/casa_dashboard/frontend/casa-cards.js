@@ -819,16 +819,9 @@ function widgetCard(ctx, c) {
       const n = bars.length;
       const today = n ? bars[n - 1].val : 0;
 
-      // The figure is either today on its own or the calendar week to date. The week never runs to
-      // more than the seven days already fetched, so it is a filter over what is here.
-      const week = (() => {
-        const from = new Date();
-        from.setHours(0, 0, 0, 0);
-        from.setDate(from.getDate() - ((from.getDay() + 6) % 7));   // back to Monday
-        return bars.filter((b) => new Date(b.ts) >= from).reduce((a, b) => a + b.val, 0);
-      })();
+      // The figure is either today on its own or the whole fetched window.
       const showToday = c.period === "today";
-      const total = (showToday ? today : week).toFixed(1);
+      const total = (showToday ? today : bars.reduce((a, b) => a + b.val, 0)).toFixed(1);
       const yest = n > 1 ? bars[n - 2].val : 0;
       const scale = Math.max(today, yest, 1);
       const pct = Math.max(0, Math.min(1, today / scale)) * 100;
@@ -837,7 +830,7 @@ function widgetCard(ctx, c) {
         <div class="nrg-head">
           <div class="nrg-meta">
             <span class="hl-name">${c.name || "Energy used"}</span>
-            <span class="hl-sub">${showToday ? "today" : "this week so far"}</span>
+            <span class="hl-sub">${showToday ? "today" : `last ${n} days`}</span>
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 4) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${total}</span>

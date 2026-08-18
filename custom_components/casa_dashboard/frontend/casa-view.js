@@ -1106,7 +1106,7 @@ export class CasaView extends LitElement {
               WIDGET_TYPES[c.widget].domain)}</div>` : ""}
         ${c.widget === "energy" ? html`
           <div class="f"><label>Shows</label><div class="chips">
-            ${[["week", "This week so far"], ["today", "Today"]].map(([key, label]) => html`
+            ${[["week", "Last 7 days"], ["today", "Today"]].map(([key, label]) => html`
               <button class="chip ${(c.period || "week") === key ? "on" : ""}"
                 @click=${() => patchCard({ period: key })}>${label}</button>`)}
           </div></div>` : ""}
