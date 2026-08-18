@@ -663,10 +663,9 @@ function widgetCard(ctx, c) {
               <span class="hl-name">${label}</span>
               <span class="hl-sub">${status}</span>
             </div>
-            <ha-icon class="cnt-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
           </div>
-          <div class="cnt-num">${on}<span>/${list.length}</span></div>
-          <div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>
+          <div class="cnt-num big">${on}<span>/${list.length}</span></div>
+          <div class="cnt-bar"><div class="cnt-fill" style="width:${pct}%"></div></div>
         </div>`;
 
       // Otherwise the Casa app's mobile counter square: the icon, the tally, then the name over
@@ -1201,6 +1200,12 @@ export const cardStyles = `
   .cnt-num span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:4px;}
   .cnt-labels{min-width:0;}
   .cnt-wide{padding:14px 16px;justify-content:space-between;gap:8px;}
+  /* the app's proportions: a big semibold count over a thick, glowing track */
+  .cnt-num.big{font-size:48px;font-weight:600;letter-spacing:-1.5px;}
+  .cnt-num.big span{font-size:17px;margin-left:5px;}
+  .cnt-bar{height:26px;border-radius:13px;background:var(--track);overflow:hidden;flex:none;}
+  .cnt-fill{height:100%;border-radius:13px;transition:width .4s ease;
+    background:linear-gradient(90deg,#F8DE6F,#FFE9A0);box-shadow:0 0 16px rgba(248,222,111,.5);}
   /* the tally reads as a value with its total in the state's type, the way a compact card does */
   .cnt-of{font-size:11.5px;font-weight:400;color:var(--dim);margin-left:3px;letter-spacing:0;}
 
