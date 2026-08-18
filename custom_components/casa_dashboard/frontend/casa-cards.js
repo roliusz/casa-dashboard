@@ -451,6 +451,9 @@ function vacuumCard(ctx, c) {
 }
 
 /* ------------------------------------------------------------------ alarm */
+/** The mode last asked for, per panel: Home Assistant does not say what a panel is arming to. */
+const ARM_TARGET = new Map();
+
 const ALARM_MODES = [
   { key: "disarm",       bit: 0,  label: "Off",      icon: "mdi:shield-off-outline", state: "disarmed" },
   { key: "arm_home",     bit: 1,  label: "Home",     icon: "mdi:shield-home",        state: "armed_home" },
@@ -474,11 +477,16 @@ function alarmCard(ctx, c) {
   // One control rather than a row of buttons: the indicator slides to whichever mode is set.
   // Segments are equal width, so its position is a fraction of the track and needs no measuring.
   const at = modes.findIndex((m) => m.state === s.state);
-  const btns = html`<div class="seg ${triggered ? "warn" : armed ? "armed" : ""}"
-      style="--n:${modes.length};--i:${Math.max(0, at)}">
-    ${at < 0 ? "" : html`<div class="seg-ind"></div>`}
-    ${modes.map((m) => html`<button class="seg-b ${s.state === m.state ? "on" : ""}" title=${m.label}
-      @click=${() => ctx.call("alarm_control_panel", `alarm_${m.key}`, { entity_id: e })}>
+  if (at >= 0) ARM_TARGET.delete(e);                     // settled — nothing pending to remember
+  // While arming, the panel reports neither the old mode nor the new one, so without this the
+  // indicator would vanish the instant you pressed and you could not tell the tap had registered.
+  const want = pending ? ARM_TARGET.get(e) : undefined;
+  const idx = at >= 0 ? at : want;
+  const btns = html`<div class="seg ${triggered ? "warn" : armed || pending ? "armed" : ""}"
+      style="--n:${modes.length};--i:${idx ?? 0}">
+    ${idx == null ? "" : html`<div class="seg-ind ${pending ? "pulse" : ""}"></div>`}
+    ${modes.map((m, i) => html`<button class="seg-b ${idx === i ? "on" : ""}" title=${m.label}
+      @click=${() => { ARM_TARGET.set(e, i); ctx.call("alarm_control_panel", `alarm_${m.key}`, { entity_id: e }); }}>
       <ha-icon icon=${m.icon}></ha-icon></button>`)}
   </div>`;
   if (isTall(c))
@@ -646,23 +654,26 @@ export const cardStyles = `
   .cc-tgt{flex:1;text-align:center;}
   .cc-tgt-v{font-size:20px;font-weight:600;}
   .cc-tgt-l{font-size:11px;color:var(--dim);}
-  /* a segmented selector: the indicator slides between equal-width segments */
-  .seg{position:relative;display:flex;width:100%;padding:3px;border-radius:15px;
-    background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
-  .seg-ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--n));
-    border-radius:12px;background:rgba(255,255,255,.16);
-    transform:translateX(calc(var(--i) * 100%));
+  /* A segmented selector built from the same chips as .spk-btns, so an alarm's controls sit in
+     the card exactly like a shade's or a vacuum's. The indicator slides between them; segments
+     are equal width, so its travel is its own width plus one gap and needs no measuring. */
+  .seg{--sg:10px;position:relative;display:flex;align-items:center;gap:var(--sg);}
+  .seg-ind{position:absolute;top:0;bottom:0;left:0;
+    width:calc((100% - (var(--n) - 1) * var(--sg)) / var(--n));
+    border-radius:12px;background:rgba(255,255,255,.18);
+    transform:translateX(calc(var(--i) * (100% + var(--sg))));
     transition:transform .3s cubic-bezier(.2,.7,.3,1),background .3s ease;}
   .seg.armed .seg-ind{background:var(--green);}
-  /* triggered and arming are not modes, so no segment is marked — the track carries the state */
-  .seg.warn{border-color:rgba(251,110,29,.5);background:rgba(251,110,29,.14);}
+  .seg.warn{border-radius:12px;}
   .seg.warn .seg-ind{background:var(--orange);}
-  .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:40px;border:none;background:none;
-    color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  .seg-ind.pulse{animation:segPulse 1.1s ease-in-out infinite;}
+  @keyframes segPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+  .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:40px;border-radius:12px;
+    border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;font-family:inherit;
     -webkit-tap-highlight-color:transparent;transition:color .2s;}
-  .seg-b ha-icon{--mdc-icon-size:19px;}
-  .seg-b.on{color:var(--text);}
-  .seg.armed .seg-b.on,.seg.warn .seg-b.on{color:#0e1620;}
+  .seg-b ha-icon{--mdc-icon-size:18px;}
+  .seg-b.on{color:#0e1620;background:transparent;border-color:transparent;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
