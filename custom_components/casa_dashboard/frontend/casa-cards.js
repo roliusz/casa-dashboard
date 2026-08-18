@@ -368,21 +368,28 @@ function lockCard(ctx, c) {
   const e = c.entity, s = st(ctx, e);
   if (!s) return html`<div class="gcard lock2"></div>`;
   const locked = s.state === "locked", jammed = s.state === "jammed";
-  const busy = ["locking", "unlocking"].includes(s.state);
+  // Home Assistant reports the journey as well as the destination: locking, unlocking, opening.
+  const locking = s.state === "locking";
+  const unlocking = ["unlocking", "opening"].includes(s.state);
+  const busy = locking || unlocking;
   const name = c.name || attr(ctx, e, "friendly_name") || "Lock";
   const icon = jammed ? "mdi:lock-alert" : busy ? "mdi:lock-clock" : locked ? "mdi:lock" : "mdi:lock-open-variant";
   // Two buttons, no middle one: whichever state the lock is already in is the one you cannot press.
+  // While the lock is moving, the button you pressed flashes — the same signal the alarm gives
+  // while it arms, so a slow lock does not look like a tap that did nothing.
   const btns = html`<div class="spk-btns">
-    <button ?disabled=${locked || busy} @click=${() => ctx.call("lock", "lock", { entity_id: e })}>
+    <button class=${locking ? "pulse" : ""} ?disabled=${locked || busy}
+      @click=${() => ctx.call("lock", "lock", { entity_id: e })}>
       <ha-icon icon="mdi:lock"></ha-icon></button>
-    <button ?disabled=${(!locked && !jammed) || busy} @click=${() => ctx.call("lock", "unlock", { entity_id: e })}>
+    <button class=${unlocking ? "pulse" : ""} ?disabled=${(!locked && !jammed) || busy}
+      @click=${() => ctx.call("lock", "unlock", { entity_id: e })}>
       <ha-icon icon="mdi:lock-open-variant"></ha-icon></button>
   </div>`;
   if (isTall(c))
-    return html`<div class="gcard lock2 ${locked ? "on" : ""} ${jammed ? "warn" : ""}">
+    return html`<div class="gcard lock2 ${locked ? "" : "on"} ${jammed ? "warn" : ""}">
       ${tallBody(icon, name, "", cap(s.state), "Door", btns, () => ctx.more(e), true)}
     </div>`;
-  return html`<div class="gcard lock2 ${locked ? "on" : ""} ${jammed ? "warn" : ""} ${readingOnly(c) ? "reading" : ""}">
+  return html`<div class="gcard lock2 ${locked ? "" : "on"} ${jammed ? "warn" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${icon}></ha-icon>
       <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
@@ -682,6 +689,8 @@ export const cardStyles = `
   .seg.warn{border-radius:12px;}
   .seg.warn .seg-ind{background:var(--orange);}
   .seg-ind.pulse{animation:segPulse 1.1s ease-in-out infinite;}
+  .spk-btns button.pulse{animation:segPulse 1.1s ease-in-out infinite;
+    background:rgba(125,178,255,.2);border-color:rgba(125,178,255,.4);color:#7db2ff;}
   @keyframes segPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
   .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:100%;border:none;background:none;
     color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
