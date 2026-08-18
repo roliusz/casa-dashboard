@@ -62,6 +62,43 @@ const hvacOf = (s) => {
 };
 
 const st = (ctx, e) => ctx.hass?.states?.[e];
+
+/** What an entity's icon should be when nobody has configured one. */
+const DEFAULT_ICON = {
+  lock: (x) => ({ locked: "mdi:lock", unlocked: "mdi:lock-open-variant", jammed: "mdi:lock-alert",
+    locking: "mdi:lock-clock", unlocking: "mdi:lock-clock" }[x] || "mdi:lock"),
+  fan: () => "mdi:fan",
+  vacuum: (x) => ({ cleaning: "mdi:robot-vacuum", returning: "mdi:robot-vacuum-alert",
+    error: "mdi:robot-vacuum-alert" }[x] || "mdi:robot-vacuum"),
+  alarm_control_panel: (x) => (x === "disarmed" ? "mdi:shield-off-outline"
+    : x === "triggered" ? "mdi:shield-alert" : "mdi:shield-check"),
+  binary_sensor: () => "mdi:radiobox-blank",
+  switch: () => "mdi:toggle-switch-variant",
+  input_boolean: () => "mdi:toggle-switch-variant",
+  sensor: () => "mdi:gauge",
+  person: () => "mdi:account",
+  camera: () => "mdi:video",
+  number: () => "mdi:ray-vertex",
+  select: () => "mdi:format-list-bulleted",
+  button: () => "mdi:gesture-tap-button",
+};
+
+/**
+ * The icon for an entity. Home Assistant does not put default icons in the state — only one that
+ * has been configured explicitly appears there — so the frontend works the rest out from the
+ * domain, the device class and the current state. Use its own element when it is available, which
+ * gets device classes and state changes right for free, and fall back to the table above when it
+ * is not (the design harness has no Home Assistant).
+ */
+const stateIcon = (ctx, e, cls, explicit, fallback) => {
+  const s = st(ctx, e);
+  const icon = explicit || s?.attributes?.icon;
+  if (icon) return html`<ha-icon class=${cls} icon=${icon}></ha-icon>`;
+  if (s && customElements.get("ha-state-icon"))
+    return html`<ha-state-icon class=${cls} .hass=${ctx.hass} .stateObj=${s}></ha-state-icon>`;
+  const d = String(e || "").split(".")[0];
+  return html`<ha-icon class=${cls} icon=${DEFAULT_ICON[d]?.(s?.state) || fallback}></ha-icon>`;
+};
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
@@ -338,7 +375,7 @@ function plainCard(ctx, c) {
       @click=${() => (["switch", "input_boolean", "fan", "lock"].includes(d)
         ? ctx.call("homeassistant", "toggle", { entity_id: e }) : ctx.more(e))}>
     <div class="pl-body">
-      <ha-icon class="pl-ic" icon=${c.icon || attr(ctx, e, "icon") || "mdi:card-outline"}></ha-icon>
+      ${stateIcon(ctx, e, "pl-ic", c.icon, "mdi:card-outline")}
       <div class="pl-meta">
         <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || e || "Not set"}</div>
         ${c.type !== "small" ? html`<div class="hl-sub">${sub}</div>` : ""}
