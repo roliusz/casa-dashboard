@@ -562,6 +562,61 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">${cap(String(s.state).replace(/_/g, " "))}</div>
       </div>`;
     }
+    case "rooms": {
+      // One switch over however many entities were chosen — the room card from the Casa app.
+      const list = c.entities || [];
+      const on = list.filter((x) => isOn(ctx, x));
+      const anyOn = on.length > 0;
+      return html`<div class="gcard wdg row ${anyOn ? "on" : ""}"
+          @click=${() => list.length && ctx.call("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: list })}>
+        <ha-icon class="spk-ic" icon=${c.icon || "mdi:lightbulb-group"}></ha-icon>
+        <div class="hl-meta">
+          <div class="hl-name">${c.name || "Room"}</div>
+          <div class="hl-sub">${!list.length ? "Pick some entities"
+            : anyOn ? `${on.length} of ${list.length} on` : "All off"}</div>
+        </div>
+        <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
+      </div>`;
+    }
+    case "counter": {
+      const list = c.entities || [];
+      const on = list.filter((x) => isOn(ctx, x)).length;
+      const pct = list.length ? Math.round((on / list.length) * 100) : 0;
+      return html`<div class="gcard wdg col counter">
+        <div class="hl-sub">${c.name || "On now"}</div>
+        <div class="wdg-big">${on}<span class="wdg-of">/${list.length}</span></div>
+        <div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }
+    case "climate": {
+      // A picker across the chosen thermostats, then the usual reading and stepper for the one
+      // selected — the Casa app's climate card, with the rooms coming from the card's own list.
+      const list = (c.entities || []).filter((x) => st(ctx, x));
+      if (!list.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick some thermostats</div></div>`;
+      const pick = ctx.pick(c.id) ?? 0;
+      const e = list[Math.min(pick, list.length - 1)];
+      const s = st(ctx, e), a = s.attributes;
+      const { heating, cooling } = hvacOf(s);
+      const setT = (t) => ctx.call("climate", "set_temperature",
+        { entity_id: e, temperature: Math.round(t * 2) / 2 });
+      return html`<div class="gcard wdg clim-pick ${heating ? "heat" : cooling ? "cool" : ""}">
+        <div class="cp-rooms">
+          ${list.map((x, i) => html`<button class="cp-room ${x === e ? "on" : ""}"
+            @click=${() => ctx.setPick(c.id, i)}>${attr(ctx, x, "friendly_name") || x}</button>`)}
+        </div>
+        <div class="cc-mid">
+          <div class="cc-cur">${a.current_temperature != null ? a.current_temperature + "°" : "–"}<span> now</span></div>
+          <div class="cc-now">${heating ? `Heating · ${a.current_temperature}° → ${a.temperature}°`
+            : cooling ? `Cooling · ${a.current_temperature}° → ${a.temperature}°` : cap(s.state)}</div>
+        </div>
+        <div class="cc-stepper">
+          <button @click=${() => setT((a.temperature ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
+          <div class="cc-tgt"><div class="cc-tgt-v">${a.temperature != null ? a.temperature + "°" : "–"}</div>
+            <div class="cc-tgt-l">Target</div></div>
+          <button @click=${() => setT((a.temperature ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+        </div>
+      </div>`;
+    }
     default:
       return html`<div class="gcard wdg"></div>`;
   }
@@ -755,6 +810,25 @@ export const cardStyles = `
   .wdg-head{display:flex;align-items:flex-end;height:100%;font-size:15px;font-weight:600;
     color:var(--dim);letter-spacing:.2px;padding:0 2px 4px;}
   .wdg-gap{width:100%;height:100%;}
+
+  .wdg.on .spk-ic{color:var(--yellow);}
+  .wdg-sw{flex:none;width:44px;height:26px;border-radius:13px;background:var(--track);position:relative;
+    transition:background .2s;}
+  .wdg-sw span{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;
+    transition:transform .2s;}
+  .wdg-sw.on{background:var(--green);}
+  .wdg-sw.on span{transform:translateX(18px);}
+  .counter{gap:6px;}
+  .wdg-of{font-size:.45em;color:var(--dim);font-weight:400;}
+  .wdg-bar{width:100%;height:6px;border-radius:3px;background:var(--track);overflow:hidden;}
+  .wdg-fill{height:100%;border-radius:3px;background:var(--yellow);transition:width .4s ease;}
+  .clim-pick{padding:16px;justify-content:space-between;align-items:flex-start;}
+  .cp-rooms{display:flex;flex-wrap:wrap;gap:7px;}
+  .cp-room{height:32px;padding:0 13px;border-radius:16px;border:1px solid var(--cardBorder);
+    background:var(--chip);color:var(--text);font-family:inherit;font-size:12.5px;font-weight:500;
+    cursor:pointer;white-space:nowrap;}
+  .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
+  .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}

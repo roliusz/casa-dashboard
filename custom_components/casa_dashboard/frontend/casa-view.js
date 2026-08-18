@@ -38,7 +38,8 @@ export class CasaView extends LitElement {
     _insp: { state: true },     // {kind:'pill'|'side'|'card'|'tab', …ids}
     _drag: { state: true },
     _pick: { state: true },
-    _pickKind: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
+    _pickKind: { state: true },
+    _picks: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
     _q: { state: true },
     _af: { state: true },       // active filter chip, per auto tab
     _anim: { state: true },     // flips so the entry animation replays
@@ -59,6 +60,10 @@ export class CasaView extends LitElement {
       call: (d, sv, data) => this.hass.callService(d, sv, data),
       more: (entityId) => this.dispatchEvent(new CustomEvent("hass-more-info",
         { detail: { entityId }, bubbles: true, composed: true })),
+      // Which room a climate picker is showing. Kept here rather than in the layout: it is where
+      // you happen to be looking, not something worth saving.
+      pick: (id) => this._picks?.[id],
+      setPick: (id, i) => { this._picks = { ...(this._picks || {}), [id]: i }; },
     };
   }
 
@@ -781,7 +786,12 @@ export class CasaView extends LitElement {
           this._emit();
           return;
         }
-        Object.assign(c, patch); clampCard(c, s.cols); this._emit();
+        Object.assign(c, patch);
+        clampCard(c, s.cols);
+        // Growing a card has to push its neighbours aside, exactly as dragging one does — the
+        // edited card keeps the cell it is in and the rest give way.
+        compactCards(s.cards, s.cols, (k) => this._rows(k, s.cols), c);
+        this._emit();
       };
       body = html`
         <div class="f"><label>Card type</label><div class="chips">
@@ -799,6 +809,14 @@ export class CasaView extends LitElement {
             <span>${c.h}${ct?.square ? " ·sq" : ""}</span>
             <button class="mini" ?disabled=${ct?.square || ct?.maxH === 1} @click=${() => patchCard({ h: c.h + 1 })}>+</button></div></div>
         </div>
+        ${c.widget && WIDGET_TYPES[c.widget]?.needsEntities ? html`
+          <div class="f"><label>Entities</label>
+            <button class="mini wide" @click=${() => (this._pick = { mode: "cardents", card: c })}>
+              ${(c.entities || []).length ? `${c.entities.length} chosen — change` : "Choose entities"}</button>
+            ${(c.entities || []).length ? html`<div class="hint">${(c.entities || []).join(", ")}</div>` : ""}
+          </div>
+          <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
+            @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>` : ""}
         ${auto ? html`<div class="hint">${c.entity}</div>` : html`
           <div class="f"><label>Entity</label>
             ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `card:${c.id}`)}</div>
@@ -831,6 +849,9 @@ export class CasaView extends LitElement {
     if (!this._pick) return "";
     const { mode, si } = this._pick;
     const close = () => { this._pick = null; this._q = ""; this._pickKind = "entity"; };
+    if (mode === "cardents") {
+      // fall through to the entity list below, but Done returns to the card's own settings
+    }
     if (mode === "pill" || mode === "side") {
       const types = mode === "pill" ? PILL_TYPES : SIDEBAR_TYPES;
       const arr = mode === "pill" ? this._l.header.pills : this._l.sidebar.items;
@@ -842,7 +863,8 @@ export class CasaView extends LitElement {
             <ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
       </div></div>`;
     }
-    // entity pickers: single card, or multi-select for an auto tab
+    // entity pickers: one entity for a card, or a multi-select for an auto tab or a list widget
+    const target = mode === "cardents" ? this._pick.card : null;
     const q = this._q.toLowerCase();
     const ids = Object.keys(this.hass?.states || {})
       .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q))
@@ -866,11 +888,12 @@ export class CasaView extends LitElement {
         <div class="hint">A weather card asks for its entity in the card's own settings.</div>
       </div></div>`;
     return html`<div class="scrim" @click=${close}><div class="sheet tall" @click=${(e) => e.stopPropagation()}>
-      <div class="sh-t">${mode === "auto" ? "Choose entities — they'll be grouped automatically" : "Add a card"}</div>
+      <div class="sh-t">${mode === "auto" ? "Choose entities — they'll be grouped automatically"
+        : target ? "Choose the entities this card covers" : "Add a card"}</div>
       ${mode === "card" ? this._pickTabs() : ""}
       <input class="search" placeholder="Search…" .value=${this._q} @input=${(e) => (this._q = e.target.value)}>
       <div class="pl">${ids.map((id) => {
-        const chosen = mode === "auto" && (tab.entities || []).includes(id);
+        const chosen = target ? (target.entities || []).includes(id) : mode === "auto" && (tab.entities || []).includes(id);
         return html`<div class="pr">
           <ha-icon icon=${iconFor(id)}></ha-icon>
           <div class="grow">
@@ -889,7 +912,13 @@ export class CasaView extends LitElement {
             </div>
             <div class="pr-id">${id}</div>
           </div>
-          ${mode === "auto"
+          ${target
+            ? html`<button class="mini ${chosen ? "on" : ""}" @click=${() => {
+                  target.entities = target.entities || [];
+                  chosen ? target.entities.splice(target.entities.indexOf(id), 1) : target.entities.push(id);
+                  this._emit();
+                }}>${chosen ? "✓" : "+"}</button>`
+            : mode === "auto"
             ? html`<span class="cat">${categoryFor(id).name}</span>
                 <button class="mini ${chosen ? "on" : ""}" @click=${() => {
                   tab.entities = tab.entities || [];

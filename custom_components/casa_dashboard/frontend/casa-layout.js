@@ -75,11 +75,16 @@ export const WIDGET_TYPES = {
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 2, h: 2, needsEntity: true },
   heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1 },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
+
+  // These take a list of entities the user picks, rather than one.
+  rooms:    { label: "Room switch", icon: "mdi:lightbulb-group",  w: 3, h: 1, needsEntities: true },
+  counter:  { label: "Counter",     icon: "mdi:counter",          w: 2, h: 2, needsEntities: true },
+  climate:  { label: "Climate picker", icon: "mdi:thermostat",    w: 4, h: 4, needsEntities: true },
 };
 
 export const newWidget = (widget, entity = "") => {
   const w = WIDGET_TYPES[widget] || WIDGET_TYPES.clock;
-  return { id: uid("c"), type: "compact", widget, entity, x: 0, y: 0, w: w.w, h: w.h, show: bothShown() };
+  return { id: uid("c"), type: "compact", widget, entity, entities: [], x: 0, y: 0, w: w.w, h: w.h, show: bothShown() };
 };
 
 /** Header pills. */
