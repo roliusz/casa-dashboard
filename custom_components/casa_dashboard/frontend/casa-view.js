@@ -462,10 +462,10 @@ export class CasaView extends LitElement {
         </div>
         ${big && dur ? html`<div class="np-prog"><div class="np-fill" style="width:${pct}%"></div></div>` : ""}
         <div class="np-ctrls">
-          <ha-icon class="ic" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>
+          ${big ? html`<ha-icon class="ic" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>` : ""}
           <ha-icon class="play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"}
             @click=${call("media_play_pause")}></ha-icon>
-          <ha-icon class="ic" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>
+          ${big ? html`<ha-icon class="ic" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>` : ""}
         </div>
       </div>
     </div>`;
@@ -815,10 +815,14 @@ export class CasaView extends LitElement {
    * its room, so "kitchen" finds light.spotlights if that is where it lives. Typing something that
    * matches nothing is still accepted — an entity may not exist yet.
    */
-  _entityField(value, onPick, key) {
+  _entityField(value, onPick, key, domain) {
     const q = (this._acq?.[key] ?? value ?? "").toLowerCase().trim();
     const open = this._ac === key && q.length > 0;
+    // A field that only makes sense for one domain offers nothing else — a media card cannot play
+    // a light.
+    const inDomain = (id) => !domain || id.startsWith(`${domain}.`);
     const matches = !open ? [] : Object.keys(this.hass?.states || {})
+      .filter(inDomain)
       .map((id) => ({ id, name: this._st(id)?.attributes?.friendly_name || "", room: areaOf(this.hass, id, this._rooms) || "" }))
       .filter((e) => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q) || e.room.toLowerCase().includes(q))
       .sort((a, b) => (a.id.toLowerCase().startsWith(q) ? -1 : 0) - (b.id.toLowerCase().startsWith(q) ? -1 : 0))
@@ -845,7 +849,7 @@ export class CasaView extends LitElement {
       };
     };
     return html`<div class="acwrap">
-      <input placeholder="entity id" .value=${value || ""}
+      <input placeholder=${domain ? `${domain}.…` : "entity id"} .value=${value || ""}
         @focus=${(e) => set(e.target.value, e.target)}
         @input=${(e) => set(e.target.value, e.target)}
         @change=${(e) => { onPick(e.target.value); this._ac = null; }}
@@ -954,7 +958,10 @@ export class CasaView extends LitElement {
             <button class="chip ${it.type === key ? "on" : ""}" @click=${() => this._patch(it, { type: key })}>${v.label}</button>`)}
         </div></div>
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
-          ${this._entityField(it.entity, (v) => this._patch(it, { entity: v }), `side:${it.id}`)}</div>` : ""}
+          ${this._entityField(it.entity, (v) => this._patch(it, { entity: v }), `side:${it.id}`,
+            SIDEBAR_TYPES[it.type].domain)}
+          ${SIDEBAR_TYPES[it.type].domain && it.entity && !it.entity.startsWith(`${SIDEBAR_TYPES[it.type].domain}.`)
+            ? html`<div class="hint">Needs a ${SIDEBAR_TYPES[it.type].domain} entity.</div>` : ""}</div>` : ""}
         ${SIDEBAR_TYPES[it.type]?.size != null ? html`
           <div class="f"><label>${it.type === "gap" ? "Height" : "Text size"}</label>
             <div class="stp">
