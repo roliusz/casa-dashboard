@@ -942,12 +942,13 @@ export class CasaView extends LitElement {
         this._emit();
       };
       body = html`
-        <div class="f"><label>Card type</label><div class="chips">
-          ${Object.entries(CARD_TYPES).map(([key, v]) => html`
-            <button class="chip ${c.type === key ? "on" : ""}" ?disabled=${!typeAllowed(key, c.entity)}
-              title=${typeAllowed(key, c.entity) ? v.sub : "Media players only"}
-              @click=${() => patchCard({ type: key, w: v.w, h: v.square ? v.w : v.h })}>${v.label}</button>`)}
-        </div></div>
+        ${c.widget ? "" : html`
+          <div class="f"><label>Card type</label><div class="chips">
+            ${Object.entries(CARD_TYPES).map(([key, v]) => html`
+              <button class="chip ${c.type === key ? "on" : ""}" ?disabled=${!typeAllowed(key, c.entity)}
+                title=${typeAllowed(key, c.entity) ? v.sub : "Media players only"}
+                @click=${() => patchCard({ type: key, w: v.w, h: v.square ? v.w : v.h })}>${v.label}</button>`)}
+          </div></div>`}
         ${c.widget && WIDGET_TYPES[c.widget]?.sizes ? html`
           <div class="f"><label>Size (rows × columns)</label><div class="chips">
             ${WIDGET_TYPES[c.widget].sizes.map(([h, w]) => html`
