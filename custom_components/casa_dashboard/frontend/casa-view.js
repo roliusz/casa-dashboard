@@ -62,6 +62,7 @@ export class CasaView extends LitElement {
         { detail: { entityId }, bubbles: true, composed: true })),
       // Which room a climate picker is showing. Kept here rather than in the layout: it is where
       // you happen to be looking, not something worth saving.
+      energy: (id) => this._energy(id),
       pick: (id) => this._picks?.[id],
       setPick: (id, i) => { this._picks = { ...(this._picks || {}), [id]: i }; },
     };
@@ -175,6 +176,45 @@ export class CasaView extends LitElement {
    * a hidden card does not leave a hole where it used to sit. The stored positions are untouched:
    * this is only what gets drawn.
    */
+/**
+   * Daily totals for an energy statistic. Home Assistant keeps long-term statistics, so the past
+   * week is one recorder query — but it is a query, not a state, so it is fetched once per entity
+   * and held. Refreshed hourly, because today's bar is still growing.
+   */
+  _energy(id) {
+    if (!id || !this.hass) return null;
+    this._nrg = this._nrg || {};
+    if (!(id in this._nrg)) {
+      this._nrg[id] = null;                                  // asked for, nothing back yet
+      this._fetchEnergy(id);
+    }
+    return this._nrg[id];
+  }
+
+  async _fetchEnergy(id) {
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    start.setHours(0, 0, 0, 0);
+    try {
+      const res = await this.hass.callWS({
+        type: "recorder/statistics_during_period",
+        start_time: start.toISOString(),
+        end_time: new Date().toISOString(),
+        statistic_ids: [id],
+        period: "day",
+        types: ["change"],
+      });
+      this._nrg = { ...this._nrg, [id]: (res[id] || []).slice(-7)
+        .map((e) => ({ ts: e.start, val: Math.round((e.change ?? 0) * 10) / 10 })) };
+    } catch (err) {
+      console.warn("Casa Dashboard: could not read energy statistics for", id, err);
+      this._nrg = { ...this._nrg, [id]: [] };
+    }
+    this.requestUpdate();
+    clearTimeout(this._nrgT);
+    this._nrgT = setTimeout(() => this._fetchEnergy(id), 3600000);
+  }
+
   _shown(sec) {
     const visible = (sec.cards || []).filter((c) => isVisible(c, this.narrow, this.hass));
     if (visible.length === (sec.cards || []).length) return sec.cards;

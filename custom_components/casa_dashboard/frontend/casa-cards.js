@@ -617,6 +617,27 @@ function widgetCard(ctx, c) {
         </div>
       </div>`;
     }
+    case "energy": {
+      const bars = ctx.energy(c.entity);
+      if (!c.entity) return html`<div class="gcard wdg col"><div class="hl-sub">Pick an energy sensor</div></div>`;
+      if (bars === null) return html`<div class="gcard wdg col"><div class="wdg-big">…</div>
+        <div class="hl-sub">Loading</div></div>`;
+      if (!bars.length) return html`<div class="gcard wdg col"><div class="wdg-big">–</div>
+        <div class="hl-sub">No statistics yet</div></div>`;
+      const max = Math.max(...bars.map((b) => b.val), 1);
+      const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
+      const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
+      return html`<div class="gcard wdg col nrg" @click=${() => ctx.more(c.entity)}>
+        <div class="hl-sub">${c.name || "Energy used"}</div>
+        <div class="wdg-big">${total}<span class="wdg-of">${unit}</span></div>
+        <div class="nrg-bars">
+          ${bars.map((b) => html`<div class="nrg-bar" title=${`${b.val} ${unit}`}>
+            <div class="nrg-track"><div class="nrg-fill" style="height:${Math.max(3, (b.val / max) * 100)}%"></div></div>
+            <span class="nrg-day">${new Date(b.ts).toLocaleDateString([], { weekday: "narrow" })}</span>
+          </div>`)}
+        </div>
+      </div>`;
+    }
     default:
       return html`<div class="gcard wdg"></div>`;
   }
@@ -829,6 +850,15 @@ export const cardStyles = `
     cursor:pointer;white-space:nowrap;}
   .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
+
+  .nrg{gap:8px;cursor:pointer;}
+  .nrg-bars{display:flex;align-items:flex-end;gap:6px;width:100%;flex:1;min-height:0;}
+  .nrg-bar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;gap:5px;}
+  /* the fill measures itself against the track, not against the track plus the day label —
+     otherwise the tallest day cannot reach the top */
+  .nrg-track{flex:1;min-height:0;display:flex;align-items:flex-end;}
+  .nrg-fill{width:100%;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--green),rgba(98,214,33,.35));}
+  .nrg-day{font-size:10px;color:var(--dim);flex:none;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
