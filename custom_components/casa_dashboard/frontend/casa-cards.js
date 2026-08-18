@@ -554,7 +554,7 @@ export const cardStyles = `
   .hl-sub{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hl-sub.end{margin-left:auto;}
   /* speaker · shade · tv share the two-line frame */
-  .spk-card,.shade2,.media-tile,.clim2{padding:15px;justify-content:space-between;}
+  .spk-card,.shade2,.media-tile,.clim2,.lock2,.fan2,.vac2,.alarm2{padding:15px;justify-content:space-between;}
   /* a one-row card has only its head — centre it rather than letting it hug the top */
   .reading{justify-content:center;gap:10px;}
   .c2-tgt{flex:0 0 auto;min-width:48px;text-align:center;font-size:16px;font-weight:600;}
