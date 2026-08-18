@@ -657,19 +657,30 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">No statistics yet</div></div>`;
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
 
-      // Two rows is the Casa app's mobile square: today against yesterday on a tick gauge, with
-      // the name and today's figure beneath. Taller cards get the week of bars instead.
-      if ((c.h || 4) <= 2) {
-        const n = bars.length;
-        const today = n ? bars[n - 1].val : 0;
-        const yest = n > 1 ? bars[n - 2].val : 0;
-        const scale = Math.max(today, yest, 1);
-        const pct = Math.max(0, Math.min(1, today / scale)) * 100;
-        const refPct = yest > 0 && today > yest ? (yest / scale) * 100 : null;
-        return html`<div class="gcard nrg sq" @click=${() => ctx.more(c.entity)}>
-          <div class="sq-top">
-            <ha-icon class="sq-ic" icon="mdi:lightning-bolt-outline"></ha-icon>
+      // One header for every size, trimmed to what the height can hold: at a single row the period
+      // drops and the figure stays compact, since a 48px number is taller than the card itself.
+      // Then whatever fits below — nothing, the app's tick gauge, or the week of bars.
+      const rows = c.h || 4;
+      const max = Math.max(...bars.map((b) => b.val), 1);
+      const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
+      const n = bars.length;
+      const today = n ? bars[n - 1].val : 0;
+      const yest = n > 1 ? bars[n - 2].val : 0;
+      const scale = Math.max(today, yest, 1);
+      const pct = Math.max(0, Math.min(1, today / scale)) * 100;
+      const refPct = yest > 0 && today > yest ? (yest / scale) * 100 : null;
+      return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
+        <div class="nrg-head">
+          <div class="nrg-meta">
+            <span class="hl-name">${c.name || "Energy used"}</span>
+            ${rows === 1 ? "" : html`<span class="hl-sub">last ${n} days</span>`}
           </div>
+          <span class="nrg-figure">
+            <span class=${(c.w || 4) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${total}</span>
+            <span class="nrg-unit">${unit}</span></span>
+        </div>
+
+        ${rows === 2 ? html`
           <div class="tgauge">
             <div class="gbar">
               <div class="gfill" style="width:${pct}%"></div>
@@ -678,31 +689,12 @@ function widgetCard(ctx, c) {
             </div>
             <div class="ruler">${Array.from({ length: 44 }, (_, i) =>
               html`<span class="rk ${i % 5 === 0 ? "lg" : ""}"></span>`)}</div>
-            <div class="g-lbls"><span>0</span>
-              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)} ${unit}</span>` : ""}
-              <span>${refPct != null ? "" : `${scale.toFixed(1)} ${unit}`}</span></div>
-          </div>
-          <div class="sq-labels">
-            <div class="hl-name">${c.name || "Energy Use"}</div>
-            <div class="hl-sub">Today · ${today.toFixed(1)} ${unit}</div>
-          </div>
-        </div>`;
-      }
+            <div class="g-lbls"><span>Today · ${today.toFixed(1)} ${unit}</span>
+              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)}</span>` : ""}
+              <span>${scale.toFixed(1)} ${unit}</span></div>
+          </div>` : ""}
 
-      // Width decides the figure: a single column has no room beside the title, so it drops to the
-      // compact reading the speaker's volume uses.
-      const max = Math.max(...bars.map((b) => b.val), 1);
-      const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
-      return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
-        <div class="nrg-head">
-          <div class="nrg-meta">
-            <span class="hl-name">${c.name || "Energy used"}</span>
-            <span class="hl-sub">last ${bars.length} days</span>
-          </div>
-          <span class="nrg-figure"><span class=${(c.w || 4) >= 2 ? "cc-cur" : "cmp-val"}>${total}</span>
-            <span class="nrg-unit">${unit}</span></span>
-        </div>
-        ${(c.h || 4) <= 2 ? "" : html`
+        ${rows >= 3 ? html`
           <div class="nrg-bars">
             ${bars.map((b) => html`<div class="nrg-bar">
               <span class="nrg-val">${b.val}</span>
@@ -710,7 +702,7 @@ function widgetCard(ctx, c) {
             </div>`)}
           </div>
           <div class="nrg-days">${bars.map((b) => html`<span>${
-            new Date(b.ts).toLocaleDateString([], { weekday: "short" })}</span>`)}</div>`}
+            new Date(b.ts).toLocaleDateString([], { weekday: "short" })}</span>`)}</div>` : ""}
       </div>`;
     }
     default:
@@ -926,12 +918,12 @@ export const cardStyles = `
   .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
-  .nrg{padding:16px 18px;justify-content:center;cursor:pointer;}
+  .nrg{padding:14px 16px;justify-content:center;cursor:pointer;}
   /* the app's mobile square: bolt, tick gauge, name and today's figure */
   .nrg.sq{justify-content:space-between;gap:10px;}
   .sq-top{display:flex;justify-content:space-between;align-items:center;}
   .sq-ic{--mdc-icon-size:24px;color:var(--text);}
-  .tgauge{width:100%;}
+  .tgauge{width:100%;margin-top:10px;}
   .gbar{position:relative;height:14px;border-radius:5px;background:rgba(255,255,255,.07);
     border:1px solid rgba(255,255,255,.07);}
   .gfill{position:absolute;top:0;bottom:0;left:0;min-width:6px;border-radius:5px 0 0 5px;
