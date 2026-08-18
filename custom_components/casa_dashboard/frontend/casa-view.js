@@ -442,6 +442,14 @@ export class CasaView extends LitElement {
     const art = a.entity_picture;
     const playing = s.state === "playing";
     const big = it.variant === "extended";
+    // HA's cast integration marks video devices — a TV or a Chromecast — as device_class tv, and
+    // leaves speakers alone. Where that is never set, fall back to the entity id: only a trailing
+    // _tv or a named caster, and never something carrying an artist, so a speaker that happens to
+    // live in the tv room stays a speaker.
+    const objectId = (it.entity || "").split(".")[1] || "";
+    const namedLikeTv = /(^|_)tv$/.test(objectId)
+      || /(^|_)(chromecast|androidtv|android_tv|googletv|google_tv|shield|firetv)(_|$)/.test(objectId);
+    const isTv = a.device_class === "tv" || (namedLikeTv && !a.media_artist);
     const call = (sv) => (e) => { e.stopPropagation(); this.hass.callService("media_player", sv, { entity_id: it.entity }); };
 
     // The position only updates when it changes, so carry it forward from the timestamp HA sent.
@@ -451,9 +459,9 @@ export class CasaView extends LitElement {
       at += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
     const pct = dur ? Math.min(100, (at / dur) * 100) : 0;
 
-    return html`<div class="np ${big ? "" : "np-mini"}">
+    return html`<div class="np ${big ? "" : "np-mini"} ${isTv ? "tv" : ""}">
       <div class="np-art" style=${art ? `background-image:url('${art}')` : ""}>
-        ${!art ? html`<ha-icon icon="mdi:music"></ha-icon>` : ""}</div>
+        ${!art ? html`<ha-icon icon=${isTv ? "mdi:television" : "mdi:music"}></ha-icon>` : ""}</div>
       <div class="np-body">
         <div class="np-txt">
           <div class="kick">${a.friendly_name || this._sub(it)}</div>
@@ -1414,6 +1422,11 @@ export class CasaView extends LitElement {
     .np-mini .np-ctrls{margin-top:0;gap:16px;flex:none;}
     .np-mini .np-ctrls .ic{--mdc-icon-size:24px;}
     .np-mini .np-ctrls .play{--mdc-icon-size:36px;}
+
+    /* A TV or a Chromecast is not playing an album: no art gradient, no green transport. */
+    .np.tv .np-art{background:rgba(255,255,255,.06);}
+    .np.tv .np-art ha-icon{color:var(--dim,rgba(235,235,245,.6));}
+    .np.tv .np-ctrls .play{color:#fff;}
     .greet{font-size:26px;font-weight:600;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
