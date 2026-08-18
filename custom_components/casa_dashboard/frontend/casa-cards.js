@@ -657,9 +657,9 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">No statistics yet</div></div>`;
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
 
-      // One header for every size, trimmed to what the height can hold: at a single row the period
-      // drops and the figure stays compact, since a 48px number is taller than the card itself.
-      // Then whatever fits below — nothing, the app's tick gauge, or the week of bars.
+      // The same header at every size — name, period, figure — then whatever the height can carry
+      // below it: nothing, the app's tick gauge, or the week of bars. The figure only takes the
+      // large reading once there are three rows, since a 48px number is taller than a short card.
       const rows = c.h || 4;
       const max = Math.max(...bars.map((b) => b.val), 1);
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
@@ -669,11 +669,11 @@ function widgetCard(ctx, c) {
       const scale = Math.max(today, yest, 1);
       const pct = Math.max(0, Math.min(1, today / scale)) * 100;
       const refPct = yest > 0 && today > yest ? (yest / scale) * 100 : null;
-      return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
+      return html`<div class="gcard nrg ${rows === 1 ? "one" : ""}" @click=${() => ctx.more(c.entity)}>
         <div class="nrg-head">
           <div class="nrg-meta">
             <span class="hl-name">${c.name || "Energy used"}</span>
-            ${rows === 1 ? "" : html`<span class="hl-sub">last ${n} days</span>`}
+            <span class="hl-sub">last ${n} days</span>
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 4) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${total}</span>
@@ -919,6 +919,8 @@ export const cardStyles = `
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
   .nrg{padding:14px 16px;justify-content:center;cursor:pointer;}
+  /* a single row still shows the name and the period, so it needs the tighter padding */
+  .nrg.one{padding:9px 14px;}
   /* the app's mobile square: bolt, tick gauge, name and today's figure */
   .nrg.sq{justify-content:space-between;gap:10px;}
   .sq-top{display:flex;justify-content:space-between;align-items:center;}
