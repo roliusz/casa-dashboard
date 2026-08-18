@@ -655,12 +655,44 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">Loading</div></div>`;
       if (!bars.length) return html`<div class="gcard wdg col"><div class="wdg-big">–</div>
         <div class="hl-sub">No statistics yet</div></div>`;
+      const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
+
+      // Two rows is the Casa app's mobile square: today against yesterday on a tick gauge, with
+      // the name and today's figure beneath. Taller cards get the week of bars instead.
+      if ((c.h || 4) <= 2) {
+        const n = bars.length;
+        const today = n ? bars[n - 1].val : 0;
+        const yest = n > 1 ? bars[n - 2].val : 0;
+        const scale = Math.max(today, yest, 1);
+        const pct = Math.max(0, Math.min(1, today / scale)) * 100;
+        const refPct = yest > 0 && today > yest ? (yest / scale) * 100 : null;
+        return html`<div class="gcard nrg sq" @click=${() => ctx.more(c.entity)}>
+          <div class="sq-top">
+            <ha-icon class="sq-ic" icon="mdi:lightning-bolt-outline"></ha-icon>
+          </div>
+          <div class="tgauge">
+            <div class="gbar">
+              <div class="gfill" style="width:${pct}%"></div>
+              ${refPct != null ? html`<div class="gref" style="left:${refPct}%"></div>` : ""}
+              <div class="ghandle" style="left:${pct}%"></div>
+            </div>
+            <div class="ruler">${Array.from({ length: 44 }, (_, i) =>
+              html`<span class="rk ${i % 5 === 0 ? "lg" : ""}"></span>`)}</div>
+            <div class="g-lbls"><span>0</span>
+              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)} ${unit}</span>` : ""}
+              <span>${refPct != null ? "" : `${scale.toFixed(1)} ${unit}`}</span></div>
+          </div>
+          <div class="sq-labels">
+            <div class="hl-name">${c.name || "Energy Use"}</div>
+            <div class="hl-sub">Today · ${today.toFixed(1)} ${unit}</div>
+          </div>
+        </div>`;
+      }
+
       // Width decides the figure: a single column has no room beside the title, so it drops to the
-      // compact reading the speaker's volume uses. Height decides the chart — seven bars and their
-      // labels cannot live in one or two rows.
+      // compact reading the speaker's volume uses.
       const max = Math.max(...bars.map((b) => b.val), 1);
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
-      const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
       return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
         <div class="nrg-head">
           <div class="nrg-meta">
@@ -895,6 +927,26 @@ export const cardStyles = `
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
   .nrg{padding:16px 18px;justify-content:center;cursor:pointer;}
+  /* the app's mobile square: bolt, tick gauge, name and today's figure */
+  .nrg.sq{justify-content:space-between;gap:10px;}
+  .sq-top{display:flex;justify-content:space-between;align-items:center;}
+  .sq-ic{--mdc-icon-size:24px;color:var(--text);}
+  .tgauge{width:100%;}
+  .gbar{position:relative;height:14px;border-radius:5px;background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.07);}
+  .gfill{position:absolute;top:0;bottom:0;left:0;min-width:6px;border-radius:5px 0 0 5px;
+    background:linear-gradient(90deg,rgba(255,255,255,.20),rgba(255,255,255,.44));}
+  .ghandle{position:absolute;top:-2px;bottom:-2px;width:5px;border-radius:3px;background:#fff;
+    transform:translateX(-50%);box-shadow:0 0 12px rgba(255,255,255,.5);}
+  .gref{position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:rgba(255,255,255,.5);
+    transform:translateX(-50%);box-shadow:0 0 3px rgba(0,0,0,.5);}
+  .ruler{display:flex;justify-content:space-between;align-items:flex-end;height:8px;margin-top:5px;padding:0 1px;}
+  .rk{width:1.5px;height:5px;border-radius:1px;background:rgba(255,255,255,.16);}
+  .rk.lg{height:8px;background:rgba(255,255,255,.26);}
+  .g-lbls{position:relative;display:flex;justify-content:space-between;margin-top:5px;
+    font-size:11px;color:var(--dim);}
+  .g-ref-lbl{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--dim);white-space:nowrap;}
+
   .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
   .nrg-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
   /* the reading as it was: the big semibold number with the unit dim beside it */
