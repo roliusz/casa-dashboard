@@ -69,20 +69,26 @@ export const FONTS = {
  * Widgets: cards that are not about one entity — the dashboard's own furniture. They sit on a
  * custom tab alongside entity cards and are sized by the same grid.
  */
+// `sizes` lists the shapes a widget is allowed to take, as [rows, columns]. A widget with several
+// distinct layouts only looks right at certain proportions, so anything else snaps to the nearest
+// one rather than being drawn at a size it was never designed for.
 export const WIDGET_TYPES = {
   clock:    { label: "Clock",    icon: "mdi:clock-outline",         w: 2, h: 1 },
   date:     { label: "Date",     icon: "mdi:calendar",              w: 2, h: 1 },
   greeting: { label: "Greeting", icon: "mdi:hand-wave",             w: 2, h: 1 },
   people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
-  weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 2, h: 3, needsEntity: true },
+  weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 1, h: 1, needsEntity: true,
+              sizes: [[1, 1], [2, 1], [3, 2], [3, 3]] },
   heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1 },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
 
   // These take a list of entities the user picks, rather than one.
   rooms:    { label: "Room switch", icon: "mdi:lightbulb-group",  w: 3, h: 1, needsEntities: true },
   counter:  { label: "Counter",     icon: "mdi:counter",          w: 2, h: 2, needsEntities: true },
-  climate:  { label: "Climate",     icon: "mdi:thermostat",       w: 4, h: 4, needsEntities: true },
-  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 4, h: 4, needsEntity: true },
+  climate:  { label: "Climate",     icon: "mdi:thermostat",       w: 2, h: 3, needsEntities: true,
+              sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
+  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
+              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
 };
 
 export const newWidget = (widget, entity = "") => {
@@ -301,6 +307,15 @@ export function clampCard(card, cols) {
     const t = WIDGET_TYPES[card.widget];
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
     card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
+    if (t?.sizes) {
+      const fits = t.sizes.filter(([, w]) => w <= cols);
+      const [h, w] = (fits.length ? fits : t.sizes)
+        .reduce((best, p) => {
+          const d = Math.abs(p[0] - card.h) + Math.abs(p[1] - card.w);
+          return d < best.d ? { d, p } : best;
+        }, { d: Infinity, p: t.sizes[0] }).p;
+      card.h = h; card.w = w;
+    }
     return card;
   }
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;

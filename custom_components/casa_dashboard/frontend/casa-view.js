@@ -948,8 +948,16 @@ export class CasaView extends LitElement {
               title=${typeAllowed(key, c.entity) ? v.sub : "Media players only"}
               @click=${() => patchCard({ type: key, w: v.w, h: v.square ? v.w : v.h })}>${v.label}</button>`)}
         </div></div>
+        ${c.widget && WIDGET_TYPES[c.widget]?.sizes ? html`
+          <div class="f"><label>Size (rows × columns)</label><div class="chips">
+            ${WIDGET_TYPES[c.widget].sizes.map(([h, w]) => html`
+              <button class="chip ${c.h === h && c.w === w ? "on" : ""}"
+                @click=${() => patchCard({ h, w })}>${h}×${w}</button>`)}
+          </div></div>` : ""}
         ${(() => {
-          // Every type but Custom decides its own size, so the steppers are only live there.
+          // Every type but Custom decides its own size, so the steppers are only live there. A
+          // widget with a fixed set of shapes picks from those instead.
+          if (c.widget && WIDGET_TYPES[c.widget]?.sizes) return "";
           const free = c.type === "custom" || !!c.widget;
           return html`<div class="two ${free ? "" : "locked"}">
             <div class="f"><label>Width</label><div class="stp">
