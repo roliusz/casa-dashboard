@@ -597,7 +597,7 @@ function widgetCard(ctx, c) {
       const fc = ctx.forecast(c.entity);
       const hi = fc?.temperature != null ? Math.round(fc.temperature) : null;
       const lo = fc?.templow != null ? Math.round(fc.templow) : null;
-      return html`<div class="gcard wx-sq" @click=${() => ctx.more(c.entity)}>
+      return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""}" @click=${() => ctx.more(c.entity)}>
         <ha-icon class="wx-ic" icon=${icon}></ha-icon>
         <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
         <div class="wx-labels">
@@ -1067,13 +1067,21 @@ export const cardStyles = `
 
   /* weather, the app's mobile square */
   .wx-sq{padding:16px;justify-content:space-between;cursor:pointer;}
-  .wx-ic{--mdc-icon-size:clamp(24px,7cqw,34px);color:var(--text);flex:none;}
-  .wx-temp{font-size:clamp(28px,13cqw,56px);font-weight:300;line-height:1;letter-spacing:-2.5px;
-    white-space:nowrap;}
+  .wx-ic{--mdc-icon-size:30px;color:var(--text);flex:none;}
+  .wx-temp{font-size:46px;font-weight:300;line-height:1;letter-spacing:-2.5px;white-space:nowrap;}
   .wx-temp span{font-size:13px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
   .wx-labels{min-width:0;}
   .wx-place{font-size:14px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;}
+  /* Two rows has 125px to hold four lines, so the square drops to smaller type. Sizes here are
+     fixed rather than measured in cqw: nothing declares a container, so those clamps collapsed to
+     whichever end of their range the viewport happened to pick — the tall card was drawing its
+     temperature smaller than the short one. */
+  .wx-sq.sm{padding:11px 13px;}
+  .wx-sq.sm .wx-ic{--mdc-icon-size:21px;}
+  .wx-sq.sm .wx-temp{font-size:30px;letter-spacing:-1.5px;}
+  .wx-sq.sm .wx-temp span{font-size:11.5px;margin-left:4px;}
+  .wx-sq.sm .wx-place{font-size:13px;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
