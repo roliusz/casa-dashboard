@@ -854,7 +854,7 @@ function widgetCard(ctx, c) {
             <div class="ruler">${Array.from({ length: 44 }, (_, i) =>
               html`<span class="rk ${i % 5 === 0 ? "lg" : ""}"></span>`)}</div>
             <div class="g-lbls"><span>Today · ${today.toFixed(1)} ${unit}</span>
-              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)}</span>` : ""}
+              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)} ${unit}</span>` : ""}
             </div>
           </div>` : ""}
 

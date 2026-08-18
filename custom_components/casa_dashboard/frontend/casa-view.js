@@ -376,9 +376,14 @@ export class CasaView extends LitElement {
   _removeFrom(arr, i) { arr.splice(i, 1); this._insp = null; this._emit(); }
 
   /* ------------------------------------------------------------ header */
-  _headerBar() {
+  /**
+   * Stacked, the sidebar comes before main — and the pills live inside main, so they landed below
+   * it. The row is rendered in both places and the breakpoint shows one, which keeps the pills
+   * first on a phone without moving them out of the main column on a desktop.
+   */
+  _headerBar(cls = "") {
     const pills = this._l.header.pills || [];
-    return html`<div class="pills">
+    return html`<div class="pills ${cls}">
       ${pills.map((p, i) => this._vis(p) ? html`
         <div class="pill ${this.editing ? "editable" : ""} ${!isVisible(p, this.narrow, this.hass) ? "ghost" : ""}"
              @click=${() => this.editing && (this._insp = { kind: "pill", i })}>
@@ -1291,6 +1296,7 @@ export class CasaView extends LitElement {
     this._secs = sections;
     return html`
       <div class="cols">
+        ${this._headerBar("mob")}
         ${this._sidebar()}
         <main class="main">
           ${this._headerBar()}
@@ -1371,6 +1377,7 @@ export class CasaView extends LitElement {
     .chips.tight{margin-top:8px;}
     .hint{font-size:11px;color:var(--dim,rgba(235,235,245,.5));margin-top:5px;}
     .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-bottom:18px;}
+    .pills.mob{display:none;}
     .pill{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 15px;border-radius:22px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
       font-size:14px;font-weight:500;color:inherit;}
@@ -1573,7 +1580,8 @@ export class CasaView extends LitElement {
       background:rgba(255,255,255,.08);}
     .tagx button{border:none;background:none;color:#ff8a80;cursor:pointer;font-size:11px;padding:0;}
     @media (max-width:760px){ .cols{flex-direction:column;}
-      .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;} .secs{width:auto;} }
+      .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;} .secs{width:auto;}
+      .pills.mob{display:flex;} .main > .pills{display:none;} }
   `;
 }
 
