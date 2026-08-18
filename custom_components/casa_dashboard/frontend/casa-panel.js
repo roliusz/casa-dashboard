@@ -18,10 +18,12 @@ console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
 
+// Gentle steps: the grid keeps its column count, so a big jump would stretch cards taller without
+// making them wider. These stay close enough that the proportions hold.
 export const SCALES = [
-  { v: 1,   label: "Small" },
-  { v: 1.5, label: "Medium" },
-  { v: 2,   label: "Large" },
+  { v: 1,    label: "Small" },
+  { v: 1.15, label: "Medium" },
+  { v: 1.3,  label: "Large" },
 ];
 
 const DEFAULT_SETTINGS = {
