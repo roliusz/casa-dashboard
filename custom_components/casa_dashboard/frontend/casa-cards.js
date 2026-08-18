@@ -641,10 +641,29 @@ function widgetCard(ctx, c) {
       const list = c.entities || [];
       const on = list.filter((x) => isOn(ctx, x)).length;
       const pct = list.length ? Math.round((on / list.length) * 100) : 0;
-      return html`<div class="gcard wdg col counter">
-        <div class="hl-sub">${c.name || "On now"}</div>
-        <div class="wdg-big">${on}<span class="wdg-of">/${list.length}</span></div>
-        <div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>
+      const label = c.name || "On now";
+      const status = on ? `${on} of ${list.length} on` : "All off";
+
+      // One row is a line: name over the count, with the tally on the right.
+      if ((c.h || 2) <= 1)
+        return html`<div class="gcard wdg reading ${on ? "on" : ""}">
+          <div class="cmp-head">
+            <ha-icon class="spk-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
+            <div class="hl-meta"><div class="hl-name">${label}</div><div class="hl-sub">${status}</div></div>
+            <div class="cmp-val">${on}<span class="wdg-of">/${list.length}</span></div>
+          </div>
+        </div>`;
+
+      // Taller is the Casa app's mobile counter square: the icon, the tally, then the name over
+      // what it adds up to.
+      return html`<div class="gcard cnt-sq ${on ? "on" : ""}">
+        <ha-icon class="cnt-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
+        <div class="cnt-num">${on}<span>/${list.length}</span></div>
+        <div class="cnt-labels">
+          <div class="wx-place">${label}</div>
+          <div class="hl-sub">${status}</div>
+        </div>
+        ${(c.w || 1) >= 2 ? html`<div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>` : ""}
       </div>`;
     }
     case "climate": {
@@ -1158,6 +1177,14 @@ export const cardStyles = `
   .clim-sq-temp{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
   .clim-sq-temp span{font-size:12px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
   .clim-sq-labels{min-width:0;}
+
+  /* the app's mobile counter square */
+  .cnt-sq{padding:12px 14px;justify-content:space-between;}
+  .cnt-ic{--mdc-icon-size:22px;color:var(--dim);flex:none;}
+  .cnt-sq.on .cnt-ic{color:var(--yellow);}
+  .cnt-num{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
+  .cnt-num span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:4px;}
+  .cnt-labels{min-width:0;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
