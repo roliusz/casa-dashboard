@@ -1097,7 +1097,8 @@ export class CasaView extends LitElement {
           </div>` : ""}
         ${c.widget && WIDGET_TYPES[c.widget]?.needsEntity ? html`
           <div class="f"><label>Entity</label>
-            ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`)}</div>` : ""}
+            ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`,
+              WIDGET_TYPES[c.widget].domain)}</div>` : ""}
         ${c.widget ? html`
           <div class="two">
             <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
@@ -1177,7 +1178,10 @@ export class CasaView extends LitElement {
     const target = mode === "cardents" ? this._pick.card : null;
     const tab = this._cur;
     const q = this._q.toLowerCase();
+    // A widget that only works with one domain is not offered anything else.
+    const only = target?.widget ? WIDGET_TYPES[target.widget]?.domain : null;
     const matches = Object.keys(this.hass?.states || {})
+      .filter((id) => !only || id.startsWith(`${only}.`))
       .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q));
 
     // Whatever was already chosen sits at the top of the list, so it can be found among hundreds
