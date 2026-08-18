@@ -657,23 +657,25 @@ export const cardStyles = `
   /* A segmented selector built from the same chips as .spk-btns, so an alarm's controls sit in
      the card exactly like a shade's or a vacuum's. The indicator slides between them; segments
      are equal width, so its travel is its own width plus one gap and needs no measuring. */
-  .seg{--sg:10px;position:relative;display:flex;align-items:center;gap:var(--sg);}
-  .seg-ind{position:absolute;top:0;bottom:0;left:0;
-    width:calc((100% - (var(--n) - 1) * var(--sg)) / var(--n));
-    border-radius:12px;background:rgba(255,255,255,.18);
-    transform:translateX(calc(var(--i) * (100% + var(--sg))));
+  /* One track with the indicator sliding behind transparent segments — the whole row is 40px,
+     the height of a .spk-btns button, so it still lines up with every other card's controls. */
+  .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;padding:3px;
+    border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
+  .seg-ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--n));
+    border-radius:9px;background:rgba(255,255,255,.18);
+    transform:translateX(calc(var(--i) * 100%));
     transition:transform .3s cubic-bezier(.2,.7,.3,1),background .3s ease;}
   .seg.armed .seg-ind{background:var(--green);}
   .seg.warn{border-radius:12px;}
   .seg.warn .seg-ind{background:var(--orange);}
   .seg-ind.pulse{animation:segPulse 1.1s ease-in-out infinite;}
   @keyframes segPulse{0%,100%{opacity:1;}50%{opacity:.3;}}
-  .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:40px;border-radius:12px;
-    border:1px solid var(--cardBorder);background:var(--chip);color:var(--dim);cursor:pointer;
-    display:flex;align-items:center;justify-content:center;font-family:inherit;
-    -webkit-tap-highlight-color:transparent;transition:color .2s;}
+  .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:100%;border:none;background:none;
+    color:var(--dim);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-family:inherit;-webkit-tap-highlight-color:transparent;transition:color .2s;}
   .seg-b ha-icon{--mdc-icon-size:18px;}
-  .seg-b.on{color:#0e1620;background:transparent;border-color:transparent;}
+  .seg-b.on{color:var(--text);}
+  .seg.armed .seg-b.on,.seg.warn .seg-b.on{color:#0e1620;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}

@@ -149,6 +149,18 @@ export class CasaView extends LitElement {
 
   _vis(item) { return this.editing || isVisible(item, this.narrow, this.hass); }
 
+  /**
+   * The cards a section actually shows. A card whose condition is not met is left out entirely
+   * rather than rendered and dimmed — and the survivors are settled into a copy of the layout, so
+   * a hidden card does not leave a hole where it used to sit. The stored positions are untouched:
+   * this is only what gets drawn.
+   */
+  _shown(sec) {
+    const visible = (sec.cards || []).filter((c) => isVisible(c, this.narrow, this.hass));
+    if (visible.length === (sec.cards || []).length) return sec.cards;
+    return compactCards(visible.map((c) => ({ ...c })), sec.cols, (k) => this._rows(k, sec.cols));
+  }
+
   /* -------------------------------------------------------- live values */
   _st(e) { return this.hass?.states?.[e]; }
   _nameOf(c) {
@@ -861,7 +873,7 @@ export class CasaView extends LitElement {
     const af = this._af[tab.id] || "";
     const all = sectionsOf(tab, this.hass, af, this._rooms, this.layout?.roomNames || [],
       this.layout?.cardSizes || {});
-    const sections = auto && !this.editing ? all.filter((sec) => sec.cards.length) : all;
+    const sections = this.editing ? all : all.filter((sec) => this._shown(sec).length);
     this._secs = sections;
     return html`
       <div class="cols">
@@ -884,8 +896,9 @@ export class CasaView extends LitElement {
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
               <div class="grid" data-grid=${si}
                    style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${
-                     Math.max(1, ...sec.cards.map((k) => (k.y | 0) + k.h))}">
-                ${sec.cards.map((c, ci) => this._card(si, ci, c, auto, sec.cols))}
+                     Math.max(1, ...(this.editing ? sec.cards : this._shown(sec)).map((k) => (k.y | 0) + this._rows(k, sec.cols)))}">
+                ${(this.editing ? sec.cards : this._shown(sec))
+                  .map((c, ci) => this._card(si, ci, c, auto, sec.cols))}
                 ${this._drag?.si === si ? html`<div class="ph"
                   style="--x:${this._drag.x};--y:${this._drag.y};--w:${this._drag.w};--h:${this._drag.h}"></div>` : ""}
               </div>
