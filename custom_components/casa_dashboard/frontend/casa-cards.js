@@ -523,6 +523,19 @@ function alarmCard(ctx, c) {
 
 
 /* ---------------------------------------------------------------- widgets */
+const WICON = {
+  "clear-night": "mdi:weather-night", sunny: "mdi:weather-sunny", partlycloudy: "mdi:weather-partly-cloudy",
+  cloudy: "mdi:weather-cloudy", rainy: "mdi:weather-rainy", pouring: "mdi:weather-pouring",
+  snowy: "mdi:weather-snowy", "snowy-rainy": "mdi:weather-snowy-rainy", fog: "mdi:weather-fog",
+  hail: "mdi:weather-hail", lightning: "mdi:weather-lightning", "lightning-rainy": "mdi:weather-lightning-rainy",
+  windy: "mdi:weather-windy", "windy-variant": "mdi:weather-windy-variant", exceptional: "mdi:alert-circle-outline",
+};
+/** Home Assistant's condition names are run together, so they need spelling out rather than splitting. */
+const WLABEL = {
+  "clear-night": "Clear night", partlycloudy: "Partly cloudy", "snowy-rainy": "Sleet",
+  "lightning-rainy": "Thunderstorms", "windy-variant": "Windy", pouring: "Heavy rain",
+  exceptional: "Severe weather",
+};
 const GREETING = () => {
   const h = new Date().getHours();
   return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
@@ -554,12 +567,30 @@ function widgetCard(ctx, c) {
       </div>`;
     }
     case "weather": {
+      // Today only, which needs no fetching: condition, temperature, humidity, wind and pressure
+      // are all attributes of the weather entity itself.
       const s = st(ctx, c.entity);
-      if (!s) return html`<div class="gcard wdg row"><div class="hl-sub">Pick a weather entity</div></div>`;
+      if (!s) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a weather entity</div></div>`;
       const a = s.attributes;
-      return html`<div class="gcard wdg col" @click=${() => ctx.more(c.entity)}>
-        <div class="wdg-big">${a.temperature != null ? Math.round(a.temperature) + "°" : "–"}</div>
-        <div class="hl-sub">${cap(String(s.state).replace(/_/g, " "))}</div>
+      const unit = a.temperature_unit || "°";
+      const facts = [
+        a.apparent_temperature != null
+          ? { icon: "mdi:thermometer", text: `Feels ${Math.round(a.apparent_temperature)}${unit}` } : null,
+        a.humidity != null ? { icon: "mdi:water-percent", text: `${Math.round(a.humidity)}%` } : null,
+        a.wind_speed != null
+          ? { icon: "mdi:weather-windy", text: `${Math.round(a.wind_speed)} ${a.wind_speed_unit || ""}`.trim() } : null,
+      ].filter(Boolean);
+      return html`<div class="gcard wdg wx" @click=${() => ctx.more(c.entity)}>
+        <div class="wx-top">
+          <ha-icon class="wx-ic" icon=${WICON[s.state] || "mdi:weather-partly-cloudy"}></ha-icon>
+          <div class="wx-now">
+            <div class="wdg-big">${a.temperature != null ? Math.round(a.temperature) + "°" : "–"}</div>
+            <div class="hl-sub">${WLABEL[s.state] || cap(String(s.state).replace(/[-_]/g, " "))}</div>
+          </div>
+        </div>
+        ${facts.length ? html`<div class="wx-facts">
+          ${facts.map((f) => html`<span class="wx-fact"><ha-icon icon=${f.icon}></ha-icon>${f.text}</span>`)}
+        </div>` : ""}
       </div>`;
     }
     case "rooms": {
@@ -859,6 +890,14 @@ export const cardStyles = `
   .nrg-track{flex:1;min-height:0;display:flex;align-items:flex-end;}
   .nrg-fill{width:100%;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--green),rgba(98,214,33,.35));}
   .nrg-day{font-size:10px;color:var(--dim);flex:none;}
+
+  .wx{padding:16px;justify-content:space-between;gap:10px;cursor:pointer;}
+  .wx-top{display:flex;align-items:center;gap:14px;min-width:0;}
+  .wx-ic{--mdc-icon-size:clamp(34px,9cqw,58px);color:var(--text);flex:none;}
+  .wx-now{min-width:0;}
+  .wx-facts{display:flex;flex-wrap:wrap;gap:8px 14px;}
+  .wx-fact{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--dim);white-space:nowrap;}
+  .wx-fact ha-icon{--mdc-icon-size:15px;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
