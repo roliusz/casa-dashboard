@@ -19,6 +19,9 @@ const {
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles, stateIcon } = await import(`./casa-cards.js${V}`);
 
+/** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
+const TAB_LIFT_Y = 8;
+
 const DOMAIN_ICON = {
   light: "mdi:lightbulb", switch: "mdi:toggle-switch", media_player: "mdi:speaker", cover: "mdi:blinds",
   climate: "mdi:thermostat", sensor: "mdi:eye", binary_sensor: "mdi:radiobox-marked",
@@ -502,7 +505,10 @@ export class CasaView extends LitElement {
       el.style.transform = "none";
       const r = el.getBoundingClientRect();
       el.style.transform = held;
-      this._tabLift = { i: idx, dx: ev.clientX - r.left - grabX, dy: ev.clientY - r.top - grabY };
+      // Tabs reorder along the row, so vertical travel earns nothing — and the row is a scroll
+      // container, which clips whatever leaves it. Hold the lift to what the row has room for.
+      const dy = ev.clientY - r.top - grabY;
+      this._tabLift = { i: idx, dx: ev.clientX - r.left - grabX, dy: Math.max(-TAB_LIFT_Y, Math.min(TAB_LIFT_Y, dy)) };
     };
 
     const move = (ev) => {
@@ -1422,7 +1428,11 @@ export class CasaView extends LitElement {
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
     .main{flex:0 1 auto;min-width:0;}
-    .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+    /* overflow-x makes this a scroll container, and a scroll container clips the other axis too.
+       Pad it by the lift allowance and pull the padding back out of the margins, so a lifted tab
+       has somewhere to go and nothing around it moves. */
+    .tabs{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+      padding:10px 0;margin:-10px 0 6px;}
     /* Never let a tab squeeze: the row scrolls instead. A shrinking tab would move every tab
        after it whenever anything changed the row's width. */
     .tab{flex:none;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:19px;
