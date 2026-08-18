@@ -654,7 +654,22 @@ function widgetCard(ctx, c) {
           </div>
         </div>`;
 
-      // Taller is the Casa app's mobile counter square: the icon, the tally, then the name over
+      // Given three columns the card lays out like the energy one: the name and what it adds up to
+      // on top, the tally in the middle, the fill along the bottom.
+      if ((c.w || 1) >= 3)
+        return html`<div class="gcard cnt-wide ${on ? "on" : ""}">
+          <div class="nrg-head">
+            <div class="nrg-meta">
+              <span class="hl-name">${label}</span>
+              <span class="hl-sub">${status}</span>
+            </div>
+            <ha-icon class="cnt-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
+          </div>
+          <div class="cnt-num">${on}<span>/${list.length}</span></div>
+          <div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>
+        </div>`;
+
+      // Otherwise the Casa app's mobile counter square: the icon, the tally, then the name over
       // what it adds up to.
       return html`<div class="gcard cnt-sq ${on ? "on" : ""}">
         <ha-icon class="cnt-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
@@ -1185,6 +1200,7 @@ export const cardStyles = `
   .cnt-num{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
   .cnt-num span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:4px;}
   .cnt-labels{min-width:0;}
+  .cnt-wide{padding:14px 16px;justify-content:space-between;gap:8px;}
   /* the tally reads as a value with its total in the state's type, the way a compact card does */
   .cnt-of{font-size:11.5px;font-weight:400;color:var(--dim);margin-left:3px;letter-spacing:0;}
 
