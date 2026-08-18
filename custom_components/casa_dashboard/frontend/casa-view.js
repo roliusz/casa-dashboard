@@ -161,7 +161,11 @@ export class CasaView extends LitElement {
     if (!s) return false;
     // A cover reads the other way round: open is its resting state, closed is the one worth
     // showing, so a closed blind is the one that lights up.
-    if (String(c.entity).startsWith("cover.")) return s.state === "closed" || s.attributes.current_position === 0;
+    const d = String(c.entity).split(".")[0];
+    if (d === "cover") return s.state === "closed" || s.attributes.current_position === 0;
+    if (d === "lock") return s.state === "locked" || s.state === "jammed";
+    if (d === "vacuum") return !["docked", "off", "unavailable", "unknown"].includes(s.state);
+    if (d === "alarm_control_panel") return s.state !== "disarmed";
     return !["off", "unavailable", "unknown", "idle", "closed"].includes(s.state);
   }
   _sub(c) {

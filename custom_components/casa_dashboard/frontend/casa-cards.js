@@ -363,6 +363,132 @@ function climateCompact(ctx, c) {
   </div>`;
 }
 
+/* ------------------------------------------------------------------- lock */
+function lockCard(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard lock2"></div>`;
+  const locked = s.state === "locked", jammed = s.state === "jammed";
+  const busy = ["locking", "unlocking"].includes(s.state);
+  const name = c.name || attr(ctx, e, "friendly_name") || "Lock";
+  const icon = jammed ? "mdi:lock-alert" : busy ? "mdi:lock-clock" : locked ? "mdi:lock" : "mdi:lock-open-variant";
+  // Two buttons, no middle one: whichever state the lock is already in is the one you cannot press.
+  const btns = html`<div class="spk-btns">
+    <button ?disabled=${locked || busy} @click=${() => ctx.call("lock", "lock", { entity_id: e })}>
+      <ha-icon icon="mdi:lock"></ha-icon></button>
+    <button ?disabled=${(!locked && !jammed) || busy} @click=${() => ctx.call("lock", "unlock", { entity_id: e })}>
+      <ha-icon icon="mdi:lock-open-variant"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard lock2 ${locked ? "on" : ""} ${jammed ? "warn" : ""}">
+      ${tallBody(icon, name, "", cap(s.state), "Door", btns, () => ctx.more(e), true)}
+    </div>`;
+  return html`<div class="gcard lock2 ${locked ? "on" : ""} ${jammed ? "warn" : ""} ${readingOnly(c) ? "reading" : ""}">
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
+      <ha-icon class="spk-ic" icon=${icon}></ha-icon>
+      <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
+    </div>
+    ${readingOnly(c) ? "" : btns}
+  </div>`;
+}
+
+/* -------------------------------------------------------------------- fan */
+function fanCard(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard fan2"></div>`;
+  const on = s.state === "on";
+  const pct = s.attributes.percentage;
+  const step = s.attributes.percentage_step || 100 / (s.attributes.speed_count || 4);
+  const name = c.name || attr(ctx, e, "friendly_name") || "Fan";
+  const set = (v) => ctx.call("fan", "set_percentage",
+    { entity_id: e, percentage: Math.max(0, Math.min(100, Math.round(v))) });
+  // Speed moves by the fan's own step, so a four-speed fan does not get 1% nudges.
+  const btns = pct == null ? "" : html`<div class="spk-btns">
+    <button @click=${() => set((pct || 0) - step)}><ha-icon icon="mdi:minus"></ha-icon></button>
+    <div class="c2-tgt">${on ? Math.round(pct) + "%" : "Off"}</div>
+    <button @click=${() => set((pct || 0) + step)}><ha-icon icon="mdi:plus"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard fan2 ${on ? "on" : ""}">
+      ${tallBody("mdi:fan", name, cap(s.state), on && pct != null ? Math.round(pct) + "%" : cap(s.state),
+        pct != null ? "Speed" : "", btns, () => ctx.more(e))}
+    </div>`;
+  return html`<div class="gcard fan2 ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
+    <div class="cmp-head rclick" @click=${() => ctx.call("fan", "toggle", { entity_id: e })}>
+      <ha-icon class="spk-ic" icon="mdi:fan"></ha-icon>
+      <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
+      ${on && pct != null ? html`<div class="cmp-val">${Math.round(pct)}%</div>` : ""}
+    </div>
+    ${readingOnly(c) ? "" : btns}
+  </div>`;
+}
+
+/* ----------------------------------------------------------------- vacuum */
+function vacuumCard(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard vac2"></div>`;
+  const docked = ["docked", "off", "unavailable", "unknown"].includes(s.state);
+  const batt = s.attributes.battery_level;
+  const name = c.name || attr(ctx, e, "friendly_name") || "Vacuum";
+  const btns = html`<div class="spk-btns">
+    <button @click=${() => ctx.call("vacuum", "start", { entity_id: e })}><ha-icon icon="mdi:play"></ha-icon></button>
+    <button @click=${() => ctx.call("vacuum", "pause", { entity_id: e })}><ha-icon icon="mdi:pause"></ha-icon></button>
+    <button @click=${() => ctx.call("vacuum", "stop", { entity_id: e })}><ha-icon icon="mdi:stop"></ha-icon></button>
+    <button @click=${() => ctx.call("vacuum", "return_to_base", { entity_id: e })}><ha-icon icon="mdi:home-import-outline"></ha-icon></button>
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard vac2 ${docked ? "" : "on"}">
+      ${tallBody("mdi:robot-vacuum", name, cap(s.state), batt != null ? batt + "%" : cap(s.state),
+        batt != null ? "Battery" : "", btns, () => ctx.more(e))}
+    </div>`;
+  return html`<div class="gcard vac2 ${docked ? "" : "on"} ${readingOnly(c) ? "reading" : ""}">
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
+      <ha-icon class="spk-ic" icon="mdi:robot-vacuum"></ha-icon>
+      <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
+      ${batt != null ? html`<div class="cmp-val">${batt}%</div>` : ""}
+    </div>
+    ${readingOnly(c) ? "" : btns}
+  </div>`;
+}
+
+/* ------------------------------------------------------------------ alarm */
+const ALARM_MODES = [
+  { key: "disarm",       bit: 0,  label: "Off",      icon: "mdi:shield-off-outline", state: "disarmed" },
+  { key: "arm_home",     bit: 1,  label: "Home",     icon: "mdi:shield-home",        state: "armed_home" },
+  { key: "arm_away",     bit: 2,  label: "Away",     icon: "mdi:shield-lock",        state: "armed_away" },
+  { key: "arm_night",    bit: 4,  label: "Night",    icon: "mdi:shield-moon",        state: "armed_night" },
+  { key: "arm_vacation", bit: 32, label: "Vacation", icon: "mdi:shield-airplane",    state: "armed_vacation" },
+];
+
+function alarmCard(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard alarm2"></div>`;
+  const armed = s.state !== "disarmed";
+  const triggered = s.state === "triggered";
+  const pending = ["arming", "pending"].includes(s.state);
+  const name = c.name || attr(ctx, e, "friendly_name") || "Alarm";
+  const feat = s.attributes.supported_features || 0;
+  const icon = triggered ? "mdi:shield-alert" : pending ? "mdi:shield-sync"
+    : armed ? "mdi:shield-check" : "mdi:shield-off-outline";
+  // Only the modes this panel says it supports; disarming is always possible.
+  const modes = ALARM_MODES.filter((m) => !m.bit || (feat & m.bit));
+  const btns = html`<div class="spk-btns">
+    ${modes.map((m) => html`<button class=${s.state === m.state ? "act" : ""} title=${m.label}
+      @click=${() => ctx.call("alarm_control_panel", `alarm_${m.key}`, { entity_id: e })}>
+      <ha-icon icon=${m.icon}></ha-icon></button>`)}
+  </div>`;
+  if (isTall(c))
+    return html`<div class="gcard alarm2 ${armed ? "on" : ""} ${triggered ? "warn" : ""}">
+      ${tallBody(icon, name, "", cap(s.state), "Alarm", btns, () => ctx.more(e), true)}
+    </div>`;
+  return html`<div class="gcard alarm2 ${armed ? "on" : ""} ${triggered ? "warn" : ""} ${readingOnly(c) ? "reading" : ""}">
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
+      <ha-icon class="spk-ic" icon=${icon}></ha-icon>
+      <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
+    </div>
+    ${readingOnly(c) ? "" : btns}
+  </div>`;
+}
+
 /* ----------------------------------------------------------------- plain */
 function plainCard(ctx, c) {
   const e = c.entity, s = st(ctx, e);
@@ -392,6 +518,10 @@ export function renderCard(ctx, c) {
   if (d === "light") return lightCard(ctx, c);
   if (d === "cover") return shadeCard(ctx, c);
   if (d === "climate") return isTall(c) ? climateCard(ctx, c) : climateCompact(ctx, c);
+  if (d === "lock") return lockCard(ctx, c);
+  if (d === "fan") return fanCard(ctx, c);
+  if (d === "vacuum") return vacuumCard(ctx, c);
+  if (d === "alarm_control_panel") return alarmCard(ctx, c);
   if (d === "scene" || d === "script" || d === "automation") return sceneCard(ctx, c);
   if (d === "media_player") return looksLikeTv(ctx, c.entity) ? tvCard(ctx, c) : speakerCard(ctx, c);
   return plainCard(ctx, c);
@@ -440,6 +570,18 @@ export const cardStyles = `
   .shade2.on{background:linear-gradient(135deg,rgba(142,197,255,.16),rgba(142,197,255,.05));border-color:rgba(142,197,255,.28);}
   /* closed is a state worth seeing too, in the deeper blue its icon already uses */
   .clim2.on,.clim-card.on{background:linear-gradient(135deg,rgba(251,110,29,.10),rgba(251,110,29,.03));border-color:rgba(251,110,29,.20);}
+  /* blue for the door, the fan and the vacuum — the same active blue the shade uses */
+  .lock2.on,.fan2.on,.vac2.on{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));
+    border-color:rgba(125,178,255,.3);}
+  .lock2.on .spk-ic,.fan2.on .spk-ic,.vac2.on .spk-ic{color:#7db2ff;}
+  /* an armed alarm is green, since armed is the reassuring state, not the alarming one */
+  .alarm2.on{background:linear-gradient(135deg,rgba(98,214,33,.16),rgba(98,214,33,.05));border-color:rgba(98,214,33,.32);}
+  .alarm2.on .spk-ic{color:var(--green);}
+  /* jammed, or triggered: amber, and it beats the active tint */
+  .lock2.warn,.alarm2.warn{background:linear-gradient(135deg,rgba(251,110,29,.2),rgba(251,110,29,.06));
+    border-color:rgba(251,110,29,.4);}
+  .lock2.warn .spk-ic,.alarm2.warn .spk-ic{color:var(--orange);}
+  .spk-btns button[disabled]{opacity:.35;cursor:default;}
   .clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
   .clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
   .plain.on{background:linear-gradient(135deg,rgba(248,222,111,.14),rgba(248,222,111,.04));border-color:rgba(248,222,111,.28);}
