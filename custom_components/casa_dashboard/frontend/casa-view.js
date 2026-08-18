@@ -800,15 +800,20 @@ export class CasaView extends LitElement {
               title=${typeAllowed(key, c.entity) ? v.sub : "Media players only"}
               @click=${() => patchCard({ type: key, w: v.w, h: v.square ? v.w : v.h })}>${v.label}</button>`)}
         </div></div>
-        <div class="two">
-          <div class="f"><label>Width</label><div class="stp">
-            <button class="mini" @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
-            <button class="mini" @click=${() => patchCard({ w: c.w + 1 })}>+</button></div></div>
-          <div class="f"><label>Height</label><div class="stp">
-            <button class="mini" ?disabled=${ct?.square || ct?.maxH === 1} @click=${() => patchCard({ h: c.h - 1 })}>−</button>
-            <span>${c.h}${ct?.square ? " ·sq" : ""}</span>
-            <button class="mini" ?disabled=${ct?.square || ct?.maxH === 1} @click=${() => patchCard({ h: c.h + 1 })}>+</button></div></div>
-        </div>
+        ${(() => {
+          // Every type but Custom decides its own size, so the steppers are only live there.
+          const free = c.type === "custom" || !!c.widget;
+          return html`<div class="two ${free ? "" : "locked"}">
+            <div class="f"><label>Width</label><div class="stp">
+              <button class="mini" ?disabled=${!free} @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
+              <button class="mini" ?disabled=${!free} @click=${() => patchCard({ w: c.w + 1 })}>+</button></div></div>
+            <div class="f"><label>Height</label><div class="stp">
+              <button class="mini" ?disabled=${!free || ct?.square} @click=${() => patchCard({ h: c.h - 1 })}>−</button>
+              <span>${c.h}${ct?.square ? " ·sq" : ""}</span>
+              <button class="mini" ?disabled=${!free || ct?.square} @click=${() => patchCard({ h: c.h + 1 })}>+</button></div></div>
+          </div>
+          ${free ? "" : html`<div class="hint">Choose <b>Custom</b> to set the size yourself.</div>`}`;
+        })()}
         ${c.widget && WIDGET_TYPES[c.widget]?.needsEntities ? html`
           <div class="f"><label>Entities</label>
             <button class="mini wide" @click=${() => (this._pick = { mode: "cardents", card: c })}>
@@ -1164,6 +1169,7 @@ export class CasaView extends LitElement {
     .chip[disabled]{opacity:.35;cursor:not-allowed;}
     .chip ha-icon{--mdc-icon-size:16px;}
     .two{display:flex;gap:12px;} .two .f{flex:1;}
+    .two.locked{opacity:.45;}
     .stp{display:flex;align-items:center;gap:10px;} .stp span{font-size:13px;min-width:46px;text-align:center;}
     .pl{flex:1;overflow-y:auto;margin:10px 0;}
     .seg2{margin-bottom:12px;}

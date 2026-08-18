@@ -27,6 +27,8 @@ export const CARD_TYPES = {
   tile:    { label: "Expanded", sub: "Square",   icon: "mdi:square-rounded",  w: 1, h: 2, minW: 1, square: true },
   full:    { label: "Full",    sub: "Media hero",icon: "mdi:view-dashboard",  w: 4, h: 5, minW: 2, minH: 4,
              domains: ["media_player"] },
+  // The escape hatch: the other types decide their own size, this one hands it to the user.
+  custom:  { label: "Custom",  sub: "Any size",  icon: "mdi:resize",          w: 2, h: 2, minW: 1, maxH: 6, free: true },
 };
 
 /**
