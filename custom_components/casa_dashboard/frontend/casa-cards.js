@@ -598,15 +598,18 @@ function widgetCard(ctx, c) {
       const today = fc?.[0];
       const hi = today?.temperature != null ? Math.round(today.temperature) : null;
       const lo = today?.templow != null ? Math.round(today.templow) : null;
-      // The days after today, but only when the card is wide enough to line them up and tall
-      // enough to give them a row of their own.
-      const days = (c.w || 2) >= 2 && (c.h || 3) >= 3 ? (fc || []).slice(1, 6) : [];
-      return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""}" @click=${() => ctx.more(c.entity)}>
-        <ha-icon class="wx-ic" icon=${icon}></ha-icon>
-        <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
-        <div class="wx-labels">
-          <div class="wx-place">${place}</div>
-          <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
+      // The days after today sit beside the current conditions rather than under them, so a wide
+      // card gains the forecast without having to grow taller.
+      const days = (c.w || 2) >= 2 ? (fc || []).slice(1, 6) : [];
+      return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""} ${days.length ? "wide" : ""}"
+          @click=${() => ctx.more(c.entity)}>
+        <div class="wx-main">
+          <ha-icon class="wx-ic" icon=${icon}></ha-icon>
+          <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
+          <div class="wx-labels">
+            <div class="wx-place">${place}</div>
+            <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
+          </div>
         </div>
         ${days.length ? html`<div class="wx-fc">
           ${days.map((d) => html`<div class="wx-day">
@@ -1085,19 +1088,18 @@ export const cardStyles = `
   .wx-labels{min-width:0;}
   .wx-place{font-size:14px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;}
-  /* Two rows has 125px to hold four lines, so the square drops to smaller type. Sizes here are
-     fixed rather than measured in cqw: nothing declares a container, so those clamps collapsed to
-     whichever end of their range the viewport happened to pick — the tall card was drawing its
-     temperature smaller than the short one. */
-  .wx-sq.sm{padding:11px 13px;}
-  .wx-sq.sm .wx-ic{--mdc-icon-size:21px;}
-  .wx-sq.sm .wx-temp{font-size:30px;letter-spacing:-1.5px;}
-  .wx-sq.sm .wx-temp span{font-size:11.5px;margin-left:4px;}
-  .wx-sq.sm .wx-place{font-size:13px;}
+  /* Two rows carries the same type as the tall card — only the padding gives way, since 125px
+     has to hold the icon, the reading, the place and the high and low. Sizes are fixed rather
+     than measured in cqw: nothing declares a container, so those clamps resolved against the
+     viewport and picked an end of their range at random. */
+  .wx-sq.sm{padding:9px 13px;}
+  .wx-sq.sm .wx-ic{--mdc-icon-size:24px;}
 
-  /* the days after today, when the card is wide enough to hold them */
-  .wx-fc{display:flex;gap:6px;margin-top:12px;padding-top:12px;
-    border-top:1px solid rgba(255,255,255,.10);}
+  /* the days after today, beside the current conditions on a wide card */
+  .wx-sq.wide{flex-direction:row;align-items:stretch;gap:14px;}
+  .wx-main{display:flex;flex-direction:column;justify-content:space-between;flex:0 1 auto;min-width:0;}
+  .wx-fc{flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;
+    padding-left:14px;border-left:1px solid rgba(255,255,255,.10);}
   .wx-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
   .wx-dn{font-size:10.5px;color:var(--dim);}
   .wx-day ha-icon{--mdc-icon-size:19px;color:var(--text);}
