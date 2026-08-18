@@ -79,7 +79,8 @@ export const WIDGET_TYPES = {
   people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 1, h: 1, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 2], [3, 3]] },
-  heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1 },
+  // A heading is one line of text: it spans columns, but its height is always a single row.
+  heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1, widthOnly: true },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
 
   // These take a list of entities the user picks, rather than one.
@@ -308,7 +309,7 @@ export function clampCard(card, cols) {
   if (card.widget) {
     const t = WIDGET_TYPES[card.widget];
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
-    card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
+    card.h = t?.widthOnly ? t.h : Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     if (t?.sizes) {
       const fits = t.sizes.filter(([, w]) => w <= cols);
       const [h, w] = (fits.length ? fits : t.sizes)

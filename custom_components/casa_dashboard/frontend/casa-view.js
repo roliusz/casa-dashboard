@@ -987,6 +987,11 @@ export class CasaView extends LitElement {
           // widget with a fixed set of shapes picks from those instead.
           if (c.widget && WIDGET_TYPES[c.widget]?.sizes) return "";
           const free = c.type === "custom" || !!c.widget;
+          // A heading is always one row tall, so it only offers a width.
+          if (WIDGET_TYPES[c.widget]?.widthOnly)
+            return html`<div class="f"><label>Width</label><div class="stp">
+              <button class="mini" @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
+              <button class="mini" @click=${() => patchCard({ w: c.w + 1 })}>+</button></div></div>`;
           return html`<div class="two ${free ? "" : "locked"}">
             <div class="f"><label>Width</label><div class="stp">
               <button class="mini" ?disabled=${!free} @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
@@ -1015,6 +1020,15 @@ export class CasaView extends LitElement {
             <div class="f"><label>Icon (optional)</label><input .value=${c.icon || ""}
               placeholder=${WIDGET_TYPES[c.widget]?.icon || "mdi:shape-outline"}
               @change=${(e) => patchCard({ icon: e.target.value.trim() || undefined })}></div>
+          </div>` : ""}
+        ${c.widget === "heading" ? html`
+          <div class="two">
+            ${[["padTop", "Space above"], ["padBottom", "Space below"]].map(([k, label]) => html`
+              <div class="f"><label>${label}</label><div class="stp">
+                <button class="mini" @click=${() => patchCard({ [k]: Math.max(0, (c[k] ?? 0) - 4) })}>−</button>
+                <span>${c[k] ?? 0}</span>
+                <button class="mini" @click=${() => patchCard({ [k]: Math.min(20, (c[k] ?? 0) + 4) })}>+</button>
+              </div></div>`)}
           </div>` : ""}
         ${auto ? html`<div class="hint">${c.entity}</div>`
           : c.widget ? html`${this._showChips(c)}${this._condition(c)}`
