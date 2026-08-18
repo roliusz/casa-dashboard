@@ -402,9 +402,10 @@ function fanCard(ctx, c) {
   const set = (v) => ctx.call("fan", "set_percentage",
     { entity_id: e, percentage: Math.max(0, Math.min(100, Math.round(v))) });
   // Speed moves by the fan's own step, so a four-speed fan does not get 1% nudges.
+  // No reading between the buttons: the percentage is already on the right at two rows and is the
+  // reading itself when the card is tall.
   const btns = pct == null ? "" : html`<div class="spk-btns">
     <button @click=${() => set((pct || 0) - step)}><ha-icon icon="mdi:minus"></ha-icon></button>
-    <div class="c2-tgt">${on ? Math.round(pct) + "%" : "Off"}</div>
     <button @click=${() => set((pct || 0) + step)}><ha-icon icon="mdi:plus"></ha-icon></button>
   </div>`;
   if (isTall(c))
