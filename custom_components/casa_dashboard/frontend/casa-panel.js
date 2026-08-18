@@ -18,12 +18,13 @@ console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
 
-// Gentle steps: the grid keeps its column count, so a big jump would stretch cards taller without
-// making them wider. These stay close enough that the proportions hold.
+// Small steps: the grid keeps its column count, so cards can only widen as far as the screen
+// allows. Anything larger stretches them taller without making them wider.
 export const SCALES = [
-  { v: 1,    label: "Small" },
-  { v: 1.15, label: "Medium" },
-  { v: 1.3,  label: "Large" },
+  { v: 1,    label: "1×" },
+  { v: 1.05, label: "1.05×" },
+  { v: 1.1,  label: "1.1×" },
+  { v: 1.15, label: "1.15×" },
 ];
 
 const DEFAULT_SETTINGS = {
