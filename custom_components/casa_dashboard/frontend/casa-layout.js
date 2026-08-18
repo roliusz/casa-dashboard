@@ -24,7 +24,7 @@ export const DEFAULT_COLS = 6;   // a new section is full width until it is narr
 export const CARD_TYPES = {
   small:   { label: "Small",   sub: "One line",  icon: "mdi:view-sequential", w: 1, h: 1, minW: 1, maxH: 2 },
   compact: { label: "Compact", sub: "Two lines", icon: "mdi:view-agenda",     w: 1, h: 2, minW: 1, maxH: 4 },
-  tile:    { label: "Tile",    sub: "Square",    icon: "mdi:square-rounded",  w: 1, h: 2, minW: 1, square: true },
+  tile:    { label: "Expanded", sub: "Square",   icon: "mdi:square-rounded",  w: 1, h: 2, minW: 1, square: true },
   full:    { label: "Full",    sub: "Media hero",icon: "mdi:view-dashboard",  w: 4, h: 5, minW: 2, minH: 4,
              domains: ["media_player"] },
 };

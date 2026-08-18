@@ -10,7 +10,7 @@ Nothing is assumed about your setup — you start with an empty dashboard and ad
 - **In-place visual editor.** Press the pencil and the dashboard you are looking at becomes
   editable. Drag cards to reorder, drag a corner to resize, tap a card to open its inspector.
 - **Four card shapes**, each matching a design rather than a generic template: *Small* (one line),
-  *Compact* (two lines), *Tile* (square), and *Full* — a media hero, which only accepts
+  *Compact* (two lines), *Expanded* (square), and *Full* — a media hero, which only accepts
   `media_player` entities.
 - **Tabs and sections.** Group cards however you like, or add an **automatic tab**: pick entities
   and they are sorted into Lights, Climate, Media, Shades, Locks, Fans, Scenes, Switches and
