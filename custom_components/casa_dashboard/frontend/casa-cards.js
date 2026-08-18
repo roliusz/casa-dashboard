@@ -440,7 +440,7 @@ function vacuumCard(ctx, c) {
     { key: "start",          icon: "mdi:play",                states: ["cleaning"] },
     { key: "pause",          icon: "mdi:pause",               states: ["paused"] },
     { key: "stop",           icon: "mdi:stop",                states: [] },   // stopped is not an activity
-    { key: "return_to_base", icon: "mdi:home-import-outline", states: ["returning", "docked"] },
+    { key: "return_to_base", icon: "mdi:home-import-outline", states: ["returning"] },
   ];
   const btns = html`<div class="spk-btns">
     ${acts.map((a) => html`<button class=${a.states.includes(s.state) ? "on" : ""}
