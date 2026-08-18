@@ -110,8 +110,12 @@ export class CasaView extends LitElement {
    */
   _flipBefore() {
     this._flip = new Map();
-    for (const el of this.renderRoot.querySelectorAll(".card, .sit, .tab"))
+    for (const el of this.renderRoot.querySelectorAll(".card, .sit, .tab")) {
+      // The "+ Tab" buttons are .tab but carry no key. Keying them all as undefined made them
+      // share one entry, so each was animated from whichever one measured last.
+      if (!el.dataset.key) continue;
       this._flip.set(el.dataset.key, el.getBoundingClientRect());
+    }
   }
 
   async _flipAfter() {
@@ -122,6 +126,7 @@ export class CasaView extends LitElement {
     if (matchMedia("(prefers-reduced-motion:reduce)").matches) return;
     for (const el of this.renderRoot.querySelectorAll(".card, .sit, .tab")) {
       if (el.classList.contains("lifted")) continue;          // that one follows the pointer
+      if (!el.dataset.key) continue;                          // keyless chrome never moves
       const was = before.get(el.dataset.key);
       if (!was) continue;
       const carry = el._spring;                               // keep the velocity it already had
@@ -1258,7 +1263,9 @@ export class CasaView extends LitElement {
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
     .main{flex:1;min-width:0;}
     .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
-    .tab{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:19px;
+    /* Never let a tab squeeze: the row scrolls instead. A shrinking tab would move every tab
+       after it whenever anything changed the row's width. */
+    .tab{flex:none;display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:19px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
       color:inherit;font:inherit;font-size:13.5px;cursor:pointer;}
     .tab.on{background:#fff;color:#0e1620;font-weight:600;}
