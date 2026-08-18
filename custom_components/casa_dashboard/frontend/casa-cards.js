@@ -402,11 +402,15 @@ function fanCard(ctx, c) {
   const set = (v) => ctx.call("fan", "set_percentage",
     { entity_id: e, percentage: Math.max(0, Math.min(100, Math.round(v))) });
   // Speed moves by the fan's own step, so a four-speed fan does not get 1% nudges.
-  // No reading between the buttons: the percentage is already on the right at two rows and is the
-  // reading itself when the card is tall.
-  const btns = pct == null ? "" : html`<div class="spk-btns">
-    <button @click=${() => set((pct || 0) - step)}><ha-icon icon="mdi:minus"></ha-icon></button>
-    <button @click=${() => set((pct || 0) + step)}><ha-icon icon="mdi:plus"></ha-icon></button>
+  // Power in the middle rather than a repeated reading: the percentage is already on the right at
+  // two rows and is the reading itself when tall. A fan with no speed control still gets power.
+  const btns = html`<div class="spk-btns">
+    ${pct == null ? "" : html`<button @click=${() => set((pct || 0) - step)}>
+      <ha-icon icon="mdi:minus"></ha-icon></button>`}
+    <button class="pow ${on ? "on" : ""}" @click=${() => ctx.call("fan", "toggle", { entity_id: e })}>
+      <ha-icon icon="mdi:power"></ha-icon></button>
+    ${pct == null ? "" : html`<button @click=${() => set((pct || 0) + step)}>
+      <ha-icon icon="mdi:plus"></ha-icon></button>`}
   </div>`;
   if (isTall(c))
     return html`<div class="gcard fan2 ${on ? "on" : ""}">
@@ -414,7 +418,7 @@ function fanCard(ctx, c) {
         pct != null ? "Speed" : "", btns, () => ctx.more(e))}
     </div>`;
   return html`<div class="gcard fan2 ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
-    <div class="cmp-head rclick" @click=${() => ctx.call("fan", "toggle", { entity_id: e })}>
+    <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon="mdi:fan"></ha-icon>
       <div class="hl-meta"><div class="hl-name">${name}</div><div class="hl-sub">${cap(s.state)}</div></div>
       ${on && pct != null ? html`<div class="cmp-val">${Math.round(pct)}%</div>` : ""}
@@ -604,6 +608,7 @@ export const cardStyles = `
   .spk-btns button{flex:1;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
   .spk-btns button.act{background:rgba(251,110,29,.2);border-color:rgba(251,110,29,.4);color:var(--orange);}
+  .spk-btns button.pow.on{background:rgba(125,178,255,.2);border-color:rgba(125,178,255,.4);color:#7db2ff;}
   .spk-btns button ha-icon{--mdc-icon-size:18px;}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
   /* scene */
