@@ -1,11 +1,13 @@
 <!doctype html>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Casa Dashboard — demo</title>
 <style>
-  /* fixed canvas so the layout is deterministic to measure and to screenshot */
+  /* Fixed canvas so the layout is deterministic to measure and to screenshot. ?w=390 narrows it
+     to a phone instead — without a real layout viewport the stacked breakpoint cannot be tried. */
   html,body{margin:0;background:#0b1014;}
-  body{width:1900px;min-height:900px;}
-  casa-view{display:block;width:1900px;}
+  body{width:var(--canvas,1900px);min-height:900px;}
+  casa-view{display:block;width:var(--canvas,1900px);}
   ha-icon{display:inline-flex;align-items:center;justify-content:center;
     width:var(--mdc-icon-size,24px);height:var(--mdc-icon-size,24px);}
   ha-icon::after{content:"";display:block;width:74%;height:74%;border-radius:4px;
@@ -21,6 +23,9 @@
   await import(`${F}/casa-view.js${bust}`);
   const { newAutoTab, newTab } = await import(`${F}/casa-layout.js${bust}`);
   const { demoHass, demoLayout } = await import(`./demo-states.js${bust}`);
+
+  const w = new URLSearchParams(location.search).get("w");
+  if (w) document.documentElement.style.setProperty("--canvas", `${w}px`);
 
   const v = document.getElementById("v");
   v.hass = demoHass();

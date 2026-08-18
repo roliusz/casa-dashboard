@@ -830,7 +830,7 @@ function widgetCard(ctx, c) {
         <div class="nrg-head">
           <div class="nrg-meta">
             <span class="hl-name">${c.name || "Energy used"}</span>
-            <span class="hl-sub">${showToday ? "today" : `last ${n} days`}</span>
+            <span class="hl-sub">${showToday ? "Today" : `Last ${n} days`}</span>
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 4) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${total}</span>

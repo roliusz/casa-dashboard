@@ -22,6 +22,10 @@ const { renderCard, cardStyles, stateIcon } = await import(`./casa-cards.js${V}`
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
 
+/** Below this the layout stacks: one section to a row, and no more than this many card columns. */
+const STACK_W = 760;
+const STACK_COLS = 2;
+
 const DOMAIN_ICON = {
   light: "mdi:lightbulb", switch: "mdi:toggle-switch", media_player: "mdi:speaker", cover: "mdi:blinds",
   climate: "mdi:thermostat", sensor: "mdi:eye", binary_sensor: "mdi:radiobox-marked",
@@ -336,8 +340,11 @@ export class CasaView extends LitElement {
 
   _shown(sec) {
     const visible = (sec.cards || []).filter((c) => isVisible(c, this.narrow, this.hass));
-    if (visible.length === (sec.cards || []).length) return sec.cards;
-    return compactCards(visible.map((c) => ({ ...c })), sec.cols, (k) => this._rows(k, sec.cols));
+    const cols = this._cols(sec);
+    if (cols === sec.cols && visible.length === (sec.cards || []).length) return sec.cards;
+    // Copies: a card narrowed to fit a phone must not have that written back to the layout.
+    const fitted = visible.map((c) => clampCard({ ...c }, cols));
+    return compactCards(fitted, cols, (k) => this._rows(k, cols));
   }
 
   /* -------------------------------------------------------- live values */
@@ -638,6 +645,23 @@ export class CasaView extends LitElement {
   }
 
   /** Columns are fluid, so watch the real width — tiles size themselves from it. */
+  connectedCallback() {
+    super.connectedCallback();
+    // The same query the stylesheet uses, so the columns the cards are packed into and the ones
+    // the grid draws can never disagree.
+    this._mq = window.matchMedia(`(max-width:${STACK_W}px)`);
+    this._onMq = () => this.requestUpdate();
+    this._mq.addEventListener("change", this._onMq);
+  }
+
+  get _stacked() { return !!this._mq?.matches; }
+
+  /** Columns a section is drawn in — its own, or the stacked cap. */
+  _cols(sec) {
+    const own = Math.max(1, sec?.cols | 0 || 1);
+    return this._stacked ? Math.min(STACK_COLS, own) : own;
+  }
+
   firstUpdated() {
     this._ro = new ResizeObserver(() => {
       const g = this.renderRoot.querySelector(".grid");
@@ -645,7 +669,11 @@ export class CasaView extends LitElement {
     });
     this._ro.observe(this);
   }
-  disconnectedCallback() { super.disconnectedCallback(); this._ro?.disconnect(); }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._ro?.disconnect();
+    this._mq?.removeEventListener("change", this._onMq);
+  }
 
   /** Width of one column in the given section, in px (0 until measured). */
   _colw(cols) { return this._gw ? (this._gw - GRID_GAP * (cols - 1)) / cols : 0; }
@@ -801,6 +829,14 @@ export class CasaView extends LitElement {
       used = Math.max(used, cursor);
     }
     return used;
+  }
+
+  /**
+   * The cards a section draws. Editing works on the real ones so a drag writes where it should —
+   * except when stacked, where they would not fit the narrower grid and are packed into copies.
+   */
+  _laid(sec) {
+    return this.editing && !this._stacked ? sec.cards : this._shown(sec);
   }
 
   /** Rows a card occupies — a tile's height follows its width, so it can't use the stored value. */
@@ -1310,15 +1346,15 @@ export class CasaView extends LitElement {
           </div>` : ""}
           <div class="secs" style="--tabcols:${this._usedCols(sections)};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
-            <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si} style="--span:${sec.cols}">
+            <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si}
+                 style="--span:${this._stacked ? 1 : sec.cols}">
               ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}
                 ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
               <div class="grid" data-grid=${si}
-                   style="--cols:${sec.cols};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${
-                     Math.max(1, ...(this.editing ? sec.cards : this._shown(sec)).map((k) => (k.y | 0) + this._rows(k, sec.cols)))}">
-                ${(this.editing ? sec.cards : this._shown(sec))
-                  .map((c, ci) => this._card(si, ci, c, auto, sec.cols))}
+                   style="--cols:${this._cols(sec)};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${
+                     Math.max(1, ...this._laid(sec).map((k) => (k.y | 0) + this._rows(k, this._cols(sec))))}">
+                ${this._laid(sec).map((c, ci) => this._card(si, ci, c, auto, this._cols(sec)))}
                 ${this._drag?.si === si ? html`<div class="ph"
                   style="--x:${this._drag.x};--y:${this._drag.y};--w:${this._drag.w};--h:${this._drag.h}"></div>` : ""}
               </div>
@@ -1580,8 +1616,16 @@ export class CasaView extends LitElement {
       background:rgba(255,255,255,.08);}
     .tagx button{border:none;background:none;color:#ff8a80;cursor:pointer;font-size:11px;padding:0;}
     @media (max-width:760px){ .cols{flex-direction:column;}
-      .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;} .secs{width:auto;}
-      .pills.mob{display:flex;} .main > .pills{display:none;} }
+      .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;}
+      /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their
+         content — main has to be told to take the width. */
+      .main{width:100%;}
+      .pills.mob{display:flex;} .main > .pills{display:none;}
+      /* One section to a row, and its cards stretch the width rather than holding a column width
+         meant for a desktop. */
+      .secs{width:auto;grid-template-columns:1fr;}
+      .sec{grid-column:1 / -1;}
+      .grid{max-width:none;} }
   `;
 }
 
