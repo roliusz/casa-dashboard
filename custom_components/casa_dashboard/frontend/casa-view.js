@@ -1254,7 +1254,9 @@ export class CasaView extends LitElement {
       font-size:14px;font-weight:500;color:inherit;}
     .pill.editable{cursor:pointer;}
     /* the edit and settings buttons are pills too, just round ones */
-    .pill.round{width:38px;padding:0;justify-content:center;flex:none;}
+    /* Square, so the 22px radius is a true circle — at 38px wide the browser scaled it down to
+       19px and the button read as a rounded rectangle next to the fully rounded + pill. */
+    .pill.round{width:44px;padding:0;justify-content:center;flex:none;}
     .pill.round.on{background:#fff;color:#0e1620;border-color:transparent;}
     .pill.round.on ha-icon{color:#0e1620;}
     .pill.add{cursor:pointer;padding:0 14px;}
