@@ -661,10 +661,11 @@ function widgetCard(ctx, c) {
       return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
         <div class="nrg-head">
           <div class="nrg-meta">
-            <span class="nrg-title">${c.name || "Energy used"}</span>
+            <span class="hl-name">${c.name || "Energy used"}</span>
             <span class="hl-sub">last ${bars.length} days</span>
           </div>
-          <span class="nrg-unit">${total} ${unit}</span>
+          <span class="nrg-figure"><span class="cc-cur">${total}</span>
+            <span class="nrg-unit">${unit}</span></span>
         </div>
         <div class="nrg-bars">
           ${bars.map((b) => html`<div class="nrg-bar">
@@ -891,9 +892,10 @@ export const cardStyles = `
 
   .nrg{padding:16px 18px;justify-content:flex-start;cursor:pointer;}
   .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
-  .nrg-title{font-size:16px;font-weight:600;}
   .nrg-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
-  .nrg-unit{font-size:16px;font-weight:600;}
+  /* the reading as it was: the big semibold number with the unit dim beside it */
+  .nrg-figure{display:flex;align-items:baseline;gap:6px;flex:none;}
+  .nrg-unit{font-size:15px;color:var(--dim);}
   .nrg-unit{font-size:15px;color:var(--dim);}
   .nrg-bars{display:flex;align-items:flex-end;gap:8px;flex:1;min-height:60px;}
   .nrg-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
