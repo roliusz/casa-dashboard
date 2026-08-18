@@ -576,7 +576,10 @@ function widgetCard(ctx, c) {
       const temp = a.temperature != null ? Math.round(a.temperature) : null;
       const cond = WLABEL[s.state] || cap(String(s.state).replace(/[-_]/g, " "));
       const icon = WICON[s.state] || "mdi:weather-partly-cloudy";
-      const place = c.name || a.friendly_name || c.entity;
+      // Integrations often name the entity after themselves — Buienradar, Met.no — so prefer the
+      // card's own name, then a station name if one is reported, and only then the entity's.
+      const station = String(a.station_name || a.stationname || "").replace(/^meetstation\s+/i, "").trim();
+      const place = c.name || station || a.friendly_name || c.entity;
 
       // One row reads like any entity card: the condition as the icon, the place over the
       // condition, and the temperature on the right.

@@ -182,6 +182,12 @@ export class CasaView extends LitElement {
     this._emit();
   }
 
+  /** What a dashboard card calls itself when the user has not named it. */
+  _widgetName(c) {
+    const s = this._st(c.entity);
+    return c.entity ? (s?.attributes?.friendly_name || c.entity) : WIDGET_TYPES[c.widget]?.label || "Card";
+  }
+
   _vis(item) { return this.editing || isVisible(item, this.narrow, this.hass); }
 
   /**
@@ -962,10 +968,17 @@ export class CasaView extends LitElement {
             <button class="mini wide" @click=${() => (this._pick = { mode: "cardents", card: c })}>
               ${(c.entities || []).length ? `${c.entities.length} chosen — change` : "Choose entities"}</button>
             ${(c.entities || []).length ? html`<div class="hint">${(c.entities || []).join(", ")}</div>` : ""}
-          </div>
+          </div>` : ""}
+        ${c.widget && WIDGET_TYPES[c.widget]?.needsEntity ? html`
+          <div class="f"><label>Entity</label>
+            ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`)}</div>` : ""}
+        ${c.widget ? html`
           <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
+            placeholder=${this._widgetName(c)}
             @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>` : ""}
-        ${auto ? html`<div class="hint">${c.entity}</div>` : html`
+        ${auto ? html`<div class="hint">${c.entity}</div>`
+          : c.widget ? html`${this._showChips(c)}${this._condition(c)}`
+          : html`
           <div class="f"><label>Entity</label>
             ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `card:${c.id}`)}</div>
           <div class="f"><label>Name (optional)</label><input .value=${c.name || ""} placeholder=${this._nameOf(c)}
