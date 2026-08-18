@@ -121,14 +121,17 @@ class CasaPanel extends LitElement {
           <button class="x" @click=${() => (this._showSettings = false)}><ha-icon icon="mdi:close"></ha-icon></button></div>
         <div class="f"><label>Dashboard name</label>
           <input .value=${this._settings.title || ""} @change=${(e) => this._setSetting("title", e.target.value)}></div>
-        <div class="f"><label>Scale</label>
-          <input type="range" class="slider" min="0" max=${SCALES.length - 1} step="1"
-            .value=${String(Math.max(0, SCALES.findIndex((x) => x.v === (this._settings.scale || 1))))}
-            @input=${(e) => this._setSetting("scale", SCALES[Number(e.target.value)].v)}>
-          <div class="scale-lbls">${SCALES.map((x) => html`<span class=${
-            (this._settings.scale || 1) === x.v ? "on" : ""}>${x.label}</span>`)}</div>
-          <div class="hint">Draws the whole dashboard larger — useful on a wall panel across the room.</div>
-        </div>
+        ${(() => {
+          const at = Math.max(0, SCALES.findIndex((x) => x.v === (this._settings.scale || 1)));
+          return html`<div class="f"><label>Scale</label>
+            <div class="seg" style="--n:${SCALES.length};--ind:${(at / SCALES.length) * 100}%">
+              <div class="seg-ind"></div>
+              ${SCALES.map((x, i) => html`<button class="seg-b ${i === at ? "on" : ""}"
+                @click=${() => this._setSetting("scale", x.v)}>${x.label}</button>`)}
+            </div>
+            <div class="hint">Draws the whole dashboard larger — useful on a wall panel across the room.</div>
+          </div>`;
+        })()}
         <div class="f"><label>Wallpaper URL</label>
           <input placeholder="/local/my-wallpaper.jpg — blank for the default"
             .value=${this._settings.wallpaper || ""} @change=${(e) => this._setSetting("wallpaper", e.target.value)}>
@@ -187,9 +190,17 @@ class CasaPanel extends LitElement {
     .f input{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--cardBorder);
       background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:13px;}
     .hint{font-size:11px;color:var(--dim);margin-top:5px;}
-    .slider{width:100%;accent-color:#fff;}
-    .scale-lbls{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--dim);}
-    .scale-lbls .on{color:var(--text);font-weight:600;}
+    /* the same segmented selector the alarm card uses: one track, the indicator slides */
+    .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;
+      border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
+    /* The offset is a plain percentage worked out when the card renders. A compound calc mixing
+       a custom property with a percentage was being dropped, leaving the indicator parked. */
+    .seg-ind{position:absolute;top:3px;bottom:3px;left:var(--ind,0%);width:calc(100% / var(--n));
+      border-radius:9px;background:#fff;transition:left .3s cubic-bezier(.2,.7,.3,1);}
+    .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:100%;border:none;background:none;
+      color:var(--dim);cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:500;
+      transition:color .2s;}
+    .seg-b.on{color:#0e1620;font-weight:600;}
     .mini{padding:9px 14px;border-radius:11px;border:1px solid var(--cardBorder);background:var(--chip);
       color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
     .mini.danger{color:#ff8a80;} .mini.wide{width:100%;}

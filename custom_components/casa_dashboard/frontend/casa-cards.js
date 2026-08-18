@@ -502,7 +502,7 @@ function alarmCard(ctx, c) {
   const want = pending ? ARM_TARGET.get(e) : undefined;
   const idx = at >= 0 ? at : want;
   const btns = html`<div class="seg ${triggered ? "warn" : armed || pending ? "armed" : ""}"
-      style="--n:${modes.length};--i:${idx ?? 0}">
+      style="--n:${modes.length};--ind:${((idx ?? 0) / modes.length) * 100}%">
     ${idx == null ? "" : html`<div class="seg-ind ${pending ? "pulse" : ""}"></div>`}
     ${modes.map((m, i) => html`<button class="seg-b ${idx === i ? "on" : ""}" title=${m.label}
       @click=${() => { ARM_TARGET.set(e, i); ctx.call("alarm_control_panel", `alarm_${m.key}`, { entity_id: e }); }}>
@@ -1025,12 +1025,13 @@ export const cardStyles = `
      are equal width, so its travel is its own width plus one gap and needs no measuring. */
   /* One track with the indicator sliding behind transparent segments — the whole row is 40px,
      the height of a .spk-btns button, so it still lines up with every other card's controls. */
-  .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;padding:3px;
+  .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;
     border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
-  .seg-ind{position:absolute;top:3px;bottom:3px;left:3px;width:calc((100% - 6px) / var(--n));
+  /* The offset is a plain percentage worked out when the card renders. A compound calc mixing a
+     custom property with a percentage was being dropped, leaving the indicator parked at zero. */
+  .seg-ind{position:absolute;top:3px;bottom:3px;left:var(--ind,0%);width:calc(100% / var(--n));
     border-radius:9px;background:rgba(255,255,255,.18);
-    transform:translateX(calc(var(--i) * 100%));
-    transition:transform .3s cubic-bezier(.2,.7,.3,1),background .3s ease;}
+    transition:left .3s cubic-bezier(.2,.7,.3,1),background .3s ease;}
   .seg.armed .seg-ind{background:var(--green);}
   .seg.warn{border-radius:12px;}
   .seg.warn .seg-ind{background:var(--orange);}
