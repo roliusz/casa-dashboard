@@ -149,7 +149,10 @@ class CasaPanel extends LitElement {
       --green:#62D621;--orange:#FB6E1D;--yellow:#F8DE6F;
       font-family:Outfit,-apple-system,"Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;
       color:var(--text);}
-    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;
+    /* Reserve the scrollbar's width permanently. Moving a card changes the page height, and
+       without this the bar appearing or vanishing changes the content width — which reflows the
+       wrapped tab row and shifts the + buttons mid-drag. */
+    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;
       background:#0b1014 radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014) center/cover no-repeat fixed;}
     .loading{padding:40px;color:var(--dim);font-size:14px;}
     .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
