@@ -434,11 +434,18 @@ function vacuumCard(ctx, c) {
   const docked = ["docked", "off", "unavailable", "unknown"].includes(s.state);
   const batt = s.attributes.battery_level;
   const name = c.name || attr(ctx, e, "friendly_name") || "Vacuum";
+  // Whichever action the vacuum is currently carrying out is the one lit, so the card says what it
+  // is doing as well as offering what it could do.
+  const acts = [
+    { key: "start",          icon: "mdi:play",                states: ["cleaning"] },
+    { key: "pause",          icon: "mdi:pause",               states: ["paused"] },
+    { key: "stop",           icon: "mdi:stop",                states: ["idle", "stopped"] },
+    { key: "return_to_base", icon: "mdi:home-import-outline", states: ["returning", "docked"] },
+  ];
   const btns = html`<div class="spk-btns">
-    <button @click=${() => ctx.call("vacuum", "start", { entity_id: e })}><ha-icon icon="mdi:play"></ha-icon></button>
-    <button @click=${() => ctx.call("vacuum", "pause", { entity_id: e })}><ha-icon icon="mdi:pause"></ha-icon></button>
-    <button @click=${() => ctx.call("vacuum", "stop", { entity_id: e })}><ha-icon icon="mdi:stop"></ha-icon></button>
-    <button @click=${() => ctx.call("vacuum", "return_to_base", { entity_id: e })}><ha-icon icon="mdi:home-import-outline"></ha-icon></button>
+    ${acts.map((a) => html`<button class=${a.states.includes(s.state) ? "on" : ""}
+      @click=${() => ctx.call("vacuum", a.key, { entity_id: e })}>
+      <ha-icon icon=${a.icon}></ha-icon></button>`)}
   </div>`;
   if (isTall(c))
     return html`<div class="gcard vac2 ${docked ? "" : "on"}">
@@ -608,7 +615,7 @@ export const cardStyles = `
   .spk-btns button{flex:1;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
   .spk-btns button.act{background:rgba(251,110,29,.2);border-color:rgba(251,110,29,.4);color:var(--orange);}
-  .spk-btns button.pow.on{background:rgba(125,178,255,.2);border-color:rgba(125,178,255,.4);color:#7db2ff;}
+  .spk-btns button.on{background:rgba(125,178,255,.2);border-color:rgba(125,178,255,.4);color:#7db2ff;}
   .spk-btns button ha-icon{--mdc-icon-size:18px;}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
   /* scene */
