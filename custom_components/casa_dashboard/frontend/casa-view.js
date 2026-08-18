@@ -615,6 +615,13 @@ export class CasaView extends LitElement {
     const entity = card0.entity;
     let idx = ci, host = si, moved = false;
 
+    // Re-packing can add or drop a grid row mid-drag. That changes the page height, the browser
+    // clamps the scroll position to fit, and everything above the grid — the tab row included —
+    // jumps. Hold every grid at the height it started at until the drag has settled.
+    const pinned = [...this.renderRoot.querySelectorAll("[data-grid]")];
+    for (const g of pinned) g.style.minHeight = `${g.offsetHeight}px`;
+    const unpin = () => { for (const g of pinned) g.style.minHeight = ""; };
+
     const secAt = (i) => (auto ? this._secs?.[i] : this._cur.sections?.[i]);
 
     // An auto tab's cards are rebuilt from the entity list on every render, so the object this
@@ -704,6 +711,7 @@ export class CasaView extends LitElement {
       window.removeEventListener("pointerup", up);
       this._lift = null; this._roomOver = null;
       if (moved) this._emit(); else this.requestUpdate();
+      setTimeout(unpin, 340);                            // after the drop spring has settled
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -1182,7 +1190,9 @@ export class CasaView extends LitElement {
     /* The panels this design comes from set this globally; without it every card renders its
        own padding and border *on top of* its grid cell and spills out the bottom. */
     *,*::before,*::after{box-sizing:border-box;}
-    :host{display:block;
+    /* Chrome scrolls the page to compensate when content shifts; while cards re-pack that reads
+       as the whole dashboard bouncing. Opt the dashboard out of scroll anchoring. */
+    :host{display:block;overflow-anchor:none;
       --text:#fff;--dim:rgba(235,235,245,.6);
       --card:linear-gradient(150deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 62%),rgba(255,255,255,.04);
       --cardBorder:rgba(255,255,255,.12);

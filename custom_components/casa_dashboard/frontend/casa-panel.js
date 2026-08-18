@@ -175,7 +175,7 @@ class CasaPanel extends LitElement {
        wrapped tab row and shifts the + buttons mid-drag. */
     /* Keep the scrollbar's space reserved: dragging a card taller made the page scroll, which
        narrowed everything by the scrollbar's width and rewrapped the tab row under the cursor. */
-    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;scrollbar-gutter:stable;
+    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;overflow-anchor:none;
       background:#0b1014 radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014) center/cover no-repeat fixed;}
     .loading{padding:40px;color:var(--dim);font-size:14px;}
     .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
