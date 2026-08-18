@@ -424,6 +424,17 @@ export class CasaView extends LitElement {
     </aside>`;
   }
   /** Tabs reorder by dragging along the bar, the same gesture as cards and sidebar items. */
+  /**
+   * Reordering can add or drop a row, which changes the page height; the browser then clamps the
+   * scroll position and everything above the change — the tab row included — jumps. Hold the
+   * scrollable content at the height it started at for the length of a drag. Returns the release.
+   */
+  _pinHeights() {
+    const els = [...this.renderRoot.querySelectorAll("[data-grid], .side")];
+    for (const g of els) g.style.minHeight = `${g.offsetHeight}px`;
+    return () => setTimeout(() => { for (const g of els) g.style.minHeight = ""; }, 340);
+  }
+
   _dragTab(e, i) {
     if (!this.editing || e.target.closest(".mini-pencil")) return;
     e.preventDefault();
@@ -434,6 +445,7 @@ export class CasaView extends LitElement {
     const x0 = e.clientX, y0 = e.clientY;
     let idx = i, moved = false;
     const wasActive = this._tab === i;
+    const unpin = this._pinHeights();
 
     const follow = (ev) => {
       const el = this.renderRoot.querySelector(`.tab[data-ti="${idx}"]`);
@@ -469,6 +481,7 @@ export class CasaView extends LitElement {
       window.removeEventListener("pointerup", up);
       this._tabLift = null;
       if (moved) this._emit(); else this.requestUpdate();
+      unpin();
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -488,6 +501,7 @@ export class CasaView extends LitElement {
     const grabX = e.clientX - start.left, grabY = e.clientY - start.top;
     const x0 = e.clientX, y0 = e.clientY;
     let idx = i, moved = false;
+    const unpin = this._pinHeights();
 
     const follow = (ev) => {
       const el = this.renderRoot.querySelector(`.sit[data-i="${idx}"]`);
@@ -522,6 +536,7 @@ export class CasaView extends LitElement {
       window.removeEventListener("pointerup", up);
       this._sideLift = null;
       if (moved) this._emit(); else this.requestUpdate();
+      unpin();
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -615,12 +630,7 @@ export class CasaView extends LitElement {
     const entity = card0.entity;
     let idx = ci, host = si, moved = false;
 
-    // Re-packing can add or drop a grid row mid-drag. That changes the page height, the browser
-    // clamps the scroll position to fit, and everything above the grid — the tab row included —
-    // jumps. Hold every grid at the height it started at until the drag has settled.
-    const pinned = [...this.renderRoot.querySelectorAll("[data-grid]")];
-    for (const g of pinned) g.style.minHeight = `${g.offsetHeight}px`;
-    const unpin = () => { for (const g of pinned) g.style.minHeight = ""; };
+    const unpin = this._pinHeights();
 
     const secAt = (i) => (auto ? this._secs?.[i] : this._cur.sections?.[i]);
 
@@ -711,7 +721,7 @@ export class CasaView extends LitElement {
       window.removeEventListener("pointerup", up);
       this._lift = null; this._roomOver = null;
       if (moved) this._emit(); else this.requestUpdate();
-      setTimeout(unpin, 340);                            // after the drop spring has settled
+      unpin();
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
