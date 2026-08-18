@@ -389,7 +389,11 @@ export class CasaView extends LitElement {
                 data-ti=${i} data-key=${t.id}
                 style=${this._tabLift?.i === i ? `--lx:${this._tabLift.dx}px;--ly:${this._tabLift.dy}px` : ""}
                 @pointerdown=${(e) => this._dragTab(e, i)}
-                @click=${() => { if (this._tabMoved) { this._tabMoved = false; return; } this._tab = i; }}>
+                @click=${() => {
+                  if (this._tabMoved) { this._tabMoved = false; return; }
+                  if (i !== this._tab) this._anim ^= 1;      // replay the entry animation
+                  this._tab = i;
+                }}>
           <ha-icon icon=${t.icon}></ha-icon><span>${t.name}</span>
           ${this.editing ? html`<ha-icon class="mini-pencil" icon="mdi:pencil"
             @click=${(e) => { e.stopPropagation(); this._insp = { kind: "tab", i }; }}></ha-icon>` : ""}
