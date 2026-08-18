@@ -1617,7 +1617,7 @@ export class CasaView extends LitElement {
     .tagx{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:9px;font-size:11.5px;
       background:rgba(255,255,255,.08);}
     .tagx button{border:none;background:none;color:#ff8a80;cursor:pointer;font-size:11px;padding:0;}
-    @media (max-width:760px){ .cols{flex-direction:column;}
+    @media (max-width:760px){ .cols{flex-direction:column;gap:12px;}
       .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;}
       /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their
          content — main has to be told to take the width. */
