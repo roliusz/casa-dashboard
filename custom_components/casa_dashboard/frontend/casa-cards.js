@@ -655,9 +655,9 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">Loading</div></div>`;
       if (!bars.length) return html`<div class="gcard wdg col"><div class="wdg-big">–</div>
         <div class="hl-sub">No statistics yet</div></div>`;
-      // Short cards read like a compact card: the figure at the size the speaker's volume uses,
-      // and at one or two rows no chart at all — seven bars with labels cannot live in that space.
-      // Only a tall card gets the big reading.
+      // Width decides the figure: a single column has no room beside the title, so it drops to the
+      // compact reading the speaker's volume uses. Height decides the chart — seven bars and their
+      // labels cannot live in one or two rows.
       const max = Math.max(...bars.map((b) => b.val), 1);
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
@@ -667,7 +667,7 @@ function widgetCard(ctx, c) {
             <span class="hl-name">${c.name || "Energy used"}</span>
             <span class="hl-sub">last ${bars.length} days</span>
           </div>
-          <span class="nrg-figure"><span class=${(c.h || 4) >= 4 ? "cc-cur" : "cmp-val"}>${total}</span>
+          <span class="nrg-figure"><span class=${(c.w || 4) >= 2 ? "cc-cur" : "cmp-val"}>${total}</span>
             <span class="nrg-unit">${unit}</span></span>
         </div>
         ${(c.h || 4) <= 2 ? "" : html`
