@@ -659,10 +659,12 @@ function widgetCard(ctx, c) {
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
       return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
-        <div class="nrg-head"><span class="nrg-title">${c.name || "Energy used"}</span>
-          <ha-icon icon="mdi:arrow-right"></ha-icon></div>
-        <div class="nrg-line"><span class="nrg-total">${total}</span>
-          <span class="nrg-unit">${unit} · last ${bars.length} days</span></div>
+        <div class="nrg-head">
+          <span class="nrg-title">${c.name || "Energy used"}</span>
+          <div class="nrg-meta"><span class="nrg-unit">${unit}</span>
+            <span class="hl-sub">last ${bars.length} days</span></div>
+        </div>
+        <div class="nrg-line"><span class="nrg-total">${total}</span></div>
         <div class="nrg-bars">
           ${bars.map((b) => html`<div class="nrg-bar">
             <span class="nrg-val">${b.val}</span>
@@ -887,9 +889,10 @@ export const cardStyles = `
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
   .nrg{padding:16px 18px;justify-content:flex-start;cursor:pointer;}
-  .nrg-head{display:flex;align-items:center;justify-content:space-between;}
+  .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
   .nrg-title{font-size:16px;font-weight:600;}
-  .nrg-head ha-icon{--mdc-icon-size:20px;color:var(--dim);}
+  .nrg-meta{display:flex;flex-direction:column;align-items:flex-end;line-height:1.25;}
+  .nrg-unit{font-size:16px;font-weight:600;}
   .nrg-line{display:flex;align-items:baseline;gap:10px;margin:10px 0 12px;}
   .nrg-total{font-size:30px;font-weight:600;letter-spacing:-1px;}
   .nrg-unit{font-size:15px;color:var(--dim);}
