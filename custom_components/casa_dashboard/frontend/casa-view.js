@@ -547,7 +547,7 @@ export class CasaView extends LitElement {
     const dragging = this._drag?.si === si && this._drag?.ci === ci;
     const art = t === "full" ? this._st(c.entity)?.attributes?.entity_picture : null;
     return html`
-      <div class="card in${this._anim} t-${t} ${on ? "on" : ""} ${this._lift?.si === si && this._lift?.ci === ci ? "lifted" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
+      <div class="card in${this._anim} t-${t} ${String(this._climMenu?.key || "").startsWith(`${c.id}:`) ? "menuopen" : ""} ${on ? "on" : ""} ${this._lift?.si === si && this._lift?.ci === ci ? "lifted" : ""} ${this.editing ? "editing" : ""} ${!isVisible(c, this.narrow, this.hass) ? "ghost" : ""}"
            data-ci=${ci} data-key=${c.id || `${si}:${c.entity}`}
            style="--x:${c.x | 0};--y:${c.y | 0};--w:${c.w};--h:${rows};--i:${ci}${
              this._lift?.si === si && this._lift?.ci === ci
@@ -1212,6 +1212,10 @@ export class CasaView extends LitElement {
     /* No overflow clip here: the inner card fills the cell exactly, so clipping would cut off the
        drop shadow and leave a hard edge. Only the hero needs it — its artwork can outgrow the cell. */
     .card.t-full{overflow:hidden;}
+    /* A card clips its contents, which would cut a picker's menu in half. While one is open the
+       card lets it through and lifts above its neighbours. */
+    .card.menuopen{z-index:60;}
+    .card.menuopen,.card.menuopen .gcard{overflow:visible;}
     .sec.drop{outline:2px dashed rgba(255,255,255,.35);outline-offset:6px;border-radius:14px;}
     /* An empty room would be zero pixels tall and impossible to drop onto. */
     :host([editing]) .sec .grid:empty{min-height:64px;border:1px dashed rgba(255,255,255,.16);border-radius:14px;}
