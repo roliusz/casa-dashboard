@@ -85,7 +85,7 @@ export const WIDGET_TYPES = {
   // These take a list of entities the user picks, rather than one.
   rooms:    { label: "Room switch", icon: "mdi:lightbulb-group",  w: 3, h: 1, needsEntities: true },
   counter:  { label: "Counter",     icon: "mdi:counter",          w: 1, h: 2, needsEntities: true,
-              sizes: [[1, 1], [2, 1], [2, 2], [2, 3]] },
+              sizes: [[1, 1], [2, 1], [3, 2], [3, 3]] },
   climate:  { label: "Climate",     icon: "mdi:thermostat",       w: 2, h: 3, needsEntities: true,
               sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
   energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,

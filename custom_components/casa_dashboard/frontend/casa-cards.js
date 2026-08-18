@@ -654,9 +654,9 @@ function widgetCard(ctx, c) {
           </div>
         </div>`;
 
-      // Given three columns the card lays out like the energy one: the name and what it adds up to
-      // on top, the tally in the middle, the fill along the bottom.
-      if ((c.w || 1) >= 3)
+      // Three rows lays out like the energy card: the name and what it adds up to on top, the
+      // tally in the middle, the fill along the bottom.
+      if ((c.h || 2) >= 3)
         return html`<div class="gcard cnt-wide ${on ? "on" : ""}">
           <div class="nrg-head">
             <div class="nrg-meta">
