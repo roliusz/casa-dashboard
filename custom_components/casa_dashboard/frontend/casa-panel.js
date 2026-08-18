@@ -173,7 +173,9 @@ class CasaPanel extends LitElement {
     /* Reserve the scrollbar's width permanently. Moving a card changes the page height, and
        without this the bar appearing or vanishing changes the content width — which reflows the
        wrapped tab row and shifts the + buttons mid-drag. */
-    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;
+    /* Keep the scrollbar's space reserved: dragging a card taller made the page scroll, which
+       narrowed everything by the scrollbar's width and rewrapped the tab row under the cursor. */
+    .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;scrollbar-gutter:stable;
       background:#0b1014 radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014) center/cover no-repeat fixed;}
     .loading{padding:40px;color:var(--dim);font-size:14px;}
     .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}

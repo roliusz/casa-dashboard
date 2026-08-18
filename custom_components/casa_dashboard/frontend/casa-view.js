@@ -1237,7 +1237,7 @@ export class CasaView extends LitElement {
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
     .main{flex:1;min-width:0;}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+    .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
     .tab{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:19px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
       color:inherit;font:inherit;font-size:13.5px;cursor:pointer;}
