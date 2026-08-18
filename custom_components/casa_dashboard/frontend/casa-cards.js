@@ -406,11 +406,11 @@ function fanCard(ctx, c) {
   // two rows and is the reading itself when tall. A fan with no speed control still gets power.
   const btns = html`<div class="spk-btns">
     ${pct == null ? "" : html`<button @click=${() => set((pct || 0) - step)}>
-      <ha-icon icon="mdi:minus"></ha-icon></button>`}
+      <ha-icon icon="mdi:fan-minus"></ha-icon></button>`}
     <button class="pow ${on ? "on" : ""}" @click=${() => ctx.call("fan", "toggle", { entity_id: e })}>
       <ha-icon icon="mdi:power"></ha-icon></button>
     ${pct == null ? "" : html`<button @click=${() => set((pct || 0) + step)}>
-      <ha-icon icon="mdi:plus"></ha-icon></button>`}
+      <ha-icon icon="mdi:fan-plus"></ha-icon></button>`}
   </div>`;
   if (isTall(c))
     return html`<div class="gcard fan2 ${on ? "on" : ""}">
