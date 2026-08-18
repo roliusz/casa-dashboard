@@ -182,7 +182,7 @@ export class CasaView extends LitElement {
     this._emit();
   }
 
-  /** What a dashboard card calls itself when the user has not named it. */
+  /** What a widget calls itself when the user has not named it. */
   _widgetName(c) {
     const s = this._st(c.entity);
     return c.entity ? (s?.attributes?.friendly_name || c.entity) : WIDGET_TYPES[c.widget]?.label || "Card";
@@ -994,14 +994,14 @@ export class CasaView extends LitElement {
   }
 
   /* ------------------------------------------------------------ picker */
-  /** Entity or dashboard card — the two things a custom tab can hold. */
+  /** Entity or widget — the two things a custom tab can hold. */
   _pickTabs() {
     const set = (k) => { this._pickKind = k; this._q = ""; };
     return html`<div class="chips seg2">
       <button class="chip ${this._pickKind !== "widget" ? "on" : ""}" @click=${() => set("entity")}>
         <ha-icon icon="mdi:shape-outline"></ha-icon> Entity</button>
       <button class="chip ${this._pickKind === "widget" ? "on" : ""}" @click=${() => set("widget")}>
-        <ha-icon icon="mdi:view-dashboard-outline"></ha-icon> Dashboard card</button>
+        <ha-icon icon="mdi:view-dashboard-outline"></ha-icon> Widget</button>
     </div>`;
   }
 
@@ -1045,7 +1045,7 @@ export class CasaView extends LitElement {
             compactCards(sec.cards, sec.cols, (n) => this._rows(n, sec.cols));
             close(); this._emit();
           }}><ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
-        <div class="hint">A weather card asks for its entity in the card's own settings.</div>
+        <div class="hint">A widget that needs an entity asks for it in its own settings.</div>
       </div></div>`;
     return html`<div class="scrim" @click=${close}><div class="sheet tall" @click=${(e) => e.stopPropagation()}>
       <div class="sh-t">${mode === "auto" ? "Choose entities — they'll be grouped automatically"

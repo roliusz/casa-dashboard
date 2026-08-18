@@ -670,9 +670,32 @@ function widgetCard(ctx, c) {
         ticks.push(html`<div class="ct" style="height:${i % 4 === 0 ? 16 : 9}px;background:${
           inZone ? zone : "rgba(255,255,255,0.28)"};${inZone ? `box-shadow:0 0 6px ${zone}` : ""}"></div>`);
       }
-      // Short cards read like an entity card: the thermostat's name over what it is doing, with
-      // the temperature on the right. Tapping moves to the next one when several are listed,
-      // since there is no room for the chips.
+      // Two rows is the Casa app's mobile climate square: the reading with the room and what the
+      // house is doing underneath. The count is across every thermostat on the card, so it reads
+      // the same way the app's does.
+      if ((c.h || 4) === 2) {
+        let heat = 0, cool = 0;
+        for (const x of list) {
+          const h = hvacOf(st(ctx, x));
+          if (h.heating) heat++; else if (h.cooling) cool++;
+        }
+        const rooms = (n) => `${n} room${n > 1 ? "s" : ""}`;
+        const summary = heat && cool ? `${rooms(heat)} heating · ${rooms(cool)} cooling`
+          : heat ? `${rooms(heat)} heating` : cool ? `${rooms(cool)} cooling` : "All idle";
+        return html`<div class="gcard clim-sq ${heat ? "heat" : cool ? "cool" : ""}"
+            @click=${() => (list.length > 1 ? ctx.setPick(c.id, (at + 1) % list.length) : ctx.more(e))}>
+          <ha-icon class="clim-sq-ic" icon="mdi:home-thermometer"></ha-icon>
+          <div class="clim-sq-temp">${cur ?? "–"}°<span>now</span></div>
+          <div class="clim-sq-labels">
+            <div class="wx-place">${attr(ctx, e, "friendly_name") || e}</div>
+            <div class="hl-sub">${summary}</div>
+          </div>
+        </div>`;
+      }
+
+      // One row reads like an entity card: the thermostat's name over what it is doing, with the
+      // temperature on the right. Tapping moves to the next when several are listed, since there
+      // is no room for the chips.
       if ((c.h || 4) <= 2) {
         const next = () => (list.length > 1 ? ctx.setPick(c.id, (at + 1) % list.length) : ctx.more(e));
         return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""} ${(c.h || 4) <= 1 ? "reading" : ""}">
@@ -904,8 +927,8 @@ export const cardStyles = `
     border-color:rgba(251,110,29,.4);}
   .lock2.warn .spk-ic,.alarm2.warn .spk-ic{color:var(--orange);}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
-  .clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
-  .clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
+  .clim-sq.heat,.clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
+  .clim-sq.cool,.clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
   .plain.on{background:linear-gradient(135deg,rgba(248,222,111,.14),rgba(248,222,111,.04));border-color:rgba(248,222,111,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
   .spk-btns{display:flex;align-items:center;gap:10px;}
@@ -1128,6 +1151,13 @@ export const cardStyles = `
   .wx-day ha-icon{--mdc-icon-size:19px;color:var(--text);}
   .wx-hl{font-size:11.5px;font-weight:600;white-space:nowrap;}
   .wx-hl span{font-weight:400;color:var(--dim);margin-left:3px;}
+
+  /* the app's mobile climate square, at the two-row card's scale */
+  .clim-sq{padding:12px 14px;justify-content:space-between;cursor:pointer;}
+  .clim-sq-ic{--mdc-icon-size:22px;color:var(--text);flex:none;}
+  .clim-sq-temp{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
+  .clim-sq-temp span{font-size:12px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
+  .clim-sq-labels{min-width:0;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}

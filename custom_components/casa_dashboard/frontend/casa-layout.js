@@ -66,8 +66,8 @@ export const FONTS = {
 };
 
 /**
- * Cards that are not about one entity — the dashboard's own furniture. They sit on a custom tab
- * alongside entity cards and are sized by the same grid.
+ * Widgets: cards that are not about one entity — the dashboard's own furniture. They sit on a
+ * custom tab alongside entity cards and are sized by the same grid.
  */
 export const WIDGET_TYPES = {
   clock:    { label: "Clock",    icon: "mdi:clock-outline",         w: 2, h: 1 },

@@ -12,6 +12,8 @@ Nothing is assumed about your setup — you start with an empty dashboard and ad
 - **Four card shapes**, each matching a design rather than a generic template: *Small* (one line),
   *Compact* (two lines), *Expanded* (square), and *Full* — a media hero, which only accepts
   `media_player` entities.
+- **Widgets.** Cards that are not about one entity — clock, date, greeting, people,
+  weather, energy, a room switch, a counter, a climate panel, a heading or a spacer.
 - **Tabs and sections.** Group cards however you like, or add an **automatic tab**: pick entities
   and they are sorted into Lights, Climate, Media, Shades, Locks, Fans, Scenes, Switches and
   Sensors for you.
