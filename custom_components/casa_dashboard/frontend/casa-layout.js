@@ -305,11 +305,20 @@ export function placeNear(cards, card, wantX, wantY, cols, rowsOf) {
 export const sectionRows = (section, rowsOf) =>
   (section.cards || []).reduce((m, c) => Math.max(m, (c.y | 0) + (rowsOf ? rowsOf(c) : c.h)), 0);
 
+/**
+ * A heading has no height of its own: the text always gets one row, and the space set above and
+ * below it grows the card in whole rows once it outgrows the slack that row already has.
+ */
+export function headingRows(card) {
+  const pad = Math.max(0, card.padTop | 0) + Math.max(0, card.padBottom | 0);
+  return Math.max(1, Math.min(4, Math.ceil((pad + GRID_ROW) / (GRID_ROW + GRID_GAP))));
+}
+
 export function clampCard(card, cols) {
   if (card.widget) {
     const t = WIDGET_TYPES[card.widget];
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
-    card.h = t?.widthOnly ? t.h : Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
+    card.h = t?.widthOnly ? headingRows(card) : Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     if (t?.sizes) {
       const fits = t.sizes.filter(([, w]) => w <= cols);
       const [h, w] = (fits.length ? fits : t.sizes)

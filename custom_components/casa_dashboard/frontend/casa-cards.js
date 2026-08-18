@@ -1060,7 +1060,7 @@ export const cardStyles = `
   .wdg-mid{font-size:clamp(14px,3.2cqw,22px);font-weight:600;line-height:1.2;}
   /* Reads as a section title, because that is what it is standing in for. No built-in space
      above or below — the user sets that themselves. */
-  .wdg-head{display:flex;align-items:center;height:100%;box-sizing:border-box;
+  .wdg-head{display:flex;align-items:flex-start;height:100%;box-sizing:border-box;
     font-size:13px;color:var(--dim);padding:var(--padT,0) 2px var(--padB,0);}
   .wdg-gap{width:100%;height:100%;}
 

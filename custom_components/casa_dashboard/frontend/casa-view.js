@@ -732,6 +732,23 @@ export class CasaView extends LitElement {
     window.addEventListener("pointerup", up);
   }
 
+  /**
+   * How many of the tab's columns its sections actually occupy. A tab is TAB_COLS wide, but a lone
+   * four column section left the last two tracks empty and that read as dead space at the right of
+   * the page. Sizing the grid to what is used lets the sidebar take the rest.
+   */
+  _usedCols(sections) {
+    let cursor = 0, used = 1;
+    for (const sec of sections) {
+      if (!this._vis(sec)) continue;
+      const span = Math.max(1, Math.min(TAB_COLS, sec.cols | 0 || 1));
+      if (cursor + span > TAB_COLS) cursor = 0;
+      cursor += span;
+      used = Math.max(used, cursor);
+    }
+    return used;
+  }
+
   /** Rows a card occupies — a tile's height follows its width, so it can't use the stored value. */
   _rows(c) { return c.h; }
 
@@ -1027,7 +1044,7 @@ export class CasaView extends LitElement {
               <div class="f"><label>${label}</label><div class="stp">
                 <button class="mini" @click=${() => patchCard({ [k]: Math.max(0, (c[k] ?? 0) - 4) })}>−</button>
                 <span>${c[k] ?? 0}</span>
-                <button class="mini" @click=${() => patchCard({ [k]: Math.min(20, (c[k] ?? 0) + 4) })}>+</button>
+                <button class="mini" @click=${() => patchCard({ [k]: Math.min(60, (c[k] ?? 0) + 4) })}>+</button>
               </div></div>`)}
           </div>` : ""}
         ${auto ? html`<div class="hint">${c.entity}</div>`
@@ -1180,7 +1197,7 @@ export class CasaView extends LitElement {
                 this._anim = this._anim ^ 1;                 // replay the entry animation
               }}><ha-icon icon=${c.icon}></ha-icon>${c.name}</button>`)}
           </div>` : ""}
-          <div class="secs" style="--tabcols:${TAB_COLS};--gap:${GRID_GAP}px;--colw:${COL_W}px">
+          <div class="secs" style="--tabcols:${this._usedCols(sections)};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si} style="--span:${sec.cols}">
               ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}
@@ -1264,7 +1281,10 @@ export class CasaView extends LitElement {
     .ghost{opacity:.4;outline:1px dashed rgba(255,255,255,.3);}
     .mini-pencil{--mdc-icon-size:13px;margin-left:4px;opacity:.7;}
     .cols{display:flex;gap:26px;align-items:flex-start;}
-    .side{flex:0 0 240px;display:flex;flex-direction:column;gap:6px;}
+    /* Columns are a fixed width, so the main column ends wherever its last column does and the
+       leftover used to sit as dead space on the right. Let the sidebar take that up instead, so
+       the dashboard finishes at the edge of the page. */
+    .side{flex:1 1 240px;min-width:240px;max-width:480px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
@@ -1277,7 +1297,7 @@ export class CasaView extends LitElement {
     .greet{font-size:26px;font-weight:600;margin-top:12px;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
-    .main{flex:1;min-width:0;}
+    .main{flex:0 1 auto;min-width:0;}
     .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
     /* Never let a tab squeeze: the row scrolls instead. A shrinking tab would move every tab
        after it whenever anything changed the row's width. */
@@ -1289,7 +1309,7 @@ export class CasaView extends LitElement {
     /* A tab is TAB_COLS columns wide and a section takes some of them, so two three-column
        sections sit side by side and a six-column one is full width. */
     .secs{display:grid;grid-template-columns:repeat(var(--tabcols),minmax(0,var(--colw)));
-      gap:22px var(--gap);align-items:start;justify-content:start;}
+      gap:22px var(--gap);align-items:start;justify-content:start;width:max-content;max-width:100%;}
     .sec{grid-column:span var(--span);min-width:0;}
     .sec-pen{width:24px;height:24px;border-radius:50%;border:none;background:var(--chip);color:var(--dim);
       cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;vertical-align:middle;}
@@ -1408,7 +1428,8 @@ export class CasaView extends LitElement {
     .tagx{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:9px;font-size:11.5px;
       background:rgba(255,255,255,.08);}
     .tagx button{border:none;background:none;color:#ff8a80;cursor:pointer;font-size:11px;padding:0;}
-    @media (max-width:760px){ .cols{flex-direction:column;} .side{flex:1 1 auto;width:100%;} }
+    @media (max-width:760px){ .cols{flex-direction:column;}
+      .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;} .secs{width:auto;} }
   `;
 }
 
