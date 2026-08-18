@@ -191,12 +191,13 @@ class CasaPanel extends LitElement {
       background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:13px;}
     .hint{font-size:11px;color:var(--dim);margin-top:5px;}
     /* the same segmented selector the alarm card uses: one track, the indicator slides */
-    .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;
-      border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
+    .seg{position:relative;display:flex;align-items:center;width:100%;height:44px;
+      border-radius:15px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
     /* The offset is a plain percentage worked out when the card renders. A compound calc mixing
        a custom property with a percentage was being dropped, leaving the indicator parked. */
-    .seg-ind{position:absolute;top:3px;bottom:3px;left:var(--ind,0%);width:calc(100% / var(--n));
-      border-radius:9px;background:#fff;transition:left .3s cubic-bezier(.2,.7,.3,1);}
+    .seg-ind{position:absolute;top:4px;bottom:4px;left:var(--ind,0%);margin:0 4px;
+      width:calc(100% / var(--n) - 8px);
+      border-radius:11px;background:#fff;transition:left .3s cubic-bezier(.2,.7,.3,1);}
     .seg-b{position:relative;z-index:1;flex:1;min-width:0;height:100%;border:none;background:none;
       color:var(--dim);cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:500;
       transition:color .2s;}

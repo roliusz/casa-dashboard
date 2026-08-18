@@ -960,8 +960,8 @@ export const cardStyles = `
     border-color:rgba(251,110,29,.4);}
   .lock2.warn .spk-ic,.alarm2.warn .spk-ic{color:var(--orange);}
   .spk-btns button[disabled]{opacity:.35;cursor:default;}
-  .clim-sq.heat,.clim2.heat,.clim-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
-  .clim-sq.cool,.clim2.cool,.clim-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
+  .clim-sq.heat,.clim2.heat,.clim-card.heat,.clim-big-card.heat{background:linear-gradient(135deg,rgba(251,110,29,.16),rgba(251,110,29,.05));border-color:rgba(251,110,29,.3);}
+  .clim-sq.cool,.clim2.cool,.clim-card.cool,.clim-big-card.cool{background:linear-gradient(135deg,rgba(125,178,255,.16),rgba(125,178,255,.05));border-color:rgba(125,178,255,.3);}
   .plain.on{background:linear-gradient(135deg,rgba(248,222,111,.14),rgba(248,222,111,.04));border-color:rgba(248,222,111,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
   .spk-btns{display:flex;align-items:center;gap:10px;}
@@ -1025,12 +1025,15 @@ export const cardStyles = `
      are equal width, so its travel is its own width plus one gap and needs no measuring. */
   /* One track with the indicator sliding behind transparent segments — the whole row is 40px,
      the height of a .spk-btns button, so it still lines up with every other card's controls. */
-  .seg{position:relative;display:flex;align-items:center;width:100%;height:40px;
-    border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
+  .seg{position:relative;display:flex;align-items:center;width:100%;height:44px;
+    border-radius:15px;background:rgba(0,0,0,.22);border:1px solid var(--cardBorder);}
   /* The offset is a plain percentage worked out when the card renders. A compound calc mixing a
      custom property with a percentage was being dropped, leaving the indicator parked at zero. */
-  .seg-ind{position:absolute;top:3px;bottom:3px;left:var(--ind,0%);width:calc(100% / var(--n));
-    border-radius:9px;background:rgba(255,255,255,.18);
+  /* The pill sits inside its own segment: the offset is a whole number of segments and the
+     margins inset it, so the track keeps an even margin at both ends. */
+  .seg-ind{position:absolute;top:4px;bottom:4px;left:var(--ind,0%);margin:0 4px;
+    width:calc(100% / var(--n) - 8px);
+    border-radius:11px;background:rgba(255,255,255,.18);
     transition:left .3s cubic-bezier(.2,.7,.3,1),background .3s ease;}
   .seg.armed .seg-ind{background:var(--green);}
   .seg.warn{border-radius:12px;}
@@ -1068,7 +1071,8 @@ export const cardStyles = `
   .wdg-bar{width:100%;height:6px;border-radius:3px;background:var(--track);overflow:hidden;}
   .wdg-fill{height:100%;border-radius:3px;background:var(--yellow);transition:width .4s ease;}
   /* the Casa app's climate card, ported whole */
-  .clim-big-card{padding:18px;justify-content:space-between;}
+  /* the tint follows whichever thermostat the chips have selected */
+  .clim-big-card{padding:18px;justify-content:space-between;transition:background .5s ease,border-color .5s ease;}
   .clim-sel{display:flex;gap:8px;flex-wrap:wrap;}
   .cs{flex:1;min-width:64px;height:36px;border-radius:17px;border:1px solid var(--cardBorder);
     background:var(--chip);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;
