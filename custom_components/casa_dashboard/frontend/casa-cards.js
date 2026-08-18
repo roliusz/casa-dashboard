@@ -90,7 +90,7 @@ const DEFAULT_ICON = {
  * gets device classes and state changes right for free, and fall back to the table above when it
  * is not (the design harness has no Home Assistant).
  */
-const stateIcon = (ctx, e, cls, explicit, fallback) => {
+export const stateIcon = (ctx, e, cls, explicit, fallback) => {
   const s = st(ctx, e);
   const icon = explicit || s?.attributes?.icon;
   if (icon) return html`<ha-icon class=${cls} icon=${icon}></ha-icon>`;

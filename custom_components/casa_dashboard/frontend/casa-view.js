@@ -17,7 +17,7 @@ const {
   newWidget,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
-const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
+const { renderCard, cardStyles, stateIcon } = await import(`./casa-cards.js${V}`);
 
 const DOMAIN_ICON = {
   light: "mdi:lightbulb", switch: "mdi:toggle-switch", media_player: "mdi:speaker", cover: "mdi:blinds",
@@ -442,14 +442,6 @@ export class CasaView extends LitElement {
     const art = a.entity_picture;
     const playing = s.state === "playing";
     const big = it.variant === "extended";
-    // HA's cast integration marks video devices — a TV or a Chromecast — as device_class tv, and
-    // leaves speakers alone. Where that is never set, fall back to the entity id: only a trailing
-    // _tv or a named caster, and never something carrying an artist, so a speaker that happens to
-    // live in the tv room stays a speaker.
-    const objectId = (it.entity || "").split(".")[1] || "";
-    const namedLikeTv = /(^|_)tv$/.test(objectId)
-      || /(^|_)(chromecast|androidtv|android_tv|googletv|google_tv|shield|firetv)(_|$)/.test(objectId);
-    const isTv = a.device_class === "tv" || (namedLikeTv && !a.media_artist);
     const call = (sv) => (e) => { e.stopPropagation(); this.hass.callService("media_player", sv, { entity_id: it.entity }); };
 
     // The position only updates when it changes, so carry it forward from the timestamp HA sent.
@@ -459,9 +451,9 @@ export class CasaView extends LitElement {
       at += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
     const pct = dur ? Math.min(100, (at / dur) * 100) : 0;
 
-    return html`<div class="np ${big ? "" : "np-mini"} ${isTv ? "tv" : ""}">
-      <div class="np-art" style=${art ? `background-image:url('${art}')` : ""}>
-        ${!art ? html`<ha-icon icon=${isTv ? "mdi:television" : "mdi:music"}></ha-icon>` : ""}</div>
+    return html`<div class="np ${big ? "" : "np-mini"}">
+      <div class="np-art ${art ? "" : "noart"}" style=${art ? `background-image:url('${art}')` : ""}>
+        ${art ? "" : stateIcon(this._ctx, it.entity, "", it.icon, "mdi:music")}</div>
       <div class="np-body">
         <div class="np-txt">
           <div class="kick">${a.friendly_name || this._sub(it)}</div>
@@ -1399,7 +1391,7 @@ export class CasaView extends LitElement {
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));overflow:hidden;width:100%;box-sizing:border-box;}
     .np-art{position:relative;width:100%;aspect-ratio:1;background:linear-gradient(135deg,#8a5bff,#d06bff);
       background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
-    .np-art ha-icon{--mdc-icon-size:40px;}
+    .np-art ha-icon,.np-art ha-state-icon{--mdc-icon-size:40px;}
     .np-body{padding:16px 20px 20px;min-width:0;}
     .kick{font-size:11px;font-weight:600;letter-spacing:.6px;color:var(--dim,rgba(235,235,245,.6));
       text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1413,7 +1405,7 @@ export class CasaView extends LitElement {
 
     .np.np-mini{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:20px;}
     .np-mini .np-art{width:56px;height:56px;aspect-ratio:auto;border-radius:12px;flex:none;}
-    .np-mini .np-art ha-icon{--mdc-icon-size:26px;}
+    .np-mini .np-art ha-icon,.np-mini .np-art ha-state-icon{--mdc-icon-size:26px;}
     .np-mini .np-body{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:0;}
     .np-mini .np-txt{flex:1;min-width:0;}
     .np-mini .kick{font-size:10.5px;}
@@ -1423,10 +1415,9 @@ export class CasaView extends LitElement {
     .np-mini .np-ctrls .ic{--mdc-icon-size:24px;}
     .np-mini .np-ctrls .play{--mdc-icon-size:36px;}
 
-    /* A TV or a Chromecast is not playing an album: no art gradient, no green transport. */
-    .np.tv .np-art{background:rgba(255,255,255,.06);}
-    .np.tv .np-art ha-icon{color:var(--dim,rgba(235,235,245,.6));}
-    .np.tv .np-ctrls .play{color:#fff;}
+    /* Nothing to show: the entity's own icon on a plain ground, rather than a stand-in cover. */
+    .np-art.noart{background:rgba(255,255,255,.06);}
+    .np-art.noart ha-icon,.np-art.noart ha-state-icon{color:var(--dim,rgba(235,235,245,.6));}
     .greet{font-size:26px;font-weight:600;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
