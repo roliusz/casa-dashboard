@@ -1622,8 +1622,9 @@ export class CasaView extends LitElement {
       /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their
          content — main has to be told to take the width. */
       .main{width:100%;}
-      /* Full width, or the row shrinks to its pills and flex-end has nothing to push against. */
-      .pills.mob{display:flex;width:100%;} .main > .pills{display:none;}
+      /* Full width, or the row shrinks to its pills and flex-end has nothing to push against.
+         No bottom margin either: stacked, .cols already puts its own gap under the row. */
+      .pills.mob{display:flex;width:100%;margin-bottom:0;} .main > .pills{display:none;}
       /* One section to a row, and its cards stretch the width rather than holding a column width
          meant for a desktop. */
       .secs{width:auto;grid-template-columns:1fr;}
