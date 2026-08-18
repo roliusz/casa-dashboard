@@ -570,30 +570,37 @@ function widgetCard(ctx, c) {
       </div>`;
     }
     case "weather": {
-      // Today only, which needs no fetching: condition, temperature, humidity, wind and pressure
-      // are all attributes of the weather entity itself.
       const s = st(ctx, c.entity);
       if (!s) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a weather entity</div></div>`;
       const a = s.attributes;
-      const unit = a.temperature_unit || "°";
-      const facts = [
-        a.apparent_temperature != null
-          ? { icon: "mdi:thermometer", text: `Feels ${Math.round(a.apparent_temperature)}${unit}` } : null,
-        a.humidity != null ? { icon: "mdi:water-percent", text: `${Math.round(a.humidity)}%` } : null,
-        a.wind_speed != null
-          ? { icon: "mdi:weather-windy", text: `${Math.round(a.wind_speed)} ${a.wind_speed_unit || ""}`.trim() } : null,
-      ].filter(Boolean);
-      return html`<div class="gcard wdg wx" @click=${() => ctx.more(c.entity)}>
-        <div class="wx-top">
-          <ha-icon class="wx-ic" icon=${WICON[s.state] || "mdi:weather-partly-cloudy"}></ha-icon>
-          <div class="wx-now">
-            <div class="wdg-big">${a.temperature != null ? Math.round(a.temperature) + "°" : "–"}</div>
-            <div class="hl-sub">${WLABEL[s.state] || cap(String(s.state).replace(/[-_]/g, " "))}</div>
+      const temp = a.temperature != null ? Math.round(a.temperature) : null;
+      const cond = WLABEL[s.state] || cap(String(s.state).replace(/[-_]/g, " "));
+      const icon = WICON[s.state] || "mdi:weather-partly-cloudy";
+      const place = c.name || a.friendly_name || c.entity;
+
+      // One row reads like any entity card: the condition as the icon, the place over the
+      // condition, and the temperature on the right.
+      if ((c.h || 3) <= 1)
+        return html`<div class="gcard wdg reading" @click=${() => ctx.more(c.entity)}>
+          <div class="cmp-head">
+            <ha-icon class="spk-ic" icon=${icon}></ha-icon>
+            <div class="hl-meta"><div class="hl-name">${place}</div><div class="hl-sub">${cond}</div></div>
+            <div class="cmp-val">${temp != null ? temp + "°" : "–"}</div>
           </div>
+        </div>`;
+
+      // Taller is the Casa app's mobile square: condition above, the reading with the condition
+      // beside it, then the place with today's high and low.
+      const fc = ctx.forecast(c.entity);
+      const hi = fc?.temperature != null ? Math.round(fc.temperature) : null;
+      const lo = fc?.templow != null ? Math.round(fc.templow) : null;
+      return html`<div class="gcard wx-sq" @click=${() => ctx.more(c.entity)}>
+        <ha-icon class="wx-ic" icon=${icon}></ha-icon>
+        <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
+        <div class="wx-labels">
+          <div class="wx-place">${place}</div>
+          <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
         </div>
-        ${facts.length ? html`<div class="wx-facts">
-          ${facts.map((f) => html`<span class="wx-fact"><ha-icon icon=${f.icon}></ha-icon>${f.text}</span>`)}
-        </div>` : ""}
       </div>`;
     }
     case "rooms": {
@@ -1054,6 +1061,16 @@ export const cardStyles = `
     border-radius:6px 6px 3px 3px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.55);}
   .nrg-days{display:flex;gap:8px;margin-top:8px;}
   .nrg-days span{flex:1;text-align:center;font-size:11px;color:var(--dim);}
+
+  /* weather, the app's mobile square */
+  .wx-sq{padding:16px;justify-content:space-between;cursor:pointer;}
+  .wx-ic{--mdc-icon-size:clamp(24px,7cqw,34px);color:var(--text);flex:none;}
+  .wx-temp{font-size:clamp(28px,13cqw,56px);font-weight:300;line-height:1;letter-spacing:-2.5px;
+    white-space:nowrap;}
+  .wx-temp span{font-size:13px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
+  .wx-labels{min-width:0;}
+  .wx-place{font-size:14px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}

@@ -65,6 +65,7 @@ export class CasaView extends LitElement {
       // Which room a climate picker is showing. Kept here rather than in the layout: it is where
       // you happen to be looking, not something worth saving.
       energy: (id) => this._energy(id),
+      forecast: (id) => this._forecast(id),
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -252,6 +253,35 @@ export class CasaView extends LitElement {
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
+  }
+
+/**
+   * Today's high and low, which only a forecast carries — Home Assistant stopped putting forecasts
+   * in attributes, so it takes a service call. Same shape as the energy fetch: once per entity,
+   * held, refreshed hourly.
+   */
+  _forecast(id) {
+    if (!id || !this.hass) return null;
+    this._fc = this._fc || {};
+    if (!(id in this._fc)) { this._fc[id] = null; this._fetchForecast(id); }
+    return this._fc[id];
+  }
+
+  async _fetchForecast(id) {
+    try {
+      const res = await this.hass.callWS({
+        type: "call_service", domain: "weather", service: "get_forecasts",
+        service_data: { type: "daily" }, target: { entity_id: id }, return_response: true,
+      });
+      const list = res?.response?.[id]?.forecast || [];
+      this._fc = { ...this._fc, [id]: list[0] || {} };
+    } catch (err) {
+      console.warn("Casa Dashboard: could not read a forecast for", id, err);
+      this._fc = { ...this._fc, [id]: {} };
+    }
+    this.requestUpdate();
+    clearTimeout(this._fcT);
+    this._fcT = setTimeout(() => this._fetchForecast(id), 3600000);
   }
 
   _energy(id) {

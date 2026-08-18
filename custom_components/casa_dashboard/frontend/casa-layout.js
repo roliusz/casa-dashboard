@@ -74,7 +74,7 @@ export const WIDGET_TYPES = {
   date:     { label: "Date",     icon: "mdi:calendar",              w: 2, h: 1 },
   greeting: { label: "Greeting", icon: "mdi:hand-wave",             w: 2, h: 1 },
   people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
-  weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 2, h: 2, needsEntity: true },
+  weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 2, h: 3, needsEntity: true },
   heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1 },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
 
