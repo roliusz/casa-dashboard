@@ -690,12 +690,12 @@ function widgetCard(ctx, c) {
               "set_swing_mode", "swing_mode") : ""}
           </div>
         </div>
-        <div class="scale" @pointerdown=${(ev) => ctx.scaleDown(ev, e)}>
+        <div class="scale ${(c.h || 4) <= 3 ? "bare" : ""}" @pointerdown=${(ev) => ctx.scaleDown(ev, e)}>
           <div class="ticks">${ticks}</div>
           <div class="handle" style="left:${pos(tgt ?? 20)}%"></div>
           <div class="curdot" style="left:${pos(cur ?? 20)}%;background:${zone};box-shadow:0 0 8px ${zone}"></div>
-          <div class="slabels">${[18, 20, 22, 24, 26, 28].map((t) =>
-            html`<span style="left:${pos(t)}%">${t}</span>`)}</div>
+          ${(c.h || 4) <= 3 ? "" : html`<div class="slabels">${[18, 20, 22, 24, 26, 28].map((t) =>
+            html`<span style="left:${pos(t)}%">${t}</span>`)}</div>`}
         </div>
       </div>`;
     }
@@ -1004,6 +1004,8 @@ export const cardStyles = `
   .cm.sel{background:rgba(255,255,255,.12);}
   .cm .cm-tick{--mdc-icon-size:16px;color:var(--green);}
   .scale{position:relative;height:52px;margin-top:12px;cursor:pointer;touch-action:pan-y;}
+  /* at three rows the degree labels are dropped, so the track does not need their height */
+  .scale.bare{height:38px;}
   .ticks{position:absolute;top:8px;left:0;right:0;display:flex;align-items:flex-end;
     justify-content:space-between;height:18px;}
   .ct{width:2px;border-radius:1px;}
