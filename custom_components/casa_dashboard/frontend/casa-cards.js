@@ -595,8 +595,12 @@ function widgetCard(ctx, c) {
       // Taller is the Casa app's mobile square: condition above, the reading with the condition
       // beside it, then the place with today's high and low.
       const fc = ctx.forecast(c.entity);
-      const hi = fc?.temperature != null ? Math.round(fc.temperature) : null;
-      const lo = fc?.templow != null ? Math.round(fc.templow) : null;
+      const today = fc?.[0];
+      const hi = today?.temperature != null ? Math.round(today.temperature) : null;
+      const lo = today?.templow != null ? Math.round(today.templow) : null;
+      // The days after today, but only when the card is wide enough to line them up and tall
+      // enough to give them a row of their own.
+      const days = (c.w || 2) >= 2 && (c.h || 3) >= 3 ? (fc || []).slice(1, 6) : [];
       return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""}" @click=${() => ctx.more(c.entity)}>
         <ha-icon class="wx-ic" icon=${icon}></ha-icon>
         <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
@@ -604,6 +608,14 @@ function widgetCard(ctx, c) {
           <div class="wx-place">${place}</div>
           <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
         </div>
+        ${days.length ? html`<div class="wx-fc">
+          ${days.map((d) => html`<div class="wx-day">
+            <span class="wx-dn">${new Date(d.datetime).toLocaleDateString([], { weekday: "short" })}</span>
+            <ha-icon icon=${WICON[d.condition] || "mdi:weather-partly-cloudy"}></ha-icon>
+            <span class="wx-hl">${d.temperature != null ? Math.round(d.temperature) + "°" : "–"}<span>${
+              d.templow != null ? Math.round(d.templow) + "°" : ""}</span></span>
+          </div>`)}
+        </div>` : ""}
       </div>`;
     }
     case "rooms": {
@@ -1082,6 +1094,15 @@ export const cardStyles = `
   .wx-sq.sm .wx-temp{font-size:30px;letter-spacing:-1.5px;}
   .wx-sq.sm .wx-temp span{font-size:11.5px;margin-left:4px;}
   .wx-sq.sm .wx-place{font-size:13px;}
+
+  /* the days after today, when the card is wide enough to hold them */
+  .wx-fc{display:flex;gap:6px;margin-top:12px;padding-top:12px;
+    border-top:1px solid rgba(255,255,255,.10);}
+  .wx-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .wx-dn{font-size:10.5px;color:var(--dim);}
+  .wx-day ha-icon{--mdc-icon-size:19px;color:var(--text);}
+  .wx-hl{font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .wx-hl span{font-weight:400;color:var(--dim);margin-left:3px;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}

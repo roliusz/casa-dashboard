@@ -262,9 +262,9 @@ export class CasaView extends LitElement {
   }
 
 /**
-   * Today's high and low, which only a forecast carries — Home Assistant stopped putting forecasts
-   * in attributes, so it takes a service call. Same shape as the energy fetch: once per entity,
-   * held, refreshed hourly.
+   * The daily forecast — today's high and low, and the days after it. Home Assistant stopped
+   * putting forecasts in attributes, so it takes a service call: once per entity, held, refreshed
+   * hourly.
    */
   _forecast(id) {
     if (!id || !this.hass) return null;
@@ -279,8 +279,7 @@ export class CasaView extends LitElement {
         type: "call_service", domain: "weather", service: "get_forecasts",
         service_data: { type: "daily" }, target: { entity_id: id }, return_response: true,
       });
-      const list = res?.response?.[id]?.forecast || [];
-      this._fc = { ...this._fc, [id]: list[0] || {} };
+      this._fc = { ...this._fc, [id]: res?.response?.[id]?.forecast || [] };
     } catch (err) {
       console.warn("Casa Dashboard: could not read a forecast for", id, err);
       this._fc = { ...this._fc, [id]: {} };
