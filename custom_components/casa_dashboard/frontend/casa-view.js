@@ -413,7 +413,8 @@ export class CasaView extends LitElement {
       ${items.map((it, i) => this._vis(it) ? html`
         <div class="sit ${this.editing ? "editable" : ""} ${!isVisible(it, this.narrow, this.hass) ? "ghost" : ""} ${this._sideLift?.i === i ? "lifted" : ""}"
              data-i=${i} data-key=${it.id}
-             style=${this._sideLift?.i === i ? `--lx:${this._sideLift.dx}px;--ly:${this._sideLift.dy}px` : ""}
+             style=${(this._sideLift?.i === i ? `--lx:${this._sideLift.dx}px;--ly:${this._sideLift.dy}px;` : "")
+               + `margin:${it.padTop ?? 0}px 0 ${it.padBottom ?? 0}px;`}
              @pointerdown=${(e) => this._dragSide(e, i)}
              @click=${() => { if (this._sideMoved) { this._sideMoved = false; return; } this.editing && (this._insp = { kind: "side", i }); }}>
           ${it.type === "clock" ? html`<div class="clock" style=${this._sideStyle(it)}>${
@@ -422,8 +423,7 @@ export class CasaView extends LitElement {
               now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>`
             : it.type === "greeting" ? html`<div class="greet" style=${this._sideStyle(it)}>${this._greeting()}</div>`
             : it.type === "media" ? this._sideMedia(it)
-            : it.type === "heading" ? html`<div class="shead" style=${this._sideStyle(it)
-                + `margin:${it.padTop ?? 0}px 0 ${it.padBottom ?? 0}px;`}>${it.name || "Heading"}</div>`
+            : it.type === "heading" ? html`<div class="shead" style=${this._sideStyle(it)}>${it.name || "Heading"}</div>`
             : it.type === "gap" ? html`<div class="sgap" style="height:${it.size ?? 24}px"></div>`
             : html`<div class="spill"><ha-icon icon=${this._iconOf(it)}></ha-icon><span>${this._sub(it)}</span></div>`}
           ${this.editing ? html`<ha-icon class="mini-pencil" icon="mdi:pencil"></ha-icon>` : ""}
@@ -988,7 +988,8 @@ export class CasaView extends LitElement {
           </div></div>` : ""}
         ${it.type === "heading" ? html`
           <div class="f"><label>Text</label><input .value=${it.name || ""} placeholder="Heading"
-            @change=${(e) => this._patch(it, { name: e.target.value || undefined })}></div>
+            @change=${(e) => this._patch(it, { name: e.target.value || undefined })}></div>` : ""}
+        ${it.type === "gap" ? "" : html`
           <div class="two">
             ${[["padTop", "Space above"], ["padBottom", "Space below"]].map(([key, label]) => html`
               <div class="f"><label>${label}</label><div class="stp">
@@ -996,7 +997,7 @@ export class CasaView extends LitElement {
                 <span>${it[key] ?? 0}px</span>
                 <button class="mini" @click=${() => this._patch(it, { [key]: Math.min(60, (it[key] ?? 0) + 4) })}>+</button>
               </div></div>`)}
-          </div>` : ""}
+          </div>`}
         ${it.type === "gap" ? "" : html`${this._showChips(it)}${this._condition(it)}`}`;
     }
 
@@ -1413,7 +1414,7 @@ export class CasaView extends LitElement {
     .np-mini .np-ctrls{margin-top:0;gap:16px;flex:none;}
     .np-mini .np-ctrls .ic{--mdc-icon-size:24px;}
     .np-mini .np-ctrls .play{--mdc-icon-size:36px;}
-    .greet{font-size:26px;font-weight:600;margin-top:12px;line-height:1.2;}
+    .greet{font-size:26px;font-weight:600;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
     .main{flex:0 1 auto;min-width:0;}
