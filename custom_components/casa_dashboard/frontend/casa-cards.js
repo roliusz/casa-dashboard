@@ -941,7 +941,7 @@ export const cardStyles = `
     font-size:11px;color:var(--dim);}
   .g-ref-lbl{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--dim);white-space:nowrap;}
 
-  .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .nrg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .nrg-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
   /* the reading as it was: the big semibold number with the unit dim beside it */
   .nrg-figure{display:flex;align-items:baseline;gap:6px;flex:none;}
