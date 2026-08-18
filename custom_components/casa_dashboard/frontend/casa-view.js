@@ -1583,7 +1583,9 @@ export class CasaView extends LitElement {
     .sh-h{display:flex;align-items:center;gap:11px;margin-bottom:14px;}
     .sh-t{font-size:16px;font-weight:600;margin-bottom:10px;}
     .sh-h .grow{flex:1;min-width:0;} .sh-h .sh-t{margin:0;}
-    .x{width:32px;height:32px;border-radius:50%;border:none;background:var(--chip,rgba(255,255,255,.09));color:inherit;cursor:pointer;}
+    .x{width:32px;height:32px;border-radius:50%;border:none;background:var(--chip,rgba(255,255,255,.09));
+      color:inherit;cursor:pointer;padding:0;display:inline-flex;align-items:center;justify-content:center;
+      line-height:0;}
     .f{margin-bottom:13px;}
     .f label{display:block;font-size:11.5px;color:var(--dim,rgba(235,235,245,.6));margin-bottom:5px;}
     .f input,.search{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;
@@ -1620,7 +1622,8 @@ export class CasaView extends LitElement {
       /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their
          content — main has to be told to take the width. */
       .main{width:100%;}
-      .pills.mob{display:flex;} .main > .pills{display:none;}
+      /* Full width, or the row shrinks to its pills and flex-end has nothing to push against. */
+      .pills.mob{display:flex;width:100%;} .main > .pills{display:none;}
       /* One section to a row, and its cards stretch the width rather than holding a column width
          meant for a desktop. */
       .secs{width:auto;grid-template-columns:1fr;}
