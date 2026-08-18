@@ -658,15 +658,19 @@ function widgetCard(ctx, c) {
       const max = Math.max(...bars.map((b) => b.val), 1);
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
-      return html`<div class="gcard wdg col nrg" @click=${() => ctx.more(c.entity)}>
-        <div class="hl-sub">${c.name || "Energy used"}</div>
-        <div class="wdg-big">${total}<span class="wdg-of">${unit}</span></div>
+      return html`<div class="gcard nrg" @click=${() => ctx.more(c.entity)}>
+        <div class="nrg-head"><span class="nrg-title">${c.name || "Energy used"}</span>
+          <ha-icon icon="mdi:arrow-right"></ha-icon></div>
+        <div class="nrg-line"><span class="nrg-total">${total}</span>
+          <span class="nrg-unit">${unit} · last ${bars.length} days</span></div>
         <div class="nrg-bars">
-          ${bars.map((b) => html`<div class="nrg-bar" title=${`${b.val} ${unit}`}>
-            <div class="nrg-track"><div class="nrg-fill" style="height:${Math.max(3, (b.val / max) * 100)}%"></div></div>
-            <span class="nrg-day">${new Date(b.ts).toLocaleDateString([], { weekday: "narrow" })}</span>
+          ${bars.map((b) => html`<div class="nrg-bar">
+            <span class="nrg-val">${b.val}</span>
+            <div class="nrg-fill" style="height:${Math.max(8, (b.val / max) * 100)}%"></div>
           </div>`)}
         </div>
+        <div class="nrg-days">${bars.map((b) => html`<span>${
+          new Date(b.ts).toLocaleDateString([], { weekday: "short" })}</span>`)}</div>
       </div>`;
     }
     default:
@@ -882,22 +886,24 @@ export const cardStyles = `
   .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
-  .nrg{gap:8px;cursor:pointer;}
-  .nrg-bars{display:flex;align-items:flex-end;gap:6px;width:100%;flex:1;min-height:0;}
-  .nrg-bar{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;gap:5px;}
-  /* the fill measures itself against the track, not against the track plus the day label —
-     otherwise the tallest day cannot reach the top */
-  .nrg-track{flex:1;min-height:0;display:flex;align-items:flex-end;}
-  .nrg-fill{width:100%;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,var(--green),rgba(98,214,33,.35));}
-  .nrg-day{font-size:10px;color:var(--dim);flex:none;}
-
-  .wx{padding:16px;justify-content:space-between;gap:10px;cursor:pointer;}
-  .wx-top{display:flex;align-items:center;gap:14px;min-width:0;}
-  .wx-ic{--mdc-icon-size:clamp(34px,9cqw,58px);color:var(--text);flex:none;}
-  .wx-now{min-width:0;}
-  .wx-facts{display:flex;flex-wrap:wrap;gap:8px 14px;}
-  .wx-fact{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--dim);white-space:nowrap;}
-  .wx-fact ha-icon{--mdc-icon-size:15px;}
+  .nrg{padding:16px 18px;justify-content:flex-start;cursor:pointer;}
+  .nrg-head{display:flex;align-items:center;justify-content:space-between;}
+  .nrg-title{font-size:16px;font-weight:600;}
+  .nrg-head ha-icon{--mdc-icon-size:20px;color:var(--dim);}
+  .nrg-line{display:flex;align-items:baseline;gap:10px;margin:10px 0 12px;}
+  .nrg-total{font-size:30px;font-weight:600;letter-spacing:-1px;}
+  .nrg-unit{font-size:15px;color:var(--dim);}
+  .nrg-bars{display:flex;align-items:flex-end;gap:8px;flex:1;min-height:60px;}
+  .nrg-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+    height:100%;gap:4px;}
+  .nrg-val{font-size:10px;font-weight:600;color:var(--dim);}
+  /* glass body with a bright cap, the same treatment the mobile gauge uses */
+  .nrg-fill{position:relative;flex:0 0 auto;width:100%;border-radius:6px;min-height:8px;
+    background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,.10));}
+  .nrg-fill::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    border-radius:6px 6px 3px 3px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.55);}
+  .nrg-days{display:flex;gap:8px;margin-top:8px;}
+  .nrg-days span{flex:1;text-align:center;font-size:11px;color:var(--dim);}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
