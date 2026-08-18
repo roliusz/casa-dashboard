@@ -607,7 +607,7 @@ function widgetCard(ctx, c) {
           <ha-icon class="wx-ic" icon=${icon}></ha-icon>
           <div class="wx-temp">${temp != null ? temp : "–"}°<span>${cond}</span></div>
           <div class="wx-labels">
-            <div class="wx-place">${place}</div>
+            <div class="hl-name">${place}</div>
             <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
           </div>
         </div>
@@ -674,7 +674,7 @@ function widgetCard(ctx, c) {
         <ha-icon class="cnt-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
         <div class="cnt-num">${on}<span>/${list.length}</span></div>
         <div class="cnt-labels">
-          <div class="wx-place">${label}</div>
+          <div class="hl-name">${label}</div>
           <div class="hl-sub">${status}</div>
         </div>
         ${(c.w || 1) >= 2 ? html`<div class="wdg-bar"><div class="wdg-fill" style="width:${pct}%"></div></div>` : ""}
@@ -720,7 +720,7 @@ function widgetCard(ctx, c) {
           <ha-icon class="clim-sq-ic" icon="mdi:home-thermometer"></ha-icon>
           <div class="clim-sq-temp">${cur ?? "–"}°<span>now</span></div>
           <div class="clim-sq-labels">
-            <div class="wx-place">${attr(ctx, e, "friendly_name") || e}</div>
+            <div class="hl-name">${attr(ctx, e, "friendly_name") || e}</div>
             <div class="hl-sub">${summary}</div>
           </div>
         </div>`;
@@ -1118,7 +1118,7 @@ export const cardStyles = `
   .slabels{position:absolute;bottom:0;left:0;right:0;height:14px;font-size:12px;color:var(--dim);}
   .slabels span{position:absolute;transform:translateX(-50%);}
 
-  .nrg{padding:14px 16px;justify-content:center;cursor:pointer;}
+  .nrg{padding:15px;justify-content:center;cursor:pointer;}
   /* a single row still shows the name and the period, so it needs the tighter padding */
   .nrg.one{padding:9px 14px;}
   /* the app's mobile square: bolt, tick gauge, name and today's figure */
@@ -1160,18 +1160,16 @@ export const cardStyles = `
   .nrg-days span{flex:1;text-align:center;font-size:11px;color:var(--dim);}
 
   /* weather, the app's mobile square */
-  .wx-sq{padding:16px;justify-content:space-between;cursor:pointer;}
+  .wx-sq{padding:15px;justify-content:space-between;cursor:pointer;}
   .wx-ic{--mdc-icon-size:30px;color:var(--text);flex:none;}
   .wx-temp{font-size:46px;font-weight:300;line-height:1;letter-spacing:-2.5px;white-space:nowrap;}
   .wx-temp span{font-size:13px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
   .wx-labels{min-width:0;}
-  .wx-place{font-size:14px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;
-    text-overflow:ellipsis;}
   /* Two rows carries the same type as the tall card — only the padding gives way, since 125px
      has to hold the icon, the reading, the place and the high and low. Sizes are fixed rather
      than measured in cqw: nothing declares a container, so those clamps resolved against the
      viewport and picked an end of their range at random. */
-  .wx-sq.sm{padding:9px 13px;}
+  .wx-sq.sm{padding:10px 15px;}
   .wx-sq.sm .wx-ic{--mdc-icon-size:24px;}
 
   /* the days after today, beside the current conditions on a wide card */
@@ -1186,20 +1184,20 @@ export const cardStyles = `
   .wx-hl span{font-weight:400;color:var(--dim);margin-left:3px;}
 
   /* the app's mobile climate square, at the two-row card's scale */
-  .clim-sq{padding:12px 14px;justify-content:space-between;cursor:pointer;}
+  .clim-sq{padding:15px;justify-content:space-between;cursor:pointer;}
   .clim-sq-ic{--mdc-icon-size:22px;color:var(--text);flex:none;}
   .clim-sq-temp{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
   .clim-sq-temp span{font-size:12px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:5px;}
   .clim-sq-labels{min-width:0;}
 
   /* the app's mobile counter square */
-  .cnt-sq{padding:12px 14px;justify-content:space-between;}
+  .cnt-sq{padding:15px;justify-content:space-between;}
   .cnt-ic{--mdc-icon-size:22px;color:var(--dim);flex:none;}
   .cnt-sq.on .cnt-ic{color:var(--yellow);}
   .cnt-num{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
   .cnt-num span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:4px;}
   .cnt-labels{min-width:0;}
-  .cnt-wide{padding:14px 16px;justify-content:space-between;gap:8px;}
+  .cnt-wide{padding:15px;justify-content:space-between;gap:8px;}
   /* the app's proportions: a big semibold count over a thick, glowing track */
   .cnt-num.big{font-size:48px;font-weight:600;letter-spacing:-1.5px;}
   .cnt-num.big span{font-size:17px;margin-left:5px;}

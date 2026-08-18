@@ -188,6 +188,9 @@ export class CasaView extends LitElement {
     return c.entity ? (s?.attributes?.friendly_name || c.entity) : WIDGET_TYPES[c.widget]?.label || "Card";
   }
 
+  /** The zoom the panel is drawing at — rects come back multiplied by it, the constants do not. */
+  get _zoom() { return Number(getComputedStyle(this).zoom) || 1; }
+
   _vis(item) { return this.editing || isVisible(item, this.narrow, this.hass); }
 
   /**
@@ -628,11 +631,12 @@ export class CasaView extends LitElement {
       const grid = this.renderRoot.querySelector(`[data-grid="${i}"]`);
       if (!grid) return null;
       const r = grid.getBoundingClientRect();
-      const colW = (r.width - GRID_GAP * (sec.cols - 1)) / sec.cols;
+      const z = this._zoom;
+      const colW = (r.width - GRID_GAP * z * (sec.cols - 1)) / sec.cols;
       return {
         x: Math.max(0, Math.min(sec.cols - card.w,
-          Math.round((ev.clientX - grabX - r.left) / (colW + GRID_GAP)))),
-        y: Math.max(0, Math.round((ev.clientY - grabY - r.top) / (GRID_ROW + GRID_GAP))),
+          Math.round((ev.clientX - grabX - r.left) / (colW + GRID_GAP * z)))),
+        y: Math.max(0, Math.round((ev.clientY - grabY - r.top) / ((GRID_ROW + GRID_GAP) * z))),
       };
     };
 

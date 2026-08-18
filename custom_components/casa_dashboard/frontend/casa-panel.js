@@ -18,9 +18,16 @@ console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
 
+export const SCALES = [
+  { v: 1,   label: "Small" },
+  { v: 1.5, label: "Medium" },
+  { v: 2,   label: "Large" },
+];
+
 const DEFAULT_SETTINGS = {
   wallpaper: "",                     // image url; blank = the built-in gradient
   title: "Casa",
+  scale: 1,                          // how large everything is drawn; see SCALES
 };
 
 class CasaPanel extends LitElement {
@@ -111,6 +118,14 @@ class CasaPanel extends LitElement {
           <button class="x" @click=${() => (this._showSettings = false)}><ha-icon icon="mdi:close"></ha-icon></button></div>
         <div class="f"><label>Dashboard name</label>
           <input .value=${this._settings.title || ""} @change=${(e) => this._setSetting("title", e.target.value)}></div>
+        <div class="f"><label>Scale</label>
+          <input type="range" class="slider" min="0" max=${SCALES.length - 1} step="1"
+            .value=${String(Math.max(0, SCALES.findIndex((x) => x.v === (this._settings.scale || 1))))}
+            @input=${(e) => this._setSetting("scale", SCALES[Number(e.target.value)].v)}>
+          <div class="scale-lbls">${SCALES.map((x) => html`<span class=${
+            (this._settings.scale || 1) === x.v ? "on" : ""}>${x.label}</span>`)}</div>
+          <div class="hint">Draws the whole dashboard larger — useful on a wall panel across the room.</div>
+        </div>
         <div class="f"><label>Wallpaper URL</label>
           <input placeholder="/local/my-wallpaper.jpg — blank for the default"
             .value=${this._settings.wallpaper || ""} @change=${(e) => this._setSetting("wallpaper", e.target.value)}>
@@ -130,7 +145,7 @@ class CasaPanel extends LitElement {
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
-        <casa-view .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
+        <casa-view style=${`zoom:${this._settings.scale || 1}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}
           @toggle-edit=${() => (this._edit = !this._edit)}
           @open-settings=${() => (this._showSettings = true)}></casa-view>
@@ -169,6 +184,9 @@ class CasaPanel extends LitElement {
     .f input{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;border:1px solid var(--cardBorder);
       background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:13px;}
     .hint{font-size:11px;color:var(--dim);margin-top:5px;}
+    .slider{width:100%;accent-color:#fff;}
+    .scale-lbls{display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--dim);}
+    .scale-lbls .on{color:var(--text);font-weight:600;}
     .mini{padding:9px 14px;border-radius:11px;border:1px solid var(--cardBorder);background:var(--chip);
       color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
     .mini.danger{color:#ff8a80;} .mini.wide{width:100%;}
