@@ -63,6 +63,25 @@ export const FONTS = {
   mono:       { label: "Mono",      stack: "ui-monospace, SFMono-Regular, Menlo, monospace" },
 };
 
+/**
+ * Cards that are not about one entity — the dashboard's own furniture. They sit on a custom tab
+ * alongside entity cards and are sized by the same grid.
+ */
+export const WIDGET_TYPES = {
+  clock:    { label: "Clock",    icon: "mdi:clock-outline",         w: 2, h: 1 },
+  date:     { label: "Date",     icon: "mdi:calendar",              w: 2, h: 1 },
+  greeting: { label: "Greeting", icon: "mdi:hand-wave",             w: 2, h: 1 },
+  people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
+  weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 2, h: 2, needsEntity: true },
+  heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1 },
+  spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
+};
+
+export const newWidget = (widget, entity = "") => {
+  const w = WIDGET_TYPES[widget] || WIDGET_TYPES.clock;
+  return { id: uid("c"), type: "compact", widget, entity, x: 0, y: 0, w: w.w, h: w.h, show: bothShown() };
+};
+
 /** Header pills. */
 export const PILL_TYPES = {
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", needsEntity: true },
@@ -270,6 +289,11 @@ export const sectionRows = (section, rowsOf) =>
   (section.cards || []).reduce((m, c) => Math.max(m, (c.y | 0) + (rowsOf ? rowsOf(c) : c.h)), 0);
 
 export function clampCard(card, cols) {
+  if (card.widget) {
+    card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
+    card.h = Math.max(1, Math.min(6, card.h | 0 || 1));
+    return card;
+  }
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;
   card.w = Math.max(t.minW || 1, Math.min(cols, card.w || t.w));
   // A tile's height is the rows it actually occupies, not its column span — placing it by the

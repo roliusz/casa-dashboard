@@ -13,7 +13,8 @@ const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`
 const {
   CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS,
   areaOf, cardRows, statesFor, tileRows,
-  autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
+  WIDGET_TYPES, autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
+  newWidget,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles } = await import(`./casa-cards.js${V}`);
@@ -36,7 +37,8 @@ export class CasaView extends LitElement {
     _tab: { state: true },
     _insp: { state: true },     // {kind:'pill'|'side'|'card'|'tab', …ids}
     _drag: { state: true },
-    _pick: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
+    _pick: { state: true },
+    _pickKind: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
     _q: { state: true },
     _af: { state: true },       // active filter chip, per auto tab
     _anim: { state: true },     // flips so the entry animation replays
@@ -814,10 +816,21 @@ export class CasaView extends LitElement {
   }
 
   /* ------------------------------------------------------------ picker */
+  /** Entity or dashboard card — the two things a custom tab can hold. */
+  _pickTabs() {
+    const set = (k) => { this._pickKind = k; this._q = ""; };
+    return html`<div class="chips seg2">
+      <button class="chip ${this._pickKind !== "widget" ? "on" : ""}" @click=${() => set("entity")}>
+        <ha-icon icon="mdi:shape-outline"></ha-icon> Entity</button>
+      <button class="chip ${this._pickKind === "widget" ? "on" : ""}" @click=${() => set("widget")}>
+        <ha-icon icon="mdi:view-dashboard-outline"></ha-icon> Dashboard card</button>
+    </div>`;
+  }
+
   _pickerSheet() {
     if (!this._pick) return "";
     const { mode, si } = this._pick;
-    const close = () => { this._pick = null; this._q = ""; };
+    const close = () => { this._pick = null; this._q = ""; this._pickKind = "entity"; };
     if (mode === "pill" || mode === "side") {
       const types = mode === "pill" ? PILL_TYPES : SIDEBAR_TYPES;
       const arr = mode === "pill" ? this._l.header.pills : this._l.sidebar.items;
@@ -835,8 +848,26 @@ export class CasaView extends LitElement {
       .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q))
       .slice(0, 60);
     const tab = this._cur;
+    if (mode === "card" && this._pickKind === "widget")
+      return html`<div class="scrim" @click=${close}><div class="sheet" @click=${(e) => e.stopPropagation()}>
+        <div class="sh-t">Add a card</div>
+        ${this._pickTabs()}
+        <div class="chips wrap">${Object.entries(WIDGET_TYPES).map(([k, v]) => html`
+          <button class="chip" @click=${() => {
+            const sec = this._cur.sections?.[si];
+            if (!sec) return;
+            const card = clampCard(newWidget(k), sec.cols);
+            card.x = 0;
+            card.y = Math.max(0, ...sec.cards.map((n) => (n.y | 0) + this._rows(n, sec.cols)));
+            sec.cards.push(card);
+            compactCards(sec.cards, sec.cols, (n) => this._rows(n, sec.cols));
+            close(); this._emit();
+          }}><ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
+        <div class="hint">A weather card asks for its entity in the card's own settings.</div>
+      </div></div>`;
     return html`<div class="scrim" @click=${close}><div class="sheet tall" @click=${(e) => e.stopPropagation()}>
       <div class="sh-t">${mode === "auto" ? "Choose entities — they'll be grouped automatically" : "Add a card"}</div>
+      ${mode === "card" ? this._pickTabs() : ""}
       <input class="search" placeholder="Search…" .value=${this._q} @input=${(e) => (this._q = e.target.value)}>
       <div class="pl">${ids.map((id) => {
         const chosen = mode === "auto" && (tab.entities || []).includes(id);
@@ -1106,6 +1137,7 @@ export class CasaView extends LitElement {
     .two{display:flex;gap:12px;} .two .f{flex:1;}
     .stp{display:flex;align-items:center;gap:10px;} .stp span{font-size:13px;min-width:46px;text-align:center;}
     .pl{flex:1;overflow-y:auto;margin:10px 0;}
+    .seg2{margin-bottom:12px;}
     .pr{display:flex;align-items:center;gap:8px;padding:7px 2px;font-size:13px;border-bottom:1px solid rgba(255,255,255,.06);}
     .pr .grow{flex:1;min-width:0;}
     .pr-t{display:flex;align-items:baseline;gap:7px;min-width:0;}

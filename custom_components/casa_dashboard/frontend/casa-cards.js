@@ -521,6 +521,52 @@ function alarmCard(ctx, c) {
   </div>`;
 }
 
+
+/* ---------------------------------------------------------------- widgets */
+const GREETING = () => {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+};
+
+/** Cards that show the dashboard itself rather than an entity. */
+function widgetCard(ctx, c) {
+  const now = new Date();
+  switch (c.widget) {
+    case "clock":
+      return html`<div class="gcard wdg"><div class="wdg-big">${
+        now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(c.hour12 == null ? {} : { hour12: !!c.hour12 }) })}</div></div>`;
+    case "date":
+      return html`<div class="gcard wdg"><div class="wdg-mid">${
+        now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" })}</div></div>`;
+    case "greeting":
+      return html`<div class="gcard wdg"><div class="wdg-mid">${c.name || GREETING()}</div></div>`;
+    case "heading":
+      return html`<div class="wdg-head">${c.name || "Heading"}</div>`;
+    case "spacer":
+      return html`<div class="wdg-gap"></div>`;
+    case "people": {
+      const people = Object.keys(ctx.hass?.states || {}).filter((x) => x.startsWith("person."));
+      const home = people.filter((x) => st(ctx, x)?.state === "home").length;
+      return html`<div class="gcard wdg row" @click=${() => people[0] && ctx.more(people[0])}>
+        <ha-icon class="spk-ic" icon="mdi:account-group"></ha-icon>
+        <div class="hl-meta"><div class="hl-name">${home ? `${home} home` : "Away"}</div>
+          <div class="hl-sub">${people.length} ${people.length === 1 ? "person" : "people"}</div></div>
+      </div>`;
+    }
+    case "weather": {
+      const s = st(ctx, c.entity);
+      if (!s) return html`<div class="gcard wdg row"><div class="hl-sub">Pick a weather entity</div></div>`;
+      const a = s.attributes;
+      return html`<div class="gcard wdg col" @click=${() => ctx.more(c.entity)}>
+        <div class="wdg-big">${a.temperature != null ? Math.round(a.temperature) + "°" : "–"}</div>
+        <div class="hl-sub">${cap(String(s.state).replace(/_/g, " "))}</div>
+      </div>`;
+    }
+    default:
+      return html`<div class="gcard wdg"></div>`;
+  }
+}
+
 /* ----------------------------------------------------------------- plain */
 function plainCard(ctx, c) {
   const e = c.entity, s = st(ctx, e);
@@ -545,6 +591,7 @@ function plainCard(ctx, c) {
 
 /** Pick the design for a card. */
 export function renderCard(ctx, c) {
+  if (c.widget) return widgetCard(ctx, c);
   const d = String(c.entity || "").split(".")[0];
   if (c.type === "full") return fullCard(ctx, c);
   if (d === "light") return lightCard(ctx, c);
@@ -698,6 +745,16 @@ export const cardStyles = `
   .seg-b ha-icon{--mdc-icon-size:18px;}
   .seg-b.on{color:var(--text);}
   .seg.armed .seg-b.on,.seg.warn .seg-b.on{color:#0e1620;}
+
+  /* the dashboard's own furniture */
+  .wdg{padding:14px 16px;justify-content:center;}
+  .wdg.row{flex-direction:row;align-items:center;gap:11px;cursor:pointer;}
+  .wdg.col{align-items:flex-start;justify-content:center;cursor:pointer;}
+  .wdg-big{font-size:clamp(26px,7cqw,52px);font-weight:300;letter-spacing:-1px;line-height:1;}
+  .wdg-mid{font-size:clamp(14px,3.2cqw,22px);font-weight:600;line-height:1.2;}
+  .wdg-head{display:flex;align-items:flex-end;height:100%;font-size:15px;font-weight:600;
+    color:var(--dim);letter-spacing:.2px;padding:0 2px 4px;}
+  .wdg-gap{width:100%;height:100%;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
