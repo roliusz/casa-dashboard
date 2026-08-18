@@ -981,9 +981,14 @@ export class CasaView extends LitElement {
           <div class="f"><label>Entity</label>
             ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`)}</div>` : ""}
         ${c.widget ? html`
-          <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
-            placeholder=${this._widgetName(c)}
-            @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>` : ""}
+          <div class="two">
+            <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
+              placeholder=${this._widgetName(c)}
+              @change=${(e) => patchCard({ name: e.target.value || undefined })}></div>
+            <div class="f"><label>Icon (optional)</label><input .value=${c.icon || ""}
+              placeholder=${WIDGET_TYPES[c.widget]?.icon || "mdi:shape-outline"}
+              @change=${(e) => patchCard({ icon: e.target.value.trim() || undefined })}></div>
+          </div>` : ""}
         ${auto ? html`<div class="hint">${c.entity}</div>`
           : c.widget ? html`${this._showChips(c)}${this._condition(c)}`
           : html`

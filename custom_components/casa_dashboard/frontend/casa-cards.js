@@ -650,7 +650,7 @@ function widgetCard(ctx, c) {
           <div class="cmp-head">
             <ha-icon class="spk-ic" icon=${c.icon || "mdi:lightbulb-on-outline"}></ha-icon>
             <div class="hl-meta"><div class="hl-name">${label}</div><div class="hl-sub">${status}</div></div>
-            <div class="cmp-val">${on}<span class="wdg-of">/${list.length}</span></div>
+            <div class="cmp-val">${on}<span class="cnt-of">/${list.length}</span></div>
           </div>
         </div>`;
 
@@ -1185,6 +1185,8 @@ export const cardStyles = `
   .cnt-num{font-size:40px;font-weight:300;line-height:1;letter-spacing:-2px;white-space:nowrap;}
   .cnt-num span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:4px;}
   .cnt-labels{min-width:0;}
+  /* the tally reads as a value with its total in the state's type, the way a compact card does */
+  .cnt-of{font-size:11.5px;font-weight:400;color:var(--dim);margin-left:3px;letter-spacing:0;}
 
   /* plain fallback */
   .plain{padding:11px 14px;justify-content:center;cursor:pointer;}
