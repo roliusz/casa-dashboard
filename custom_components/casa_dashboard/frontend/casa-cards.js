@@ -523,6 +523,9 @@ function alarmCard(ctx, c) {
 
 
 /* ---------------------------------------------------------------- widgets */
+const MODE_ICON = (m) => ({ off: "mdi:power", heat: "mdi:fire", cool: "mdi:snowflake",
+  heat_cool: "mdi:sun-snowflake-variant", auto: "mdi:autorenew", dry: "mdi:water-percent",
+  fan_only: "mdi:fan" }[m] || "mdi:thermostat");
 const WICON = {
   "clear-night": "mdi:weather-night", sunny: "mdi:weather-sunny", partlycloudy: "mdi:weather-partly-cloudy",
   cloudy: "mdi:weather-cloudy", rainy: "mdi:weather-rainy", pouring: "mdi:weather-pouring",
@@ -620,31 +623,79 @@ function widgetCard(ctx, c) {
       </div>`;
     }
     case "climate": {
-      // A picker across the chosen thermostats, then the usual reading and stepper for the one
-      // selected — the Casa app's climate card, with the rooms coming from the card's own list.
+      // The Casa app's climate card: room chips, the reading with its steppers, the status line
+      // with the mode, fan and swing pickers, and the tick scale you can drag.
       const list = (c.entities || []).filter((x) => st(ctx, x));
       if (!list.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick some thermostats</div></div>`;
-      const pick = ctx.pick(c.id) ?? 0;
-      const e = list[Math.min(pick, list.length - 1)];
+      const at = Math.min(ctx.pick(c.id) ?? 0, list.length - 1);
+      const e = list[at];
       const s = st(ctx, e), a = s.attributes;
+      const cur = a.current_temperature;
+      const held = ctx.target(e);                    // previewed or just-set target
+      const tgt = held ? held.temp : a.temperature;
+      const mode = s.state;
       const { heating, cooling } = hvacOf(s);
-      const setT = (t) => ctx.call("climate", "set_temperature",
-        { entity_id: e, temperature: Math.round(t * 2) / 2 });
-      return html`<div class="gcard wdg clim-pick ${heating ? "heat" : cooling ? "cool" : ""}">
-        <div class="cp-rooms">
-          ${list.map((x, i) => html`<button class="cp-room ${x === e ? "on" : ""}"
-            @click=${() => ctx.setPick(c.id, i)}>${attr(ctx, x, "friendly_name") || x}</button>`)}
+      const zone = heating ? "#FB6E1D" : cooling ? "#5AC8FA" : "#62D621";
+      const lo = Math.min(cur ?? 20, tgt ?? 20), hi = Math.max(cur ?? 20, tgt ?? 20);
+      const pos = (t) => Math.max(0, Math.min(100, ((t - 17) / 11) * 100));
+      const ticks = [];
+      for (let i = 0; i < 45; i++) {
+        const tv = 17 + i * 0.25;                    // 17..28 in quarter degrees; every fourth is whole
+        const inZone = (heating || cooling) && tv >= lo - 0.13 && tv <= hi + 0.13;
+        ticks.push(html`<div class="ct" style="height:${i % 4 === 0 ? 16 : 9}px;background:${
+          inZone ? zone : "rgba(255,255,255,0.28)"};${inZone ? `box-shadow:0 0 6px ${zone}` : ""}"></div>`);
+      }
+      const steppers = html`<div class="clim-step">
+        <button class="cstep" @click=${() => ctx.setTarget(e, (tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
+        <div class="clim-tgt">${tgt ?? "–"}°<span>target</span></div>
+        <button class="cstep" @click=${() => ctx.setTarget(e, (tgt ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+      </div>`;
+      const picker = (kind, icon, current, options, service, field, iconOf) => {
+        const key = `${c.id}:${kind}`;
+        const open = ctx.menu(key);
+        return html`<div class="clim-modewrap">
+          <button class="clim-mode ${open ? "open" : ""}" @click=${(ev) => { ev.stopPropagation(); ctx.openMenu(key, ev); }}>
+            <ha-icon icon=${icon}></ha-icon><span>${cap(String(current || "").replace(/_/g, " "))}</span>
+            <ha-icon class="cm-caret" icon=${open ? "mdi:chevron-up" : "mdi:chevron-down"}></ha-icon>
+          </button>
+          ${open ? html`
+            <div class="cm-away" @click=${() => ctx.closeMenu()}></div>
+            <div class="cm-menu ${open.up ? "up" : ""} ${open.left ? "left" : ""}">
+              ${options.map((o) => html`<button class="cm ${o === current ? "sel" : ""}"
+                @click=${() => { ctx.call("climate", service, { entity_id: e, [field]: o }); ctx.closeMenu(); }}>
+                <ha-icon icon=${iconOf ? iconOf(o) : icon}></ha-icon>
+                <span>${cap(String(o).replace(/_/g, " "))}</span>
+                ${o === current ? html`<ha-icon class="cm-tick" icon="mdi:check"></ha-icon>` : ""}</button>`)}
+            </div>` : ""}
+        </div>`;
+      };
+      return html`<div class="gcard clim-big-card ${heating ? "heat" : cooling ? "cool" : ""}">
+        ${list.length > 1 ? html`<div class="clim-sel">
+          ${list.map((x, i) => html`<button class="cs ${i === at ? "sel" : ""}"
+            @click=${() => { ctx.setPick(c.id, i); ctx.closeMenu(); }}>${attr(ctx, x, "friendly_name") || x}</button>`)}
+        </div>` : ""}
+        <div class="clim-temprow">
+          <div class="clim-big rclick" @click=${() => ctx.more(e)}>${cur ?? "–"}°<span>now</span></div>
+          ${steppers}
         </div>
-        <div class="cc-mid">
-          <div class="cc-cur">${a.current_temperature != null ? a.current_temperature + "°" : "–"}<span> now</span></div>
-          <div class="cc-now">${heating ? `Heating · ${a.current_temperature}° → ${a.temperature}°`
-            : cooling ? `Cooling · ${a.current_temperature}° → ${a.temperature}°` : cap(s.state)}</div>
+        <div class="clim-statusrow">
+          <div class="clim-status">${held?.live ? `Set to ${tgt}°`
+            : heating ? `Heating · ${cur}° → ${tgt}°` : cooling ? `Cooling · ${cur}° → ${tgt}°`
+            : mode === "off" ? "Off" : cap(mode)}</div>
+          <div class="clim-pickers">
+            ${picker("mode", MODE_ICON(mode), mode, a.hvac_modes || ["off", "heat", "cool"],
+              "set_hvac_mode", "hvac_mode", (m) => MODE_ICON(m))}
+            ${a.fan_modes ? picker("fan", "mdi:fan", a.fan_mode, a.fan_modes, "set_fan_mode", "fan_mode") : ""}
+            ${a.swing_modes ? picker("swing", "mdi:arrow-oscillating", a.swing_mode, a.swing_modes,
+              "set_swing_mode", "swing_mode") : ""}
+          </div>
         </div>
-        <div class="cc-stepper">
-          <button @click=${() => setT((a.temperature ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
-          <div class="cc-tgt"><div class="cc-tgt-v">${a.temperature != null ? a.temperature + "°" : "–"}</div>
-            <div class="cc-tgt-l">Target</div></div>
-          <button @click=${() => setT((a.temperature ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+        <div class="scale" @pointerdown=${(ev) => ctx.scaleDown(ev, e)}>
+          <div class="ticks">${ticks}</div>
+          <div class="handle" style="left:${pos(tgt ?? 20)}%"></div>
+          <div class="curdot" style="left:${pos(cur ?? 20)}%;background:${zone};box-shadow:0 0 8px ${zone}"></div>
+          <div class="slabels">${[18, 20, 22, 24, 26, 28].map((t) =>
+            html`<span style="left:${pos(t)}%">${t}</span>`)}</div>
         </div>
       </div>`;
     }
@@ -910,13 +961,57 @@ export const cardStyles = `
   .wdg-of{font-size:.45em;color:var(--dim);font-weight:400;}
   .wdg-bar{width:100%;height:6px;border-radius:3px;background:var(--track);overflow:hidden;}
   .wdg-fill{height:100%;border-radius:3px;background:var(--yellow);transition:width .4s ease;}
-  .clim-pick{padding:16px;justify-content:space-between;align-items:flex-start;}
-  .cp-rooms{display:flex;flex-wrap:wrap;gap:7px;}
-  .cp-room{height:32px;padding:0 13px;border-radius:16px;border:1px solid var(--cardBorder);
-    background:var(--chip);color:var(--text);font-family:inherit;font-size:12.5px;font-weight:500;
-    cursor:pointer;white-space:nowrap;}
-  .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
-  .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
+  /* the Casa app's climate card, ported whole */
+  .clim-big-card{padding:18px;justify-content:space-between;}
+  .clim-sel{display:flex;gap:8px;flex-wrap:wrap;}
+  .cs{flex:1;min-width:64px;height:36px;border-radius:17px;border:1px solid var(--cardBorder);
+    background:var(--chip);color:var(--text);font-size:13px;font-weight:500;cursor:pointer;
+    font-family:inherit;transition:.2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cs.sel{background:#fff;color:#0e1620;border-color:transparent;font-weight:600;}
+  .clim-temprow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;}
+  .clim-big{font-size:clamp(34px,9cqw,64px);font-weight:300;letter-spacing:-3px;line-height:1;cursor:pointer;}
+  .clim-big span{font-size:14px;font-weight:500;color:var(--dim);letter-spacing:0;margin-left:6px;}
+  .clim-step{display:flex;align-items:center;gap:10px;flex:none;}
+  .cstep{width:46px;height:46px;border-radius:15px;border:1px solid var(--cardBorder);background:var(--chip);
+    color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
+    font-family:inherit;transition:.15s;}
+  .clim-tgt{min-width:54px;text-align:center;font-size:24px;font-weight:600;line-height:1;}
+  .clim-tgt span{display:block;font-size:11px;font-weight:500;color:var(--dim);margin-top:4px;}
+  .clim-statusrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .clim-status{font-size:14px;color:var(--dim);}
+  .clim-pickers{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .clim-modewrap{position:relative;flex:none;}
+  .clim-mode{display:inline-flex;align-items:center;gap:7px;flex:none;height:34px;padding:0 10px 0 12px;
+    border-radius:17px;border:1px solid var(--cardBorder);background:var(--chip);color:var(--text);
+    font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:.2s;}
+  .clim-mode.open{background:#fff;color:#0e1620;border-color:transparent;}
+  .clim-mode ha-icon{--mdc-icon-size:17px;}
+  .cm-caret{--mdc-icon-size:16px;opacity:.7;}
+  .cm-away{position:fixed;inset:0;z-index:30;}
+  .cm-menu{position:absolute;top:calc(100% + 8px);right:0;z-index:31;min-width:168px;padding:6px;
+    display:flex;flex-direction:column;gap:2px;border-radius:16px;
+    background:linear-gradient(150deg,rgba(255,255,255,.12),rgba(255,255,255,.03) 62%),rgba(16,21,27,.92);
+    border:1px solid var(--cardBorder);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 20px 46px rgba(0,0,0,.5);
+    backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);}
+  .cm-menu.up{top:auto;bottom:calc(100% + 8px);}
+  .cm-menu.left{right:auto;left:0;}
+  .cm{display:flex;align-items:center;gap:10px;width:100%;height:38px;padding:0 10px;border-radius:11px;
+    border:none;background:transparent;color:var(--text);text-align:left;font-family:inherit;
+    font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s;}
+  .cm span{flex:1;}
+  .cm ha-icon{--mdc-icon-size:18px;color:var(--dim);}
+  .cm:hover{background:rgba(255,255,255,.08);}
+  .cm.sel{background:rgba(255,255,255,.12);}
+  .cm .cm-tick{--mdc-icon-size:16px;color:var(--green);}
+  .scale{position:relative;height:52px;margin-top:12px;cursor:pointer;touch-action:pan-y;}
+  .ticks{position:absolute;top:8px;left:0;right:0;display:flex;align-items:flex-end;
+    justify-content:space-between;height:18px;}
+  .ct{width:2px;border-radius:1px;}
+  .handle{position:absolute;top:0;transform:translateX(-50%);width:8px;height:34px;border-radius:5px;
+    background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.4);}
+  .curdot{position:absolute;top:30px;transform:translateX(-50%);width:9px;height:9px;border-radius:50%;}
+  .slabels{position:absolute;bottom:0;left:0;right:0;height:14px;font-size:12px;color:var(--dim);}
+  .slabels span{position:absolute;transform:translateX(-50%);}
 
   .nrg{padding:14px 16px;justify-content:center;cursor:pointer;}
   /* a single row still shows the name and the period, so it needs the tighter padding */

@@ -39,7 +39,9 @@ export class CasaView extends LitElement {
     _drag: { state: true },
     _pick: { state: true },
     _pickKind: { state: true },
-    _picks: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
+    _picks: { state: true },
+    _climT: { state: true },
+    _climMenu: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
     _q: { state: true },
     _af: { state: true },       // active filter chip, per auto tab
     _anim: { state: true },     // flips so the entry animation replays
@@ -63,6 +65,17 @@ export class CasaView extends LitElement {
       // Which room a climate picker is showing. Kept here rather than in the layout: it is where
       // you happen to be looking, not something worth saving.
       energy: (id) => this._energy(id),
+      // climate: the previewed target, the scale drag, and which picker menu is open
+      target: (entity) => this._climT?.[entity],
+      setTarget: (entity, t) => this._setTarget(entity, t),
+      scaleDown: (e, entity) => this._scaleDown(e, entity),
+      menu: (key) => (this._climMenu?.key === key ? this._climMenu : null),
+      openMenu: (key, ev) => {
+        if (this._climMenu?.key === key) { this._climMenu = null; return; }
+        const r = ev.currentTarget.getBoundingClientRect();
+        this._climMenu = { key, up: r.bottom + 240 > window.innerHeight, left: r.right - 180 < 8 };
+      },
+      closeMenu: () => { this._climMenu = null; },
       pick: (id) => this._picks?.[id],
       setPick: (id, i) => { this._picks = { ...(this._picks || {}), [id]: i }; },
     };
@@ -181,6 +194,66 @@ export class CasaView extends LitElement {
    * week is one recorder query — but it is a query, not a state, so it is fetched once per entity
    * and held. Refreshed hourly, because today's bar is still growing.
    */
+/**
+   * Setting a thermostat and holding the value until it is reported back. Without the hold, a
+   * stepper press straight after a drag reads the entity's stale target and undoes it.
+   */
+  _setTarget(entity, temp) {
+    const t = Math.round(Math.max(5, Math.min(35, temp)) * 2) / 2;
+    this._climT = { ...(this._climT || {}), [entity]: { temp: t } };
+    this.hass.callService("climate", "set_temperature", { entity_id: entity, temperature: t });
+    clearTimeout(this._climTT);
+    this._climTT = setTimeout(() => {
+      const held = this._climT?.[entity];
+      if (held && held.temp === t) { this._climT = { ...this._climT, [entity]: undefined }; this.requestUpdate(); }
+    }, 5000);
+    this.requestUpdate();
+  }
+
+  /**
+   * Dragging the scale. The handle must follow the finger without calling the thermostat on every
+   * pixel, so the previewed target drives the render and the call waits for release. A deliberate
+   * horizontal movement is required, or the page could not be scrolled from the card.
+   */
+  _scaleDown(e, entity) {
+    const scale = e.currentTarget;
+    const box = scale.getBoundingClientRect();
+    const x0 = e.clientX, y0 = e.clientY;
+    let dragging = false;
+    const tempAt = (x) => {
+      const p = Math.max(0, Math.min(1, (x - box.left) / box.width));
+      return Math.round((17 + p * 11) * 2) / 2;                 // the scale runs 17..28
+    };
+    const move = (ev) => {
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (!dragging) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 5) { done(); return; }
+        if (Math.abs(dx) < 5) return;
+        dragging = true;
+        try { scale.setPointerCapture(ev.pointerId); } catch (_) {}
+      }
+      ev.preventDefault();
+      const t = tempAt(ev.clientX);
+      if (this._climT?.[entity]?.temp !== t) {
+        this._climT = { ...(this._climT || {}), [entity]: { temp: t, live: true } };
+        this.requestUpdate();
+      }
+    };
+    const up = (ev) => {
+      if (dragging) this._setTarget(entity, tempAt(ev.clientX));
+      else { this._climT = { ...(this._climT || {}), [entity]: undefined }; this.requestUpdate(); }
+      done();
+    };
+    const done = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  }
+
   _energy(id) {
     if (!id || !this.hass) return null;
     this._nrg = this._nrg || {};
