@@ -67,7 +67,20 @@ export class CasaView extends LitElement {
     return this.layout;
   }
   get _tabs() { return this._l.tabs; }
-  get _cur() { return this._tabs[Math.min(this._tab, this._tabs.length - 1)]; }
+  /**
+   * The tab actually on screen. A tab whose condition fails loses its chip but used to keep
+   * rendering its sections, so the page showed a tab that was not there — and every card on it
+   * looked like it was ignoring the condition. Fall through to the first tab that is showing.
+   */
+  get _curIdx() {
+    const tabs = this._tabs;
+    const at = Math.max(0, Math.min(this._tab, tabs.length - 1));
+    if (this.editing || !tabs[at] || this._vis(tabs[at])) return at;
+    const first = tabs.findIndex((t) => this._vis(t));
+    return first < 0 ? at : first;
+  }
+
+  get _cur() { return this._tabs[this._curIdx]; }
   /**
    * Cards move by changing grid position, which normally jumps. Measuring before the change and
    * again after, then animating from the old place to the new one, makes the rest of the grid
@@ -372,7 +385,7 @@ export class CasaView extends LitElement {
   _tabBar() {
     return html`<div class="tabs">
       ${this._tabs.map((t, i) => this._vis(t) ? html`
-        <button class="tab ${i === this._tab ? "on" : ""} ${!isVisible(t, this.narrow, this.hass) ? "ghost" : ""} ${this._tabLift?.i === i ? "lifted" : ""}"
+        <button class="tab ${i === this._curIdx ? "on" : ""} ${!isVisible(t, this.narrow, this.hass) ? "ghost" : ""} ${this._tabLift?.i === i ? "lifted" : ""}"
                 data-ti=${i} data-key=${t.id}
                 style=${this._tabLift?.i === i ? `--lx:${this._tabLift.dx}px;--ly:${this._tabLift.dy}px` : ""}
                 @pointerdown=${(e) => this._dragTab(e, i)}
