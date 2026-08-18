@@ -655,6 +655,9 @@ function widgetCard(ctx, c) {
         <div class="hl-sub">Loading</div></div>`;
       if (!bars.length) return html`<div class="gcard wdg col"><div class="wdg-big">–</div>
         <div class="hl-sub">No statistics yet</div></div>`;
+      // Short cards read like a compact card: the figure at the size the speaker's volume uses,
+      // and at one or two rows no chart at all — seven bars with labels cannot live in that space.
+      // Only a tall card gets the big reading.
       const max = Math.max(...bars.map((b) => b.val), 1);
       const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
       const unit = attr(ctx, c.entity, "unit_of_measurement") || "kWh";
@@ -664,17 +667,18 @@ function widgetCard(ctx, c) {
             <span class="hl-name">${c.name || "Energy used"}</span>
             <span class="hl-sub">last ${bars.length} days</span>
           </div>
-          <span class="nrg-figure"><span class="cc-cur">${total}</span>
+          <span class="nrg-figure"><span class=${(c.h || 4) >= 4 ? "cc-cur" : "cmp-val"}>${total}</span>
             <span class="nrg-unit">${unit}</span></span>
         </div>
-        <div class="nrg-bars">
-          ${bars.map((b) => html`<div class="nrg-bar">
-            <span class="nrg-val">${b.val}</span>
-            <div class="nrg-fill" style="height:${Math.max(8, (b.val / max) * 100)}%"></div>
-          </div>`)}
-        </div>
-        <div class="nrg-days">${bars.map((b) => html`<span>${
-          new Date(b.ts).toLocaleDateString([], { weekday: "short" })}</span>`)}</div>
+        ${(c.h || 4) <= 2 ? "" : html`
+          <div class="nrg-bars">
+            ${bars.map((b) => html`<div class="nrg-bar">
+              <span class="nrg-val">${b.val}</span>
+              <div class="nrg-fill" style="height:${Math.max(8, (b.val / max) * 80)}%"></div>
+            </div>`)}
+          </div>
+          <div class="nrg-days">${bars.map((b) => html`<span>${
+            new Date(b.ts).toLocaleDateString([], { weekday: "short" })}</span>`)}</div>`}
       </div>`;
     }
     default:
@@ -890,14 +894,14 @@ export const cardStyles = `
   .cp-room.on{background:#fff;color:#0e1620;border-color:transparent;}
   .clim-pick .cc-cur span{font-size:.34em;color:var(--dim);font-weight:400;letter-spacing:0;}
 
-  .nrg{padding:16px 18px;justify-content:flex-start;cursor:pointer;}
-  .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .nrg{padding:16px 18px;justify-content:center;cursor:pointer;}
+  .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
   .nrg-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
   /* the reading as it was: the big semibold number with the unit dim beside it */
   .nrg-figure{display:flex;align-items:baseline;gap:6px;flex:none;}
   .nrg-unit{font-size:15px;color:var(--dim);}
   .nrg-unit{font-size:15px;color:var(--dim);}
-  .nrg-bars{display:flex;align-items:flex-end;gap:8px;flex:1;min-height:60px;}
+  .nrg-bars{display:flex;align-items:flex-end;gap:8px;flex:1;min-height:52px;margin-top:14px;}
   .nrg-bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
     height:100%;gap:4px;}
   .nrg-val{font-size:10px;font-weight:600;color:var(--dim);}

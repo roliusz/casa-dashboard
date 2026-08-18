@@ -82,7 +82,7 @@ export const WIDGET_TYPES = {
   rooms:    { label: "Room switch", icon: "mdi:lightbulb-group",  w: 3, h: 1, needsEntities: true },
   counter:  { label: "Counter",     icon: "mdi:counter",          w: 2, h: 2, needsEntities: true },
   climate:  { label: "Climate picker", icon: "mdi:thermostat",    w: 4, h: 4, needsEntities: true },
-  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 4, h: 4, needsEntity: true },
+  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 4, h: 4, minH: 2, needsEntity: true },
 };
 
 export const newWidget = (widget, entity = "") => {
@@ -298,8 +298,9 @@ export const sectionRows = (section, rowsOf) =>
 
 export function clampCard(card, cols) {
   if (card.widget) {
+    const t = WIDGET_TYPES[card.widget];
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
-    card.h = Math.max(1, Math.min(6, card.h | 0 || 1));
+    card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     return card;
   }
   const t = CARD_TYPES[card.type] || CARD_TYPES.small;
