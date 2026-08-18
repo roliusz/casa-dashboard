@@ -1099,6 +1099,12 @@ export class CasaView extends LitElement {
           <div class="f"><label>Entity</label>
             ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`,
               WIDGET_TYPES[c.widget].domain)}</div>` : ""}
+        ${c.widget === "energy" ? html`
+          <div class="f"><label>Shows</label><div class="chips">
+            ${[["week", "This week so far"], ["today", "Today"]].map(([key, label]) => html`
+              <button class="chip ${(c.period || "week") === key ? "on" : ""}"
+                @click=${() => patchCard({ period: key })}>${label}</button>`)}
+          </div></div>` : ""}
         ${c.widget ? html`
           <div class="two">
             <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}

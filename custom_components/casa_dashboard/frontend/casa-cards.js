@@ -816,9 +816,19 @@ function widgetCard(ctx, c) {
       // large reading once there are three rows, since a 48px number is taller than a short card.
       const rows = c.h || 4;
       const max = Math.max(...bars.map((b) => b.val), 1);
-      const total = bars.reduce((a, b) => a + b.val, 0).toFixed(1);
       const n = bars.length;
       const today = n ? bars[n - 1].val : 0;
+
+      // The figure is either today on its own or the calendar week to date. The week never runs to
+      // more than the seven days already fetched, so it is a filter over what is here.
+      const week = (() => {
+        const from = new Date();
+        from.setHours(0, 0, 0, 0);
+        from.setDate(from.getDate() - ((from.getDay() + 6) % 7));   // back to Monday
+        return bars.filter((b) => new Date(b.ts) >= from).reduce((a, b) => a + b.val, 0);
+      })();
+      const showToday = c.period === "today";
+      const total = (showToday ? today : week).toFixed(1);
       const yest = n > 1 ? bars[n - 2].val : 0;
       const scale = Math.max(today, yest, 1);
       const pct = Math.max(0, Math.min(1, today / scale)) * 100;
@@ -827,7 +837,7 @@ function widgetCard(ctx, c) {
         <div class="nrg-head">
           <div class="nrg-meta">
             <span class="hl-name">${c.name || "Energy used"}</span>
-            <span class="hl-sub">last ${n} days</span>
+            <span class="hl-sub">${showToday ? "today" : "this week so far"}</span>
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 4) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${total}</span>
@@ -845,7 +855,7 @@ function widgetCard(ctx, c) {
               html`<span class="rk ${i % 5 === 0 ? "lg" : ""}"></span>`)}</div>
             <div class="g-lbls"><span>Today · ${today.toFixed(1)} ${unit}</span>
               ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)}</span>` : ""}
-              <span>${scale.toFixed(1)} ${unit}</span></div>
+            </div>
           </div>` : ""}
 
         ${rows >= 3 ? html`
