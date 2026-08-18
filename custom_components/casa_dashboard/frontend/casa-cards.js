@@ -556,9 +556,6 @@ function widgetCard(ctx, c) {
         now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" })}</div></div>`;
     case "greeting":
       return html`<div class="gcard wdg"><div class="wdg-mid">${c.name || GREETING()}</div></div>`;
-    case "heading":
-      return html`<div class="wdg-head"
-        style="--padT:${c.padTop ?? 0}px;--padB:${c.padBottom ?? 0}px">${c.name || "Heading"}</div>`;
     case "spacer":
       return html`<div class="wdg-gap"></div>`;
     case "people": {
@@ -1058,10 +1055,6 @@ export const cardStyles = `
   .wdg.col{align-items:flex-start;justify-content:center;cursor:pointer;}
   .wdg-big{font-size:clamp(26px,7cqw,52px);font-weight:300;letter-spacing:-1px;line-height:1;}
   .wdg-mid{font-size:clamp(14px,3.2cqw,22px);font-weight:600;line-height:1.2;}
-  /* Reads as a section title, because that is what it is standing in for. No built-in space
-     above or below — the user sets that themselves. */
-  .wdg-head{display:flex;align-items:flex-start;height:100%;box-sizing:border-box;
-    font-size:13px;color:var(--dim);padding:var(--padT,0) 2px var(--padB,0);}
   .wdg-gap{width:100%;height:100%;}
 
   .wdg.on .spk-ic{color:var(--yellow);}

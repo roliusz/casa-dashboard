@@ -421,6 +421,9 @@ export class CasaView extends LitElement {
             : it.type === "date" ? html`<div class="date" style=${this._sideStyle(it)}>${
               now.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" })}</div>`
             : it.type === "greeting" ? html`<div class="greet" style=${this._sideStyle(it)}>${this._greeting()}</div>`
+            : it.type === "media" ? this._sideMedia(it)
+            : it.type === "heading" ? html`<div class="shead" style=${this._sideStyle(it)
+                + `margin:${it.padTop ?? 0}px 0 ${it.padBottom ?? 0}px;`}>${it.name || "Heading"}</div>`
             : it.type === "gap" ? html`<div class="sgap" style="height:${it.size ?? 24}px"></div>`
             : html`<div class="spill"><ha-icon icon=${this._iconOf(it)}></ha-icon><span>${this._sub(it)}</span></div>`}
           ${this.editing ? html`<ha-icon class="mini-pencil" icon="mdi:pencil"></ha-icon>` : ""}
@@ -428,6 +431,46 @@ export class CasaView extends LitElement {
       ${this.editing ? html`<button class="mini add" @click=${() => this._pick = { mode: "side" }}>+ Add to sidebar</button>` : ""}
     </aside>`;
   }
+  /**
+   * The now playing card from the casa app, in its two shapes: compact is the small row with the
+   * art at the left, extended is the large one with the art above the title and controls.
+   */
+  _sideMedia(it) {
+    const s = it.entity && this._st(it.entity);
+    if (!s) return html`<div class="spill"><ha-icon icon="mdi:music"></ha-icon><span>Pick a media player</span></div>`;
+    const a = s.attributes || {};
+    const art = a.entity_picture;
+    const playing = s.state === "playing";
+    const big = it.variant === "extended";
+    const call = (sv) => (e) => { e.stopPropagation(); this.hass.callService("media_player", sv, { entity_id: it.entity }); };
+
+    // The position only updates when it changes, so carry it forward from the timestamp HA sent.
+    const dur = a.media_duration || 0;
+    let at = a.media_position || 0;
+    if (playing && a.media_position_updated_at)
+      at += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
+    const pct = dur ? Math.min(100, (at / dur) * 100) : 0;
+
+    return html`<div class="np ${big ? "" : "np-mini"}">
+      <div class="np-art" style=${art ? `background-image:url('${art}')` : ""}>
+        ${!art ? html`<ha-icon icon="mdi:music"></ha-icon>` : ""}</div>
+      <div class="np-body">
+        <div class="np-txt">
+          <div class="kick">${a.friendly_name || this._sub(it)}</div>
+          <div class="np-t">${a.media_title || (playing ? "Playing" : s.state)}</div>
+          <div class="np-a">${a.media_artist || a.app_name || ""}</div>
+        </div>
+        ${big && dur ? html`<div class="np-prog"><div class="np-fill" style="width:${pct}%"></div></div>` : ""}
+        <div class="np-ctrls">
+          <ha-icon class="ic" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>
+          <ha-icon class="play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"}
+            @click=${call("media_play_pause")}></ha-icon>
+          <ha-icon class="ic" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>
+        </div>
+      </div>
+    </div>`;
+  }
+
   /** Tabs reorder by dragging along the bar, the same gesture as cards and sidebar items. */
   /**
    * Reordering can add or drop a row, which changes the page height; the browser then clamps the
@@ -930,6 +973,23 @@ export class CasaView extends LitElement {
             <button class="chip ${it.hour12 === false ? "on" : ""}" @click=${() => this._patch(it, { hour12: false })}>24 hour</button>
             <button class="chip ${it.hour12 === true ? "on" : ""}" @click=${() => this._patch(it, { hour12: true })}>12 hour</button>
           </div></div>` : ""}
+        ${it.type === "media" ? html`
+          <div class="f"><label>Size</label><div class="chips">
+            ${[["compact", "Compact"], ["extended", "Extended"]].map(([key, label]) => html`
+              <button class="chip ${(it.variant || "compact") === key ? "on" : ""}"
+                @click=${() => this._patch(it, { variant: key })}>${label}</button>`)}
+          </div></div>` : ""}
+        ${it.type === "heading" ? html`
+          <div class="f"><label>Text</label><input .value=${it.name || ""} placeholder="Heading"
+            @change=${(e) => this._patch(it, { name: e.target.value || undefined })}></div>
+          <div class="two">
+            ${[["padTop", "Space above"], ["padBottom", "Space below"]].map(([key, label]) => html`
+              <div class="f"><label>${label}</label><div class="stp">
+                <button class="mini" @click=${() => this._patch(it, { [key]: Math.max(0, (it[key] ?? 0) - 4) })}>−</button>
+                <span>${it[key] ?? 0}px</span>
+                <button class="mini" @click=${() => this._patch(it, { [key]: Math.min(60, (it[key] ?? 0) + 4) })}>+</button>
+              </div></div>`)}
+          </div>` : ""}
         ${it.type === "gap" ? "" : html`${this._showChips(it)}${this._condition(it)}`}`;
     }
 
@@ -1004,11 +1064,6 @@ export class CasaView extends LitElement {
           // widget with a fixed set of shapes picks from those instead.
           if (c.widget && WIDGET_TYPES[c.widget]?.sizes) return "";
           const free = c.type === "custom" || !!c.widget;
-          // A heading is always one row tall, so it only offers a width.
-          if (WIDGET_TYPES[c.widget]?.widthOnly)
-            return html`<div class="f"><label>Width</label><div class="stp">
-              <button class="mini" @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
-              <button class="mini" @click=${() => patchCard({ w: c.w + 1 })}>+</button></div></div>`;
           return html`<div class="two ${free ? "" : "locked"}">
             <div class="f"><label>Width</label><div class="stp">
               <button class="mini" ?disabled=${!free} @click=${() => patchCard({ w: c.w - 1 })}>−</button><span>${c.w}</span>
@@ -1037,15 +1092,6 @@ export class CasaView extends LitElement {
             <div class="f"><label>Icon (optional)</label><input .value=${c.icon || ""}
               placeholder=${WIDGET_TYPES[c.widget]?.icon || "mdi:shape-outline"}
               @change=${(e) => patchCard({ icon: e.target.value.trim() || undefined })}></div>
-          </div>` : ""}
-        ${c.widget === "heading" ? html`
-          <div class="two">
-            ${[["padTop", "Space above"], ["padBottom", "Space below"]].map(([k, label]) => html`
-              <div class="f"><label>${label}</label><div class="stp">
-                <button class="mini" @click=${() => patchCard({ [k]: Math.max(0, (c[k] ?? 0) - 4) })}>−</button>
-                <span>${c[k] ?? 0}</span>
-                <button class="mini" @click=${() => patchCard({ [k]: Math.min(60, (c[k] ?? 0) + 4) })}>+</button>
-              </div></div>`)}
           </div>` : ""}
         ${auto ? html`<div class="hint">${c.entity}</div>`
           : c.widget ? html`${this._showChips(c)}${this._condition(c)}`
@@ -1077,10 +1123,28 @@ export class CasaView extends LitElement {
     </div>`;
   }
 
+  /**
+   * Pick an entity on or off. Picking one off also unpins it, so it stays where it fell instead of
+   * springing back to the top the moment it is picked again.
+   */
+  _togglePicked(list, id) {
+    const at = list.indexOf(id);
+    if (at >= 0) {
+      list.splice(at, 1);
+      this._pinned = (this._pinned || []).filter((x) => x !== id);
+    } else {
+      list.push(id);
+    }
+    this._emit();
+  }
+
   _pickerSheet() {
     if (!this._pick) return "";
     const { mode, si } = this._pick;
-    const close = () => { this._pick = null; this._q = ""; this._pickKind = "entity"; };
+    const close = () => {
+      this._pick = null; this._q = ""; this._pickKind = "entity";
+      this._pinnedFor = null; this._pinned = null;
+    };
     if (mode === "cardents") {
       // fall through to the entity list below, but Done returns to the card's own settings
     }
@@ -1097,11 +1161,30 @@ export class CasaView extends LitElement {
     }
     // entity pickers: one entity for a card, or a multi-select for an auto tab or a list widget
     const target = mode === "cardents" ? this._pick.card : null;
-    const q = this._q.toLowerCase();
-    const ids = Object.keys(this.hass?.states || {})
-      .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q))
-      .slice(0, 60);
     const tab = this._cur;
+    const q = this._q.toLowerCase();
+    const matches = Object.keys(this.hass?.states || {})
+      .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q));
+
+    // Whatever was already chosen sits at the top of the list, so it can be found among hundreds
+    // of entities — and so it survives the cut below. The order is taken once, when the picker
+    // opens: unpicking an entity drops it straight back to its usual place, and picking a new one
+    // leaves it where it is rather than making the list jump under the pointer.
+    const chosenList = target ? target.entities : mode === "auto" ? tab?.entities : null;
+    if (chosenList) {
+      const key = `${mode}:${target?.id || tab?.id || ""}`;
+      if (this._pinnedFor !== key) { this._pinnedFor = key; this._pinned = [...chosenList]; }
+    }
+    let ids;
+    if (chosenList) {
+      const shown = new Set(matches);
+      const still = new Set(chosenList);
+      const top = (this._pinned || []).filter((id) => still.has(id) && shown.has(id));
+      const onTop = new Set(top);
+      ids = [...top, ...matches.filter((id) => !onTop.has(id))].slice(0, 60);
+    } else {
+      ids = matches.slice(0, 60);
+    }
     if (mode === "card" && this._pickKind === "widget")
       return html`<div class="scrim" @click=${close}><div class="sheet" @click=${(e) => e.stopPropagation()}>
         <div class="sh-t">Add a card</div>
@@ -1147,15 +1230,13 @@ export class CasaView extends LitElement {
           ${target
             ? html`<button class="mini ${chosen ? "on" : ""}" @click=${() => {
                   target.entities = target.entities || [];
-                  chosen ? target.entities.splice(target.entities.indexOf(id), 1) : target.entities.push(id);
-                  this._emit();
+                  this._togglePicked(target.entities, id);
                 }}>${chosen ? "✓" : "+"}</button>`
             : mode === "auto"
             ? html`<span class="cat">${categoryFor(id).name}</span>
                 <button class="mini ${chosen ? "on" : ""}" @click=${() => {
                   tab.entities = tab.entities || [];
-                  chosen ? tab.entities.splice(tab.entities.indexOf(id), 1) : tab.entities.push(id);
-                  this._emit();
+                  this._togglePicked(tab.entities, id);
                 }}>${chosen ? "✓" : "+"}</button>`
             : Object.keys(CARD_TYPES).filter((t) => typeAllowed(t, id)).map((t) => html`
                 <button class="mini" @click=${() => {
@@ -1294,6 +1375,37 @@ export class CasaView extends LitElement {
     .sit.editable:hover{background:rgba(255,255,255,.05);}
     .clock{font-size:44px;font-weight:300;letter-spacing:-1px;line-height:1.05;}
     .date{font-size:13px;color:var(--dim,rgba(235,235,245,.6));}
+    .shead{font-size:13px;color:var(--dim,rgba(235,235,245,.6));line-height:1.3;}
+
+    /* Now playing, carried over from the casa app. Extended puts the art above the text; compact
+       is the small row with the art beside it. */
+    .np{position:relative;border-radius:26px;background:var(--card,rgba(255,255,255,.07));
+      border:1px solid var(--cardBorder,rgba(255,255,255,.12));overflow:hidden;width:100%;box-sizing:border-box;}
+    .np-art{position:relative;width:100%;aspect-ratio:1;background:linear-gradient(135deg,#8a5bff,#d06bff);
+      background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
+    .np-art ha-icon{--mdc-icon-size:40px;}
+    .np-body{padding:16px 20px 20px;min-width:0;}
+    .kick{font-size:11px;font-weight:600;letter-spacing:.6px;color:var(--dim,rgba(235,235,245,.6));
+      text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .np-t{font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px;}
+    .np-a{font-size:13.5px;color:var(--dim,rgba(235,235,245,.6));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .np-prog{margin-top:14px;height:5px;border-radius:3px;background:var(--track);overflow:hidden;}
+    .np-fill{height:100%;border-radius:3px;background:#fff;transition:width .25s linear;}
+    .np-ctrls{display:flex;align-items:center;justify-content:center;gap:30px;margin-top:16px;}
+    .np-ctrls .ic{--mdc-icon-size:30px;color:inherit;opacity:.9;cursor:pointer;}
+    .np-ctrls .play{--mdc-icon-size:48px;color:var(--green);cursor:pointer;}
+
+    .np.np-mini{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:20px;}
+    .np-mini .np-art{width:56px;height:56px;aspect-ratio:auto;border-radius:12px;flex:none;}
+    .np-mini .np-art ha-icon{--mdc-icon-size:26px;}
+    .np-mini .np-body{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:0;}
+    .np-mini .np-txt{flex:1;min-width:0;}
+    .np-mini .kick{font-size:10.5px;}
+    .np-mini .np-t{font-size:14.5px;margin-top:0;}
+    .np-mini .np-a{font-size:12.5px;}
+    .np-mini .np-ctrls{margin-top:0;gap:16px;flex:none;}
+    .np-mini .np-ctrls .ic{--mdc-icon-size:24px;}
+    .np-mini .np-ctrls .play{--mdc-icon-size:36px;}
     .greet{font-size:26px;font-weight:600;margin-top:12px;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}

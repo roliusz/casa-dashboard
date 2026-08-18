@@ -53,6 +53,8 @@ export const SIDEBAR_TYPES = {
   date:     { label: "Date",     icon: "mdi:calendar", size: 13 },
   greeting: { label: "Greeting", icon: "mdi:hand-wave", size: 26 },
   sensor:   { label: "Sensor pill", icon: "mdi:gauge", needsEntity: true },
+  heading:  { label: "Heading",  icon: "mdi:format-title", size: 13 },
+  media:    { label: "Media",    icon: "mdi:music", needsEntity: true },
   gap:      { label: "Gap",      icon: "mdi:arrow-expand-vertical", size: 24 },
 };
 
@@ -79,8 +81,6 @@ export const WIDGET_TYPES = {
   people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 1, h: 1, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 2], [3, 3]] },
-  // A heading is one line of text: it spans columns, but its height is always a single row.
-  heading:  { label: "Heading",  icon: "mdi:format-title",          w: 3, h: 1, widthOnly: true },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
 
   // These take a list of entities the user picks, rather than one.
@@ -305,20 +305,11 @@ export function placeNear(cards, card, wantX, wantY, cols, rowsOf) {
 export const sectionRows = (section, rowsOf) =>
   (section.cards || []).reduce((m, c) => Math.max(m, (c.y | 0) + (rowsOf ? rowsOf(c) : c.h)), 0);
 
-/**
- * A heading has no height of its own: the text always gets one row, and the space set above and
- * below it grows the card in whole rows once it outgrows the slack that row already has.
- */
-export function headingRows(card) {
-  const pad = Math.max(0, card.padTop | 0) + Math.max(0, card.padBottom | 0);
-  return Math.max(1, Math.min(4, Math.ceil((pad + GRID_ROW) / (GRID_ROW + GRID_GAP))));
-}
-
 export function clampCard(card, cols) {
   if (card.widget) {
     const t = WIDGET_TYPES[card.widget];
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
-    card.h = t?.widthOnly ? headingRows(card) : Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
+    card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     if (t?.sizes) {
       const fits = t.sizes.filter(([, w]) => w <= cols);
       const [h, w] = (fits.length ? fits : t.sizes)
