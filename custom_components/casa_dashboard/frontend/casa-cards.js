@@ -670,6 +670,29 @@ function widgetCard(ctx, c) {
         ticks.push(html`<div class="ct" style="height:${i % 4 === 0 ? 16 : 9}px;background:${
           inZone ? zone : "rgba(255,255,255,0.28)"};${inZone ? `box-shadow:0 0 6px ${zone}` : ""}"></div>`);
       }
+      // Short cards read like an entity card: the thermostat's name over what it is doing, with
+      // the temperature on the right. Tapping moves to the next one when several are listed,
+      // since there is no room for the chips.
+      if ((c.h || 4) <= 2) {
+        const next = () => (list.length > 1 ? ctx.setPick(c.id, (at + 1) % list.length) : ctx.more(e));
+        return html`<div class="gcard clim2 ${heating ? "heat" : cooling ? "cool" : ""} ${(c.h || 4) <= 1 ? "reading" : ""}">
+          <div class="cmp-head rclick" @click=${next}>
+            <ha-icon class="spk-ic" icon=${MODE_ICON(mode)}></ha-icon>
+            <div class="hl-meta">
+              <div class="hl-name">${attr(ctx, e, "friendly_name") || e}</div>
+              <div class="hl-sub">${heating ? `Heating · ${cur}° → ${tgt}°`
+                : cooling ? `Cooling · ${cur}° → ${tgt}°` : mode === "off" ? "Off" : cap(mode)}</div>
+            </div>
+            <div class="cmp-val">${cur != null ? cur + "°" : "–"}</div>
+          </div>
+          ${(c.h || 4) <= 1 ? "" : html`<div class="spk-btns">
+            <button @click=${() => ctx.setTarget(e, (tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
+            <div class="c2-tgt">${tgt ?? "–"}°</div>
+            <button @click=${() => ctx.setTarget(e, (tgt ?? 20) + 0.5)}><ha-icon icon="mdi:plus"></ha-icon></button>
+          </div>`}
+        </div>`;
+      }
+
       const steppers = html`<div class="clim-step">
         <button class="cstep" @click=${() => ctx.setTarget(e, (tgt ?? 20) - 0.5)}><ha-icon icon="mdi:minus"></ha-icon></button>
         <div class="clim-tgt">${tgt ?? "–"}°<span>target</span></div>
