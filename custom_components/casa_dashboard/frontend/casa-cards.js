@@ -629,8 +629,8 @@ function widgetCard(ctx, c) {
       return html`<div class="gcard wdg row ${anyOn ? "on" : ""}"
           @click=${() => list.length && ctx.call("homeassistant", anyOn ? "turn_off" : "turn_on", { entity_id: list })}>
         <ha-icon class="spk-ic" icon=${c.icon || "mdi:lightbulb-group"}></ha-icon>
-        <div class="hl-meta">
-          <div class="hl-name">${c.name || "Room"}</div>
+        <div class="hl-meta grow">
+          <div class="hl-name">${c.name || "Switch"}</div>
           <div class="hl-sub">${!list.length ? "Pick some entities"
             : anyOn ? `${on.length} of ${list.length} on` : "All off"}</div>
         </div>
@@ -1052,6 +1052,8 @@ export const cardStyles = `
   /* the dashboard's own furniture */
   .wdg{padding:14px 16px;justify-content:center;}
   .wdg.row{flex-direction:row;align-items:center;gap:11px;cursor:pointer;}
+  /* the toggle sits at the far edge, so the row reads name on the left, control on the right */
+  .wdg .hl-meta.grow{flex:1;min-width:0;}
   .wdg.col{align-items:flex-start;justify-content:center;cursor:pointer;}
   .wdg-big{font-size:clamp(26px,7cqw,52px);font-weight:300;letter-spacing:-1px;line-height:1;}
   .wdg-mid{font-size:clamp(14px,3.2cqw,22px);font-weight:600;line-height:1.2;}
