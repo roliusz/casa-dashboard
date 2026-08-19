@@ -183,6 +183,11 @@ class CasaPanel extends LitElement {
       background-color:#0b1014;
       background-image:var(--wp,radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014));
       background-size:cover;background-position:center;background-repeat:no-repeat;}
+    /* 22px of gutter costs a phone real width. casa-app settles on 16, plus room for the home
+       indicator at the bottom. */
+    @media (max-width:760px){
+      .shell{padding:8px 16px calc(40px + env(safe-area-inset-bottom));}
+    }
     .loading{padding:40px;color:var(--dim);font-size:14px;}
     .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
     .warn{font-size:11.5px;color:#ffcf8a;background:rgba(255,180,80,.14);padding:5px 10px;border-radius:9px;}
