@@ -1055,12 +1055,16 @@ export const cardStyles = `
      below rather than pushing everything to the edges. container-type makes cq units resolve
      against this card, which is what lets the art take the smaller of its two limits. */
   .full{position:relative;display:flex;align-items:center;gap:clamp(16px,4%,44px);padding:4px;
-    height:100%;min-height:0;min-width:0;overflow:hidden;container-type:size;}
-  .full-art{position:relative;height:min(100cqh,58cqw);aspect-ratio:1;flex:0 0 auto;min-width:0;border-radius:24px;
+    height:100%;min-height:0;min-width:0;overflow:hidden;container-type:size;
+    --art:min(100cqh,42cqw);}
+  /* Sized by the card's width, not its height, so adding rows never grows it — the height term
+     is only a guard so a short card cannot overflow. */
+  .full-art{position:relative;height:var(--art);aspect-ratio:1;flex:0 0 auto;min-width:0;border-radius:24px;
     background:linear-gradient(135deg,#8a5bff,#d06bff);background-size:cover;background-position:center;
     display:flex;align-items:center;justify-content:center;box-shadow:0 26px 70px -16px rgba(0,0,0,.55);}
   .full-art ha-icon{--mdc-icon-size:clamp(32px,7vw,88px);color:#fff;}
-  .full-side{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
+  .full-side{flex:1 1 0;min-width:0;height:var(--art);display:flex;flex-direction:column;
+    justify-content:flex-end;overflow:hidden;}
   .np-kick{font-size:12px;font-weight:700;letter-spacing:.7px;color:var(--dim);}
   .full-title{font-size:clamp(18px,3.4vw,40px);font-weight:600;letter-spacing:-.6px;line-height:1.1;margin-top:6px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
