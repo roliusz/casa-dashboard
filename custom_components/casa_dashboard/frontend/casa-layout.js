@@ -119,7 +119,8 @@ export const PILL_TYPES = {
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", needsEntity: true },
   people:   { label: "People",   icon: "mdi:account-group" },
   sensor:   { label: "Sensor",   icon: "mdi:gauge", needsEntity: true },
-  entity:   { label: "Toggle",   icon: "mdi:toggle-switch", needsEntity: true },
+  // No longer offered. Kept so pills already saved as one keep their label and entity field.
+  entity:   { label: "Toggle",   icon: "mdi:toggle-switch", needsEntity: true, legacy: true },
 };
 
 /** Domain -> which section a group tab files it under, and how it should look. */

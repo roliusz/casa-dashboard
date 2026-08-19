@@ -1003,10 +1003,6 @@ export class CasaView extends LitElement {
       title = PILL_TYPES[p.type]?.label || "Pill";
       onDelete = () => this._removeFrom(this._l.header.pills, this._insp.i);
       body = html`
-        <div class="f"><label>Type</label><div class="chips">
-          ${Object.entries(PILL_TYPES).map(([key, v]) => html`
-            <button class="chip ${p.type === key ? "on" : ""}" @click=${() => this._patch(p, { type: key })}>${v.label}</button>`)}
-        </div></div>
         ${PILL_TYPES[p.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
           ${this._entityField(p.entity, (v) => this._patch(p, { entity: v }), `pill:${p.id}`)}</div>` : ""}
         ${this._showChips(p)}${this._condition(p)}`;
@@ -1018,10 +1014,6 @@ export class CasaView extends LitElement {
       title = SIDEBAR_TYPES[it.type]?.label || "Sidebar item";
       onDelete = () => this._removeFrom(this._l.sidebar.items, this._insp.i);
       body = html`
-        <div class="f"><label>Type</label><div class="chips">
-          ${Object.entries(SIDEBAR_TYPES).map(([key, v]) => html`
-            <button class="chip ${it.type === key ? "on" : ""}" @click=${() => this._patch(it, { type: key })}>${v.label}</button>`)}
-        </div></div>
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
           ${this._entityField(it.entity, (v) => this._patch(it, { entity: v }), `side:${it.id}`,
             SIDEBAR_TYPES[it.type].domain)}
@@ -1246,7 +1238,7 @@ export class CasaView extends LitElement {
       const mk = mode === "pill" ? newPill : newSidebarItem;
       return html`<div class="scrim" @click=${close}><div class="sheet" @click=${(e) => e.stopPropagation()}>
         <div class="sh-t">Add ${mode === "pill" ? "a header pill" : "to the sidebar"}</div>
-        <div class="chips wrap">${Object.entries(types).map(([k, v]) => html`
+        <div class="chips wrap">${Object.entries(types).filter(([, v]) => !v.legacy).map(([k, v]) => html`
           <button class="chip" @click=${() => { arr.push(mk(k)); close(); this._emit(); }}>
             <ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
       </div></div>`;
