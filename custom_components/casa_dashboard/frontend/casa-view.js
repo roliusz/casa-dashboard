@@ -18,7 +18,7 @@ const {
   newWidget,
   compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
-const { renderCard, cardStyles, stateIcon } = await import(`./casa-cards.js${V}`);
+const { renderCard, cardStyles, stateIcon, cap } = await import(`./casa-cards.js${V}`);
 
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
@@ -372,11 +372,11 @@ export class CasaView extends LitElement {
     if (!s) return "not set";
     const a = s.attributes, d = String(c.entity).split(".")[0];
     if (d === "light" && s.state === "on" && a.brightness != null) return `On · ${Math.round(a.brightness / 2.55)}%`;
-    if (d === "climate") return `${a.current_temperature ?? "–"}° · ${s.state}`;
-    if (d === "media_player") return a.media_title || a.app_name || s.state;
-    if (d === "cover") return a.current_position != null ? `${a.current_position}% open` : s.state;
+    if (d === "climate") return `${a.current_temperature ?? "–"}° · ${cap(s.state)}`;
+    if (d === "media_player") return a.media_title || a.app_name || cap(s.state);
+    if (d === "cover") return a.current_position != null ? `${a.current_position}% open` : cap(s.state);
     if (d === "sensor") return `${s.state}${a.unit_of_measurement ? " " + a.unit_of_measurement : ""}`;
-    return s.state;
+    return cap(s.state);
   }
 
   /* ------------------------------------------------------------- mutate */
@@ -473,7 +473,7 @@ export class CasaView extends LitElement {
       <div class="np-body">
         <div class="np-txt">
           <div class="kick">${a.friendly_name || this._sub(it)}</div>
-          <div class="np-t">${a.media_title || (playing ? "Playing" : s.state)}</div>
+          <div class="np-t">${a.media_title || (playing ? "Playing" : cap(s.state))}</div>
           <div class="np-a">${a.media_artist || a.app_name || ""}</div>
         </div>
         ${big && dur ? html`<div class="np-prog"><div class="np-fill" style="width:${pct}%"></div></div>` : ""}

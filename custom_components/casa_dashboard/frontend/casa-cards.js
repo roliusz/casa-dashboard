@@ -44,7 +44,7 @@ const tallBody = (icon, name, state, value, label, controls, onMore, text = fals
 const readingOnly = (c) => (c.h || 2) <= 1 && c.type !== "tile";
 
 /** States are shown to people, so they read as words: "open" -> "Open", "not_home" -> "Not home". */
-const cap = (t) => {
+export const cap = (t) => {
   const v = String(t ?? "").replace(/_/g, " ");
   return v ? v[0].toUpperCase() + v.slice(1) : "";
 };
