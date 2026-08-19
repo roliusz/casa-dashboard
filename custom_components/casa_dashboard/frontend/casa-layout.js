@@ -107,7 +107,7 @@ export const PILL_TYPES = {
   entity:   { label: "Toggle",   icon: "mdi:toggle-switch", needsEntity: true },
 };
 
-/** Domain -> which section an auto tab files it under, and how it should look. */
+/** Domain -> which section a group tab files it under, and how it should look. */
 export const CATEGORIES = [
   { key: "lights",  name: "Lights",     icon: "mdi:lightbulb",    domains: ["light"],                 card: "small", h: 1 },
   { key: "climate", name: "Climate",    icon: "mdi:thermostat",   domains: ["climate"],               card: "tile" },
@@ -196,7 +196,7 @@ export const bothShown = () => ({ mobile: true, desktop: true });
 
 export const newCard = (type, entity = "") => {
   const t = CARD_TYPES[type] || CARD_TYPES.small;
-  // A design that needs more room than its type's default gets it — the same height an auto tab
+  // A design that needs more room than its type's default gets it — the same height a group tab
   // would give it, so a card added by hand matches one generated for you.
   const cat = entity ? categoryFor(entity) : null;
   const h = t.square ? t.w : (type === "full" ? t.h : Math.max(t.h, cat?.h || 0));
@@ -206,6 +206,7 @@ export const newCard = (type, entity = "") => {
 export const newSection = (name = "Section") => ({ id: uid("s"), name, cols: DEFAULT_COLS, cards: [], show: bothShown() });
 export const newTab = (name = "Tab", icon = "mdi:view-dashboard") =>
   ({ id: uid("t"), name, icon, kind: "custom", show: bothShown(), sections: [newSection("Main")] });
+/** A group tab. `kind` stays "auto" — it is written into saved layouts and must keep loading. */
 export const newAutoTab = (name = "All", icon = "mdi:apps") =>
   ({ id: uid("t"), name, icon, kind: "auto", show: bothShown(), entities: [] });
 export const newPill = (type = "sensor", entity = "") => ({ id: uid("p"), type, entity, show: bothShown() });
@@ -395,7 +396,7 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
   ];
 }
 
-/** The kinds present in an auto tab's selection — the filter chips shown above it. */
+/** The kinds present in a group tab's selection — the filter chips shown above it. */
 export function autoCategories(tab) {
   const present = new Set((tab.entities || []).map((e) => categoryFor(e).key));
   return CATEGORIES.filter((c) => present.has(c.key));

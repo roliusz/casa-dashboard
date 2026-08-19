@@ -43,7 +43,7 @@ export const demoHass = () => ({
   formatEntityState: (s) => s.state,
 });
 
-/** An auto tab holding everything, plus an empty custom tab to build in. */
+/** A group tab holding everything, plus an empty custom tab to build in. */
 export const demoLayout = (newAutoTab, newTab) => {
   const auto = newAutoTab("All", "mdi:apps");
   auto.entities = Object.keys(DEMO_STATES);

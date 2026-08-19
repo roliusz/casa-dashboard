@@ -50,7 +50,7 @@ export class CasaView extends LitElement {
     _climT: { state: true },
     _climMenu: { state: true },     // {mode:'card'|'auto'|'pill'|'side', si?}
     _q: { state: true },
-    _af: { state: true },       // active filter chip, per auto tab
+    _af: { state: true },       // active filter chip, per group tab
     _anim: { state: true },     // flips so the entry animation replays
     _roomOver: { state: true }, // section a card is being dragged onto
     _lift: { state: true },     // the card currently under the pointer
@@ -639,8 +639,8 @@ export class CasaView extends LitElement {
         </button>` : "")}
       ${this.editing ? html`
         <button class="tab add" @click=${() => { this._tabs.push(newTab(`Tab ${this._tabs.length + 1}`)); this._tab = this._tabs.length - 1; this._emit(); }}>+ Tab</button>
-        <button class="tab add" title="A tab that sorts chosen entities into sections automatically"
-          @click=${() => { this._tabs.push(newAutoTab()); this._tab = this._tabs.length - 1; this._emit(); }}>+ Auto tab</button>` : ""}
+        <button class="tab add" title="A tab that groups chosen entities into sections automatically"
+          @click=${() => { this._tabs.push(newAutoTab()); this._tab = this._tabs.length - 1; this._emit(); }}>+ Group tab</button>` : ""}
     </div>`;
   }
 
@@ -721,7 +721,7 @@ export class CasaView extends LitElement {
 
     const secAt = (i) => (auto ? this._secs?.[i] : this._cur.sections?.[i]);
 
-    // An auto tab's cards are rebuilt from the entity list on every render, so the object this
+    // A group tab's cards are rebuilt from the entity list on every render, so the object this
     // drag started with is thrown away the moment anything is saved. Look the card up again each
     // time instead of holding a reference that quietly goes stale.
     const live = () => {
@@ -1068,7 +1068,7 @@ export class CasaView extends LitElement {
     }
 
     if (k === "card") {
-      // An auto tab's cards are generated, so its inspector edits the entity's stored size and can
+      // A group tab's cards are generated, so its inspector edits the entity's stored size and can
       // drop the entity from the tab — but not swap what the card points at.
       const auto = this._cur.kind === "auto";
       const s = auto ? this._secs?.[this._insp.si] : this._cur.sections?.[this._insp.si];
@@ -1221,7 +1221,7 @@ export class CasaView extends LitElement {
             <ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
       </div></div>`;
     }
-    // entity pickers: one entity for a card, or a multi-select for an auto tab or a list widget
+    // entity pickers: one entity for a card, or a multi-select for a group tab or a list widget
     const target = mode === "cardents" ? this._pick.card : null;
     const tab = this._cur;
     const q = this._q.toLowerCase();
