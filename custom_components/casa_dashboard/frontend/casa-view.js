@@ -367,6 +367,16 @@ export class CasaView extends LitElement {
     if (d === "alarm_control_panel") return s.state !== "disarmed";
     return !["off", "unavailable", "unknown", "idle", "closed"].includes(s.state);
   }
+  /**
+   * An inspector's title: what the item is, then which entity it is pointing at. Two pills of the
+   * same kind are otherwise indistinguishable once the panel is open.
+   */
+  _inspTitle(label, type, entity) {
+    if (!type?.needsEntity || !entity) return label;
+    const s = this._st(entity);
+    return `${label} · ${s?.attributes?.friendly_name || entity}`;
+  }
+
   _sub(c) {
     const s = this._st(c.entity);
     if (!s) return "not set";
@@ -1000,7 +1010,7 @@ export class CasaView extends LitElement {
     if (k === "pill") {
       const p = this._l.header.pills[this._insp.i];
       if (!p) return "";
-      title = PILL_TYPES[p.type]?.label || "Pill";
+      title = this._inspTitle(PILL_TYPES[p.type]?.label || "Pill", PILL_TYPES[p.type], p.entity);
       onDelete = () => this._removeFrom(this._l.header.pills, this._insp.i);
       body = html`
         ${PILL_TYPES[p.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
@@ -1011,7 +1021,7 @@ export class CasaView extends LitElement {
     if (k === "side") {
       const it = this._l.sidebar.items[this._insp.i];
       if (!it) return "";
-      title = SIDEBAR_TYPES[it.type]?.label || "Sidebar item";
+      title = this._inspTitle(SIDEBAR_TYPES[it.type]?.label || "Sidebar item", SIDEBAR_TYPES[it.type], it.entity);
       onDelete = () => this._removeFrom(this._l.sidebar.items, this._insp.i);
       body = html`
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
@@ -1085,7 +1095,9 @@ export class CasaView extends LitElement {
       const c = s?.cards[this._insp.ci];
       if (!c) return "";
       const ct = CARD_TYPES[c.type];
-      title = this._nameOf(c);
+      title = c.widget
+        ? this._inspTitle(WIDGET_TYPES[c.widget]?.label || "Widget", WIDGET_TYPES[c.widget], c.entity)
+        : this._nameOf(c);
       onDelete = auto
         ? () => {
             const list = this._cur.entities || [];
