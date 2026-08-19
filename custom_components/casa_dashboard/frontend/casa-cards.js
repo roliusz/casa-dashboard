@@ -279,9 +279,10 @@ function sceneCard(ctx, c) {
 
 /* ------------------------------------------------------------- media widget */
 /**
- * Full is the Now Playing hero from the app; every other size is the sidebar card with the
- * artwork moved out of the top and set before the title and artist, so it reads as one row.
- * A Full card narrowed to a phone's two columns has no room for the hero and uses the row too.
+ * Full is the Now Playing hero from the app. Every other size is laid out like a phone's lock
+ * screen player: the artwork sits beside the name, title and artist, with the progress bar and
+ * then the transport stacked underneath it, each spanning the card.
+ * A Full card narrowed to a phone's two columns has no room for the hero and uses this instead.
  */
 function mediaWidget(ctx, c) {
   const e = c.entity, s = st(ctx, e);
@@ -294,24 +295,26 @@ function mediaWidget(ctx, c) {
   const dur = a.media_duration || 0;
   let el = a.media_position || 0;
   if (playing && a.media_position_updated_at) el += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
-  const pct = dur ? Math.min(100, (el / dur) * 100) : 0;
+  el = dur ? Math.min(el, dur) : el;
+  const pct = dur ? (el / dur) * 100 : 0;
   const call = (svc) => (ev) => { ev.stopPropagation(); ctx.call("media_player", svc, { entity_id: e }); };
-  const wide = c.w >= 2;                       // room for skip buttons either side of play
-  return html`<div class="gcard mw ${c.h >= 3 ? "tall" : ""}">
-    <div class="mw-art" style=${art ? `background-image:url('${art}')` : ""}>
-      ${art ? "" : stateIcon(ctx, e, "mw-ic", c.icon, "mdi:music")}</div>
-    <div class="mw-body">
+  const name = c.name || a.friendly_name || e;
+  const room = c.h >= 3;                       // only a three row card has the height for the bar
+  return html`<div class="gcard mw ${room ? "tall" : ""}">
+    <div class="mw-head rclick" @click=${() => ctx.more(e)}>
+      <div class="mw-art" style=${art ? `background-image:url('${art}')` : ""}>
+        ${art ? "" : stateIcon(ctx, e, "mw-ic", c.icon, "mdi:music")}</div>
       <div class="mw-txt">
-        <div class="kick">${c.name || a.friendly_name || e}</div>
+        <div class="kick">On ${name}</div>
         <div class="mw-t">${a.media_title || (playing ? "Playing" : cap(s.state))}</div>
         <div class="mw-a">${a.media_artist || a.app_name || ""}</div>
       </div>
-      ${c.h >= 3 && dur ? html`<div class="mw-prog"><div class="mw-fill" style="width:${pct}%"></div></div>` : ""}
-      <div class="mw-ctrls">
-        ${wide ? html`<ha-icon class="mw-sk" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>` : ""}
-        <ha-icon class="mw-play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"} @click=${call("media_play_pause")}></ha-icon>
-        ${wide ? html`<ha-icon class="mw-sk" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>` : ""}
-      </div>
+    </div>
+    ${room && dur ? html`<div class="mw-prog"><div class="mw-fill" style="width:${pct}%"></div></div>` : ""}
+    <div class="mw-ctrls">
+      <ha-icon class="mw-sk" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>
+      <ha-icon class="mw-play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"} @click=${call("media_play_pause")}></ha-icon>
+      <ha-icon class="mw-sk" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>
     </div>
   </div>`;
 }
@@ -1028,23 +1031,25 @@ export const cardStyles = `
   /* full media hero */
   /* The hero fills its grid cell rather than assuming a fixed 320px artwork — at a fixed size it
      overflowed short cells and painted over the cards around it. */
-  /* media widget — the sidebar card with its artwork set before the text rather than above it */
-  .mw{flex-direction:row;align-items:center;gap:12px;padding:11px 13px;overflow:hidden;}
-  .mw-art{flex:none;width:clamp(44px,26%,74px);aspect-ratio:1;border-radius:13px;background-size:cover;
+  /* media widget — laid out like a phone's lock screen player: art beside the text, then the
+     progress bar, then the transport, each spanning the card */
+  .mw{flex-direction:column;justify-content:center;gap:9px;padding:12px 14px;overflow:hidden;}
+  .mw-head{display:flex;align-items:center;gap:11px;min-width:0;}
+  .mw-art{flex:none;width:46px;height:46px;border-radius:11px;background-size:cover;
     background-position:center;background-image:linear-gradient(135deg,#8a5bff,#d06bff);
     display:flex;align-items:center;justify-content:center;}
-  .mw.tall .mw-art{width:clamp(56px,30%,96px);border-radius:16px;}
-  .mw-art .mw-ic{--mdc-icon-size:24px;color:#fff;}
-  .mw-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px;}
-  .mw-txt{min-width:0;}
+  .mw.tall .mw-art{width:54px;height:54px;border-radius:13px;}
+  .mw-art .mw-ic{--mdc-icon-size:22px;color:#fff;}
+  .mw-txt{flex:1;min-width:0;}
   .mw-t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .mw-a{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .mw-prog{height:4px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden;}
+  .mw-prog{height:4px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden;flex:none;}
   .mw-fill{height:100%;border-radius:2px;background:var(--text);}
-  .mw-ctrls{display:flex;align-items:center;justify-content:center;gap:18px;}
-  .mw-sk{--mdc-icon-size:22px;color:var(--dim);cursor:pointer;}
-  .mw-play{--mdc-icon-size:32px;color:var(--text);cursor:pointer;}
+  .mw-ctrls{display:flex;align-items:center;justify-content:center;gap:clamp(16px,9%,34px);}
+  .mw-sk{--mdc-icon-size:23px;color:var(--text);opacity:.85;cursor:pointer;}
+  .mw-play{--mdc-icon-size:33px;color:var(--text);cursor:pointer;}
   .mw.tall .mw-play{--mdc-icon-size:38px;}
+  .mw.tall .mw-sk{--mdc-icon-size:26px;}
 
   .full{position:relative;display:flex;align-items:stretch;gap:clamp(16px,4%,44px);padding:4px;
     height:100%;min-height:0;min-width:0;overflow:hidden;}
