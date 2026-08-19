@@ -1002,6 +1002,10 @@ export class CasaView extends LitElement {
         this._emit();
       };
       body = html`
+        <div class="f"><label>Name</label>
+          <input .value=${sec.name || ""} placeholder=${sec.room || "Other"}
+            @change=${(e) => { put(sec.id, { name: e.target.value.trim() }); this._emit(); }}>
+          <div class="hint">Left blank it goes back to ${sec.room ? `"${sec.room}"` : "the room's own name"}.</div></div>
         <div class="f"><label>Width</label><div class="chips">
           ${[1, 2, 3, 4, 5, 6].map((n) => html`
             <button class="chip ${sec.cols === n ? "on" : ""}" @click=${() => { put(sec.id, { cols: n }); this._emit(); }}>${n}</button>`)}

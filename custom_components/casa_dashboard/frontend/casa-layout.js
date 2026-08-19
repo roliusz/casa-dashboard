@@ -384,7 +384,9 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
   const build = (name, id, items) => {
     const cols = Math.max(1, Math.min(TAB_COLS, groups[id]?.cols || DEFAULT_COLS));
     return {
-      id, name, room: name, cols, auto: true, show: bothShown(),
+      // `name` is what the section is called, `room` is which room it actually is — renaming the
+      // heading must not change where a card dropped into it gets filed.
+      id, name: groups[id]?.name || name, room: name, cols, auto: true, show: bothShown(),
       cards: items.reduce((acc, e) => {
         const cat = categoryFor(e);
         const card = newCard(cat.card, e);
