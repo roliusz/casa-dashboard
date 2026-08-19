@@ -15,6 +15,11 @@ await import(`./casa-view.js${V}`);
 
 console.info(`Casa Dashboard ${new URLSearchParams(V).get("v") || "dev"} loaded`);
 
+/** Matches the view's stacking width, so the phone layout and the phone scale switch together. */
+const STACK_W = 760;
+/** How much smaller a phone draws, on top of whatever scale the user picked. */
+const MOBILE_SCALE = 0.9;
+
 const WS_GET = "casa_dashboard/get";
 const WS_SET = "casa_dashboard/set";
 
@@ -52,6 +57,28 @@ class CasaPanel extends LitElement {
     this._settings = { ...DEFAULT_SETTINGS };
     this._edit = false;
     this._loaded = false;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    // The same width the view stacks at, so the scale and the two-column layout switch together.
+    this._mq = window.matchMedia(`(max-width:${STACK_W}px)`);
+    this._onMq = () => this.requestUpdate();
+    this._mq.addEventListener("change", this._onMq);
+  }
+
+  disconnectedCallback() {
+    this._mq?.removeEventListener("change", this._onMq);
+    super.disconnectedCallback();
+  }
+
+  /**
+   * A phone caps the grid at two columns, and at full size those columns are squeezed well under
+   * the width the cards are drawn for — everything inside them ends up cramped. Shrinking the
+   * whole view buys the columns back that width, so cards sit closer to their intended shape.
+   */
+  get _scale() {
+    return (this._settings.scale || 1) * (this._mq?.matches ? MOBILE_SCALE : 1);
   }
 
   updated(ch) { if (ch.has("hass")) this._load(); }
@@ -151,7 +178,7 @@ class CasaPanel extends LitElement {
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
-        <casa-view style=${`zoom:${this._settings.scale || 1}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
+        <casa-view style=${`zoom:${this._scale}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}
           @toggle-edit=${() => (this._edit = !this._edit)}
           @open-settings=${() => (this._showSettings = true)}></casa-view>
