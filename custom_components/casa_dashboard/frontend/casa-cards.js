@@ -1063,7 +1063,9 @@ export const cardStyles = `
      is only a guard so a short card cannot overflow. */
   .full-art{position:relative;height:var(--art);aspect-ratio:1;flex:0 0 auto;min-width:0;border-radius:24px;
     background:linear-gradient(135deg,#8a5bff,#d06bff);background-size:cover;background-position:center;
-    display:flex;align-items:center;justify-content:center;box-shadow:0 26px 70px -16px rgba(0,0,0,.55);}
+    /* No drop shadow: the card clips its overflow, so a 70px blur around a centred artwork was
+       sliced off mid-fade and read as a dark band under it. */
+    display:flex;align-items:center;justify-content:center;}
   .full-art ha-icon{--mdc-icon-size:clamp(32px,7vw,88px);color:#fff;}
   .full-side{flex:1 1 0;min-width:0;height:var(--art);display:flex;flex-direction:column;
     justify-content:flex-end;overflow:hidden;}
