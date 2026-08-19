@@ -926,9 +926,15 @@ export const cardStyles = `
     cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .hl-gear ha-icon{--mdc-icon-size:14px;}
   .hl-body{position:relative;z-index:1;display:flex;align-items:center;gap:11px;padding:0 15px;width:100%;}
+  /* The gear floats over the card, so the text below it had no edge to run into and slid straight
+     underneath. Reserve its width and the name truncates against it instead.
+     Gear: 32px wide, 12px from the card's edge. */
+  .hl-gear ~ .hl-body{padding-right:52px;}
+  .hlight.tall .hl-gear ~ .hl-body{padding-right:37px;}   /* the card's own 15px padding counts */
+  .hl-meta{flex:1;}
   .hl-ic{--mdc-icon-size:21px;color:var(--dim);}
   .hlight.on .hl-ic{color:var(--yellow);}
-  .hl-meta{min-width:0;}
+  .hl-meta{min-width:0;overflow:hidden;}
   .hl-name{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hl-sub{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .hl-sub.end{margin-left:auto;}
