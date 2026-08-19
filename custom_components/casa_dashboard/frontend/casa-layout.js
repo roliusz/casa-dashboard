@@ -95,7 +95,7 @@ export const WIDGET_TYPES = {
   // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
   // alongside `sizes` and clamps like any other shape.
   media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,
-              domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 4 } },
+              domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 6 } },
 };
 
 /** The shapes a widget may take in a section this wide, including Full where it has one. */

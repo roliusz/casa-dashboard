@@ -1053,7 +1053,7 @@ export const cardStyles = `
 
   .full{position:relative;display:flex;align-items:stretch;gap:clamp(16px,4%,44px);padding:4px;
     height:100%;min-height:0;min-width:0;overflow:hidden;}
-  .full-art{position:relative;height:100%;aspect-ratio:1;flex:0 1 auto;min-width:0;max-width:46%;border-radius:24px;
+  .full-art{position:relative;height:100%;aspect-ratio:1;flex:0 1 auto;min-width:0;max-width:58%;border-radius:24px;
     background:linear-gradient(135deg,#8a5bff,#d06bff);background-size:cover;background-position:center;
     display:flex;align-items:center;justify-content:center;box-shadow:0 26px 70px -16px rgba(0,0,0,.55);}
   .full-art ha-icon{--mdc-icon-size:clamp(32px,7vw,88px);color:#fff;}
