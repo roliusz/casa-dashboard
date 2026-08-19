@@ -1054,7 +1054,7 @@ export const cardStyles = `
   /* Centred, not stretched: rows added beyond what the artwork can use leave space above and
      below rather than pushing everything to the edges. container-type makes cq units resolve
      against this card, which is what lets the art take the smaller of its two limits. */
-  .full{position:relative;display:flex;align-items:center;gap:clamp(16px,4%,44px);padding:4px;
+  .full{position:relative;display:flex;align-items:center;gap:clamp(16px,4%,44px);padding:4px 26px 4px 4px;
     height:100%;min-height:0;min-width:0;overflow:hidden;container-type:size;
     /* 388px is what six rows leaves once the card's padding is taken off (GRID_ROW 58, GRID_GAP
        11). Six rows is as large as the artwork goes: past that the card grows and it does not. */
