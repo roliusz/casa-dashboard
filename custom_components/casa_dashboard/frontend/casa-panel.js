@@ -147,7 +147,7 @@ class CasaPanel extends LitElement {
     if (!this._loaded) return html`<div class="shell"><div class="loading">Loading…</div></div>`;
     const wp = this._settings.wallpaper;
     return html`
-      <div class="shell" style=${wp ? `background-image:url('${wp}')` : ""}>
+      <div class="shell" style=${wp ? `--wp:url('${wp}')` : ""}>
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
@@ -176,7 +176,13 @@ class CasaPanel extends LitElement {
     /* Keep the scrollbar's space reserved: dragging a card taller made the page scroll, which
        narrowed everything by the scrollbar's width and rewrapped the tab row under the cursor. */
     .shell{min-height:100%;box-sizing:border-box;padding:10px 22px 40px;overflow-y:auto;scrollbar-gutter:stable;overflow-anchor:none;
-      background:#0b1014 radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014) center/cover no-repeat fixed;}
+      background:#0b1014;isolation:isolate;}
+    /* The background is its own fixed layer rather than background-attachment:fixed, which mobile
+       browsers ignore — there it falls back to scrolling with the content. */
+    .shell::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+      background-color:#0b1014;
+      background-image:var(--wp,radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014));
+      background-size:cover;background-position:center;background-repeat:no-repeat;}
     .loading{padding:40px;color:var(--dim);font-size:14px;}
     .warnbar{display:flex;justify-content:flex-end;margin-bottom:8px;}
     .warn{font-size:11.5px;color:#ffcf8a;background:rgba(255,180,80,.14);padding:5px 10px;border-radius:9px;}
