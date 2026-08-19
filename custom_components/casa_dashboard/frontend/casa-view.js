@@ -16,7 +16,7 @@ const {
   areaOf, cardRows, statesFor, tileRows,
   WIDGET_TYPES, autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newWidget,
-  compactCards, newSidebarItem, newTab, sectionsOf, starterLayout, typeAllowed,
+  compactCards, newSidebarItem, newTab, placeNear, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles, stateIcon, cap } = await import(`./casa-cards.js${V}`);
 
@@ -345,7 +345,19 @@ export class CasaView extends LitElement {
     if (cols === sec.cols && visible.length === (sec.cards || []).length) return sec.cards;
     // Copies: a card narrowed to fit a phone must not have that written back to the layout.
     const fitted = visible.map((c) => clampCard({ ...c }, cols));
-    return compactCards(fitted, cols, (k) => this._rows(k, cols));
+    const rowsOf = (k) => this._rows(k, cols);
+    if (cols === sec.cols) return compactCards(fitted, cols, rowsOf);
+
+    // Fewer columns than the layout was built for. Keeping each card's column would fold the
+    // third onto the second and leave the first short, so lay them out afresh: take them in the
+    // order they read across the desktop grid and drop each into the first gap that fits.
+    const placed = [];
+    for (const card of [...fitted].sort((a, b) => (a.y | 0) - (b.y | 0) || (a.x | 0) - (b.x | 0))) {
+      const at = placeNear(placed, card, 0, 0, cols, rowsOf);
+      card.x = at.x; card.y = at.y;
+      placed.push(card);
+    }
+    return compactCards(placed, cols, rowsOf);
   }
 
   /* -------------------------------------------------------- live values */
