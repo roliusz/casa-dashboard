@@ -836,7 +836,7 @@ export class CasaView extends LitElement {
    * the page. Sizing the grid to what is used lets the sidebar take the rest.
    */
   _usedCols(sections) {
-    let cursor = 0, used = 1;
+    let cursor = 0, used = 0;
     for (const sec of sections) {
       if (!this._vis(sec)) continue;
       const span = Math.max(1, Math.min(TAB_COLS, sec.cols | 0 || 1));
@@ -844,7 +844,9 @@ export class CasaView extends LitElement {
       cursor += span;
       used = Math.max(used, cursor);
     }
-    return used;
+    // Nothing to measure — a tab whose cards are all hidden, or one never filled in. Keep the full
+    // width rather than collapsing the column, which would move the sidebar and the tab row.
+    return used || TAB_COLS;
   }
 
   /**
@@ -1363,7 +1365,7 @@ export class CasaView extends LitElement {
               }}><ha-icon icon=${c.icon}></ha-icon>${c.name}</button>`)}
           </div>` : ""}
           ${sections.length ? "" : this._blankTab(tab, all.some((sec) => (sec.cards || []).length))}
-          <div class="secs" style="--tabcols:${this._usedCols(sections)};--gap:${GRID_GAP}px;--colw:${COL_W}px">
+          <div class="secs" style="--tabcols:${this._usedCols(sections.length ? sections : all)};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si}
                  style="--span:${this._stacked ? 1 : sec.cols}">
