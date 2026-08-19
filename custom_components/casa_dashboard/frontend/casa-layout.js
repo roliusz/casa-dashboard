@@ -378,26 +378,38 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
   const only = filter || tab.filter;
   const entities = (tab.entities || []).filter((e) => !only || categoryFor(e).key === only);
 
-  const build = (name, id, items) => ({
-    id, name, room: name, cols: DEFAULT_COLS, auto: true, show: bothShown(),
-    cards: items.reduce((acc, e) => {
-      const cat = categoryFor(e);
-      const card = newCard(cat.card, e);
-      if (cat.h) card.h = cat.h;
-      const size = sizes[e];                       // size and position the user set for this entity
-      if (size?.type) card.type = size.type;
-      if (size?.w) card.w = size.w;
-      if (size?.h) card.h = size.h;
-      clampCard(card, DEFAULT_COLS);
-      // Stored positions belong to the unfiltered view. A filter shows a subset, so keeping them
-      // would leave a hole wherever a hidden card used to sit — pack instead.
-      if (!only && size?.x != null) card.x = size.x;
-      if (!only && size?.y != null) card.y = size.y;
-      if (only || size?.x == null) Object.assign(card, placeNear(acc, card, 0, 0, DEFAULT_COLS));
-      acc.push(card);
-      return acc;
-    }, []),
-  });
+  // These sections are rebuilt on every render, so the width and order the user set for one is
+  // kept on the tab, against the section's id, rather than on the section itself.
+  const groups = tab.groups || {};
+  const build = (name, id, items) => {
+    const cols = Math.max(1, Math.min(TAB_COLS, groups[id]?.cols || DEFAULT_COLS));
+    return {
+      id, name, room: name, cols, auto: true, show: bothShown(),
+      cards: items.reduce((acc, e) => {
+        const cat = categoryFor(e);
+        const card = newCard(cat.card, e);
+        if (cat.h) card.h = cat.h;
+        const size = sizes[e];                       // size and position the user set for this entity
+        if (size?.type) card.type = size.type;
+        if (size?.w) card.w = size.w;
+        if (size?.h) card.h = size.h;
+        clampCard(card, cols);
+        // Stored positions belong to the unfiltered view. A filter shows a subset, so keeping them
+        // would leave a hole wherever a hidden card used to sit — pack instead.
+        if (!only && size?.x != null) card.x = size.x;
+        if (!only && size?.y != null) card.y = size.y;
+        if (only || size?.x == null) Object.assign(card, placeNear(acc, card, 0, 0, cols));
+        acc.push(card);
+        return acc;
+      }, []),
+    };
+  };
+
+  /** Alphabetical, unless the user has dragged the order into their own shape. */
+  const ordered = (list) => list
+    .map((sec, i) => ({ sec, rank: groups[sec.id]?.order ?? i, i }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i)
+    .map((x) => x.sec);
 
   const settle = (sec) => (compactCards(sec.cards, sec.cols), sec);
 
@@ -415,11 +427,11 @@ export function autoSections(tab, hass, filter, areas, extraRooms = [], sizes = 
   // cards to. The view drops the empty ones once editing stops.
   for (const r of extraRooms) if (!rooms.has(r)) rooms.set(r, []);
   if (!rooms.size) return [settle(build("", "auto-all", loose))];      // no rooms anywhere: one plain list
-  return [
+  return ordered([
     ...[...rooms.entries()].sort(([a], [b]) => a.localeCompare(b))
       .map(([room, items]) => settle(build(room, `auto-room-${room}`, items))),
     ...(loose.length ? [{ ...settle(build("Other", "auto-room-other", loose)), room: "" }] : []),
-  ];
+  ]);
 }
 
 /** The kinds present in a group tab's selection — the filter chips shown above it. */

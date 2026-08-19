@@ -977,7 +977,42 @@ export class CasaView extends LitElement {
     const close = () => (this._insp = null);
     let title = "", body = "", onDelete = null;
 
-    if (k === "section") {
+    if (k === "section" && this._cur?.kind === "auto") {
+      const sec = this._secs?.[this._insp.si];
+      if (!sec) return "";
+      title = `Group · ${sec.name || "Other"}`;
+      // The section is rebuilt on every render, so the edit is stored on the tab against its id.
+      const put = (id, patch) => {
+        const groups = { ...(this._cur.groups || {}) };
+        groups[id] = { ...(groups[id] || {}), ...patch };
+        this._cur.groups = groups;
+        return groups;
+      };
+      const move = (d) => {
+        const ids = (this._secs || []).map((x) => x.id);
+        const i = this._insp.si, j = i + d;
+        if (j < 0 || j >= ids.length) return;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        // Renumber the lot: mixing stored ranks with alphabetical ones puts sections in an order
+        // that depends on which have been touched.
+        const groups = { ...(this._cur.groups || {}) };
+        ids.forEach((id, at) => (groups[id] = { ...(groups[id] || {}), order: at }));
+        this._cur.groups = groups;
+        this._insp = { kind: "section", si: j };
+        this._emit();
+      };
+      body = html`
+        <div class="f"><label>Width</label><div class="chips">
+          ${[1, 2, 3, 4, 5, 6].map((n) => html`
+            <button class="chip ${sec.cols === n ? "on" : ""}" @click=${() => { put(sec.id, { cols: n }); this._emit(); }}>${n}</button>`)}
+        </div><div class="hint">Columns out of ${TAB_COLS}. Two sections of three sit side by side.</div></div>
+        <div class="f"><label>Order</label><div class="chips">
+          <button class="chip" ?disabled=${this._insp.si === 0} @click=${() => move(-1)}>← Earlier</button>
+          <button class="chip" ?disabled=${this._insp.si >= (this._secs?.length || 1) - 1} @click=${() => move(1)}>Later →</button>
+        </div><div class="hint">Rooms are listed alphabetically until you move one.</div></div>`;
+    }
+
+    if (k === "section" && this._cur?.kind !== "auto") {
       const sec = this._cur.sections?.[this._insp.si];
       if (!sec) return "";
       title = "Section";
@@ -1384,7 +1419,7 @@ export class CasaView extends LitElement {
             <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si}
                  style="--span:${this._stacked ? 1 : sec.cols}">
               ${sec.name || this.editing ? html`<div class="sec-t">${sec.name}
-                ${this.editing && !auto ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
+                ${this.editing ? html`<button class="sec-pen" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "section", si }; }}>
                   <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}</div>` : ""}
               <div class="grid" data-grid=${si}
                    style="--cols:${this._cols(sec)};--row:${GRID_ROW}px;--gap:${GRID_GAP}px;--colw:${COL_W}px;--rows:${
