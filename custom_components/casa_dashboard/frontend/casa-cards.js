@@ -1056,7 +1056,9 @@ export const cardStyles = `
      against this card, which is what lets the art take the smaller of its two limits. */
   .full{position:relative;display:flex;align-items:center;gap:clamp(16px,4%,44px);padding:4px;
     height:100%;min-height:0;min-width:0;overflow:hidden;container-type:size;
-    --art:min(100cqh,42cqw);}
+    /* 388px is what six rows leaves once the card's padding is taken off (GRID_ROW 58, GRID_GAP
+       11). Six rows is as large as the artwork goes: past that the card grows and it does not. */
+    --art:min(100cqh,42cqw,388px);}
   /* Sized by the card's width, not its height, so adding rows never grows it — the height term
      is only a guard so a short card cannot overflow. */
   .full-art{position:relative;height:var(--art);aspect-ratio:1;flex:0 0 auto;min-width:0;border-radius:24px;
