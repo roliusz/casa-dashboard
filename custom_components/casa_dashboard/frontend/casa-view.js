@@ -621,6 +621,21 @@ export class CasaView extends LitElement {
     return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
   }
 
+  /**
+   * A tab with nothing to draw still has to look like something — an empty page reads as the
+   * dashboard having failed to load. `hidden` separates a tab that holds cards none of which pass
+   * their conditions right now from one that was never filled in.
+   */
+  _blankTab(tab, hidden) {
+    const auto = tab?.kind === "auto";
+    return html`<div class="blank">
+      <ha-icon icon=${hidden ? "mdi:eye-off-outline" : auto ? "mdi:shape-outline" : "mdi:card-plus-outline"}></ha-icon>
+      <div class="blank-t">${hidden ? "Nothing to show right now" : "This tab is empty"}</div>
+      <div class="blank-s">${hidden ? "Every card here is hidden by its own conditions."
+        : auto ? "Choose the entities it should group." : "Add a card to fill it."}</div>
+    </div>`;
+  }
+
   /* -------------------------------------------------------------- tabs */
   _tabBar() {
     return html`<div class="tabs">
@@ -1347,6 +1362,7 @@ export class CasaView extends LitElement {
                 this._anim = this._anim ^ 1;                 // replay the entry animation
               }}><ha-icon icon=${c.icon}></ha-icon>${c.name}</button>`)}
           </div>` : ""}
+          ${sections.length ? "" : this._blankTab(tab, all.some((sec) => (sec.cards || []).length))}
           <div class="secs" style="--tabcols:${this._usedCols(sections)};--gap:${GRID_GAP}px;--colw:${COL_W}px">
           ${sections.map((sec, si) => this._vis(sec) ? html`
             <div class="sec ${this._roomOver === si ? "drop" : ""}" data-si=${si}
@@ -1498,6 +1514,12 @@ export class CasaView extends LitElement {
     .tab ha-icon{--mdc-icon-size:17px;}
     /* A tab is TAB_COLS columns wide and a section takes some of them, so two three-column
        sections sit side by side and a six-column one is full width. */
+    /* an empty tab: never leave the page blank */
+    .blank{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;
+      padding:52px 20px;text-align:center;color:var(--dim,rgba(235,235,245,.6));}
+    .blank ha-icon{--mdc-icon-size:34px;opacity:.5;margin-bottom:3px;}
+    .blank-t{font-size:15px;font-weight:600;color:var(--text,#fff);opacity:.85;}
+    .blank-s{font-size:12.5px;}
     .secs{display:grid;grid-template-columns:repeat(var(--tabcols),minmax(0,var(--colw)));
       gap:22px var(--gap);align-items:start;justify-content:start;width:max-content;max-width:100%;}
     .sec{grid-column:span var(--span);min-width:0;}
