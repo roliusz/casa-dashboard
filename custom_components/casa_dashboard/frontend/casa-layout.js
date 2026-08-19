@@ -92,7 +92,18 @@ export const WIDGET_TYPES = {
               domain: "climate", sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
   energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
+  // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
+  // alongside `sizes` and clamps like any other shape.
+  media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,
+              domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 4 } },
 };
+
+/** The shapes a widget may take in a section this wide, including Full where it has one. */
+export function widgetSizes(widget, cols) {
+  const t = WIDGET_TYPES[widget];
+  if (!t?.sizes) return [];
+  return t.full ? [...t.sizes, [t.full.h, cols]] : t.sizes;
+}
 
 export const newWidget = (widget, entity = "") => {
   const w = WIDGET_TYPES[widget] || WIDGET_TYPES.clock;
@@ -312,8 +323,9 @@ export function clampCard(card, cols) {
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
     card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     if (t?.sizes) {
-      const fits = t.sizes.filter(([, w]) => w <= cols);
-      const [h, w] = (fits.length ? fits : t.sizes)
+      const all = widgetSizes(card.widget, cols);
+      const fits = all.filter(([, w]) => w <= cols);
+      const [h, w] = (fits.length ? fits : all)
         .reduce((best, p) => {
           const d = Math.abs(p[0] - card.h) + Math.abs(p[1] - card.w);
           return d < best.d ? { d, p } : best;

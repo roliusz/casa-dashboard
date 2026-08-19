@@ -277,6 +277,45 @@ function sceneCard(ctx, c) {
   </button>`;
 }
 
+/* ------------------------------------------------------------- media widget */
+/**
+ * Full is the Now Playing hero from the app; every other size is the sidebar card with the
+ * artwork moved out of the top and set before the title and artist, so it reads as one row.
+ * A Full card narrowed to a phone's two columns has no room for the hero and uses the row too.
+ */
+function mediaWidget(ctx, c) {
+  const e = c.entity, s = st(ctx, e);
+  if (!s) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a media player</div></div>`;
+  if (c.h >= 4 && c.w >= 3) return fullCard(ctx, c);
+
+  const a = s.attributes || {};
+  const playing = s.state === "playing";
+  const art = a.entity_picture;
+  const dur = a.media_duration || 0;
+  let el = a.media_position || 0;
+  if (playing && a.media_position_updated_at) el += (Date.now() - new Date(a.media_position_updated_at).getTime()) / 1000;
+  const pct = dur ? Math.min(100, (el / dur) * 100) : 0;
+  const call = (svc) => (ev) => { ev.stopPropagation(); ctx.call("media_player", svc, { entity_id: e }); };
+  const wide = c.w >= 2;                       // room for skip buttons either side of play
+  return html`<div class="gcard mw ${c.h >= 3 ? "tall" : ""}">
+    <div class="mw-art" style=${art ? `background-image:url('${art}')` : ""}>
+      ${art ? "" : stateIcon(ctx, e, "mw-ic", c.icon, "mdi:music")}</div>
+    <div class="mw-body">
+      <div class="mw-txt">
+        <div class="kick">${c.name || a.friendly_name || e}</div>
+        <div class="mw-t">${a.media_title || (playing ? "Playing" : cap(s.state))}</div>
+        <div class="mw-a">${a.media_artist || a.app_name || ""}</div>
+      </div>
+      ${c.h >= 3 && dur ? html`<div class="mw-prog"><div class="mw-fill" style="width:${pct}%"></div></div>` : ""}
+      <div class="mw-ctrls">
+        ${wide ? html`<ha-icon class="mw-sk" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>` : ""}
+        <ha-icon class="mw-play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"} @click=${call("media_play_pause")}></ha-icon>
+        ${wide ? html`<ha-icon class="mw-sk" icon="mdi:skip-next" @click=${call("media_next_track")}></ha-icon>` : ""}
+      </div>
+    </div>
+  </div>`;
+}
+
 /* -------------------------------------------------------- full media hero */
 function fullCard(ctx, c) {
   const e = c.entity, s = st(ctx, e), a = s?.attributes || {};
@@ -548,6 +587,8 @@ const GREETING = () => {
 function widgetCard(ctx, c) {
   const now = new Date();
   switch (c.widget) {
+    case "media":
+      return mediaWidget(ctx, c);
     case "clock":
       return html`<div class="gcard wdg"><div class="wdg-big">${
         now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", ...(c.hour12 == null ? {} : { hour12: !!c.hour12 }) })}</div></div>`;
@@ -987,6 +1028,24 @@ export const cardStyles = `
   /* full media hero */
   /* The hero fills its grid cell rather than assuming a fixed 320px artwork — at a fixed size it
      overflowed short cells and painted over the cards around it. */
+  /* media widget — the sidebar card with its artwork set before the text rather than above it */
+  .mw{flex-direction:row;align-items:center;gap:12px;padding:11px 13px;overflow:hidden;}
+  .mw-art{flex:none;width:clamp(44px,26%,74px);aspect-ratio:1;border-radius:13px;background-size:cover;
+    background-position:center;background-image:linear-gradient(135deg,#8a5bff,#d06bff);
+    display:flex;align-items:center;justify-content:center;}
+  .mw.tall .mw-art{width:clamp(56px,30%,96px);border-radius:16px;}
+  .mw-art .mw-ic{--mdc-icon-size:24px;color:#fff;}
+  .mw-body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px;}
+  .mw-txt{min-width:0;}
+  .mw-t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mw-a{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mw-prog{height:4px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden;}
+  .mw-fill{height:100%;border-radius:2px;background:var(--text);}
+  .mw-ctrls{display:flex;align-items:center;justify-content:center;gap:18px;}
+  .mw-sk{--mdc-icon-size:22px;color:var(--dim);cursor:pointer;}
+  .mw-play{--mdc-icon-size:32px;color:var(--text);cursor:pointer;}
+  .mw.tall .mw-play{--mdc-icon-size:38px;}
+
   .full{position:relative;display:flex;align-items:stretch;gap:clamp(16px,4%,44px);padding:4px;
     height:100%;min-height:0;min-width:0;overflow:hidden;}
   .full-art{position:relative;height:100%;aspect-ratio:1;flex:0 1 auto;min-width:0;max-width:46%;border-radius:24px;

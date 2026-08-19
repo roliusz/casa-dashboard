@@ -12,6 +12,7 @@ const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
   CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS,
+  widgetSizes,
   areaOf, cardRows, statesFor, tileRows,
   WIDGET_TYPES, autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newWidget,
@@ -1110,9 +1111,11 @@ export class CasaView extends LitElement {
           </div></div>`}
         ${c.widget && WIDGET_TYPES[c.widget]?.sizes ? html`
           <div class="f"><label>Size (rows × columns)</label><div class="chips">
-            ${WIDGET_TYPES[c.widget].sizes.map(([h, w]) => html`
+            ${widgetSizes(c.widget, s.cols).map(([h, w], i, arr) => html`
               <button class="chip ${c.h === h && c.w === w ? "on" : ""}"
-                @click=${() => patchCard({ h, w })}>${h}×${w}</button>`)}
+                @click=${() => patchCard({ h, w })}>${
+                  // the last shape of a widget that has one is Full — as wide as the section is
+                  WIDGET_TYPES[c.widget].full && i === arr.length - 1 ? "Full" : `${h}×${w}`}</button>`)}
           </div></div>` : ""}
         ${(() => {
           // Every type but Custom decides its own size, so the steppers are only live there. A
