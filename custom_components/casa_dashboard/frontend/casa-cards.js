@@ -287,7 +287,7 @@ function sceneCard(ctx, c) {
 function mediaWidget(ctx, c) {
   const e = c.entity, s = st(ctx, e);
   if (!s) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a media player</div></div>`;
-  if (c.h >= 4 && c.w >= 3) return fullCard(ctx, c);
+  if ((c.full || c.h >= 4) && c.w >= 3) return fullCard(ctx, c);   // c.h for cards saved before the flag
 
   const a = s.attributes || {};
   const playing = s.state === "playing";
@@ -1051,13 +1051,16 @@ export const cardStyles = `
   .mw.tall .mw-play{--mdc-icon-size:38px;}
   .mw.tall .mw-sk{--mdc-icon-size:26px;}
 
-  .full{position:relative;display:flex;align-items:stretch;gap:clamp(16px,4%,44px);padding:4px;
-    height:100%;min-height:0;min-width:0;overflow:hidden;}
-  .full-art{position:relative;height:100%;aspect-ratio:1;flex:0 1 auto;min-width:0;max-width:58%;border-radius:24px;
+  /* Centred, not stretched: rows added beyond what the artwork can use leave space above and
+     below rather than pushing everything to the edges. container-type makes cq units resolve
+     against this card, which is what lets the art take the smaller of its two limits. */
+  .full{position:relative;display:flex;align-items:center;gap:clamp(16px,4%,44px);padding:4px;
+    height:100%;min-height:0;min-width:0;overflow:hidden;container-type:size;}
+  .full-art{position:relative;height:min(100cqh,58cqw);aspect-ratio:1;flex:0 0 auto;min-width:0;border-radius:24px;
     background:linear-gradient(135deg,#8a5bff,#d06bff);background-size:cover;background-position:center;
     display:flex;align-items:center;justify-content:center;box-shadow:0 26px 70px -16px rgba(0,0,0,.55);}
   .full-art ha-icon{--mdc-icon-size:clamp(32px,7vw,88px);color:#fff;}
-  .full-side{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+  .full-side{flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden;}
   .np-kick{font-size:12px;font-weight:700;letter-spacing:.7px;color:var(--dim);}
   .full-title{font-size:clamp(18px,3.4vw,40px);font-weight:600;letter-spacing:-.6px;line-height:1.1;margin-top:6px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}

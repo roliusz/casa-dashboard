@@ -12,7 +12,7 @@ const V = new URL(import.meta.url).search;
 const { LitElement, html, css, unsafeCSS } = await import(`./lit-all.min.js${V}`);
 const {
   CARD_TYPES, CATEGORIES, COL_W, FONTS, GRID_GAP, GRID_ROW, PILL_TYPES, SIDEBAR_TYPES, TAB_COLS,
-  widgetSizes,
+  widgetSizes, FULL_MIN_ROWS, FULL_MAX_ROWS,
   areaOf, cardRows, statesFor, tileRows,
   WIDGET_TYPES, autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newWidget,
@@ -1128,12 +1128,22 @@ export class CasaView extends LitElement {
           </div></div>`}
         ${c.widget && WIDGET_TYPES[c.widget]?.sizes ? html`
           <div class="f"><label>Size (rows × columns)</label><div class="chips">
-            ${widgetSizes(c.widget, s.cols).map(([h, w], i, arr) => html`
-              <button class="chip ${c.h === h && c.w === w ? "on" : ""}"
-                @click=${() => patchCard({ h, w })}>${
-                  // the last shape of a widget that has one is Full — as wide as the section is
-                  WIDGET_TYPES[c.widget].full && i === arr.length - 1 ? "Full" : `${h}×${w}`}</button>`)}
+            ${widgetSizes(c.widget, s.cols).map(([h, w], i, arr) => {
+              // the last shape of a widget that has one is Full — as wide as the section is
+              const isFull = WIDGET_TYPES[c.widget].full && i === arr.length - 1;
+              const on = isFull ? !!c.full : !c.full && c.h === h && c.w === w;
+              return html`<button class="chip ${on ? "on" : ""}"
+                @click=${() => patchCard(isFull ? { full: true, h: c.h >= FULL_MIN_ROWS ? c.h : h, w }
+                                                : { full: false, h, w })}>${
+                  isFull ? "Full" : `${h}×${w}`}</button>`;
+            })}
           </div></div>` : ""}
+        ${c.widget && c.full ? html`
+          <div class="f"><label>Rows</label><div class="stp">
+            <button class="mini" ?disabled=${c.h <= FULL_MIN_ROWS} @click=${() => patchCard({ h: c.h - 1 })}>−</button>
+            <span>${c.h}</span>
+            <button class="mini" ?disabled=${c.h >= FULL_MAX_ROWS} @click=${() => patchCard({ h: c.h + 1 })}>+</button>
+          </div><div class="hint">The card grows; its contents stay centred in it.</div></div>` : ""}
         ${(() => {
           // Every type but Custom decides its own size, so the steppers are only live there. A
           // widget with a fixed set of shapes picks from those instead.

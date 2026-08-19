@@ -98,6 +98,10 @@ export const WIDGET_TYPES = {
               domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 6 } },
 };
 
+/** Full spans the section; these bound the height the user may give it. */
+export const FULL_MIN_ROWS = 4;
+export const FULL_MAX_ROWS = 10;
+
 /** The shapes a widget may take in a section this wide, including Full where it has one. */
 export function widgetSizes(widget, cols) {
   const t = WIDGET_TYPES[widget];
@@ -320,6 +324,15 @@ export const sectionRows = (section, rowsOf) =>
 export function clampCard(card, cols) {
   if (card.widget) {
     const t = WIDGET_TYPES[card.widget];
+    // Full is a mode, not one shape: it always spans the section and its height is the user's,
+    // so it is clamped to its own range and skips the snap to the listed sizes.
+    if (card.full && t?.full) {
+      card.w = cols;
+      card.h = Math.max(FULL_MIN_ROWS, Math.min(FULL_MAX_ROWS, card.h | 0 || t.full.h));
+      card.x = Math.max(0, Math.min(cols - card.w, card.x | 0));
+      card.y = Math.max(0, card.y | 0);
+      return card;
+    }
     card.w = Math.max(1, Math.min(cols, card.w | 0 || 1));
     card.h = Math.max(t?.minH || 1, Math.min(6, card.h | 0 || 1));
     if (t?.sizes) {
