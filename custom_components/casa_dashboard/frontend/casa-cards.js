@@ -798,12 +798,12 @@ function widgetCard(ctx, c) {
       const title = c.name || "Calendar";
       const head = (sub) => html`<div class="nrg-head"><div class="nrg-meta">
         <span class="hl-name">${title}</span>
-        ${rows > 1 && sub ? html`<span class="hl-sub">${sub}</span>` : ""}
+        ${sub ? html`<span class="hl-sub">${sub}</span>` : ""}
       </div><ha-icon class="cal-ic" icon="mdi:calendar-month"></ha-icon></div>`;
       if (events === null)
-        return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">${head("Loading")}</div>`;
+        return html`<div class="gcard cal">${head("Loading")}</div>`;
       if (!events.length)
-        return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">${head("Nothing scheduled")}</div>`;
+        return html`<div class="gcard cal">${head("Nothing scheduled")}</div>`;
 
       const now = new Date();
       const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
@@ -817,16 +817,16 @@ function widgetCard(ctx, c) {
       const fits = Math.max(1, Math.min(events.length,
         Math.floor((rows * (GRID_ROW + GRID_GAP) - 66) / 26)));
       const n = events.length;
-      return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">
+      return html`<div class="gcard cal">
         ${head(`${n} ${n === 1 ? "event" : "events"}`)}
-        ${rows > 1 ? html`<div class="att-list">
+        <div class="att-list">
           ${events.slice(0, fits).map((ev) => html`
             <div class="att-row cal-row">
               <span class="cal-when">${when(ev)}</span>
               <span class="att-name">${ev.summary}</span>
             </div>`)}
           ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
-        </div>` : ""}
+        </div>
       </div>`;
     }
     case "attention": {
@@ -1480,14 +1480,13 @@ export const cardStyles = `
   /* Needs attention: the header carries the count, the rest is a list of what is wrong. */
   .att{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
   .cal{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
-  .cal.one{padding:9px 14px;justify-content:center;}
-  .cal.one .nrg-head{align-items:center;}
   .cal-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
-  /* The time is a fixed column so the summaries line up down the card. */
-  .cal-row{cursor:default;}
-  /* Wide enough for a weekday and a 12-hour time — "Fri 09:30 AM" — since the format follows the
-     viewer's locale, not ours. */
-  .cal-when{flex:none;width:78px;font-size:11.5px;font-weight:600;color:var(--dim);
+  /* A fixed column, so the summaries line up down the card, wide enough for a weekday and a
+     12-hour time — "Fri 09:30 AM" — since the format follows the viewer's locale, not ours.
+     Ranged right, so a short time sits against its summary rather than leaving the column's slack
+     between them. Two classes to outrank .att-row's gap, which is set further down. */
+  .att-row.cal-row{gap:8px;}
+  .cal-when{flex:none;width:70px;text-align:right;font-size:11.5px;font-weight:600;color:var(--dim);
     font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   .att.one{padding:9px 14px;justify-content:center;}
