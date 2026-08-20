@@ -87,6 +87,7 @@ export class CasaView extends LitElement {
     _tabLift: { state: true },  // the tab currently under the pointer
     _ac: { state: true },       // which entity field is completing
     _acq: { state: true },      // what has been typed into it
+    _todoNew: { state: true },  // the to-do composer: which card, and what is typed so far
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -106,6 +107,10 @@ export class CasaView extends LitElement {
       calendar: (ids, span) => this._calendar(ids, span),
       todo: (ids) => this._todo(ids),
       todoDone: (ids, entity, uid) => this._todoDone(ids, entity, uid),
+      // The composer is where you happen to be typing, not part of the saved dashboard.
+      todoDraft: (key) => (this._todoNew?.key === key ? this._todoNew.text : null),
+      todoDraftSet: (key, text) => { this._todoNew = text === null ? null : { key, text }; },
+      todoAdd: (ids, entity, text) => this._todoAdd(ids, entity, text),
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -418,6 +423,19 @@ export class CasaView extends LitElement {
     this._td = { ...this._td, [key]: (this._td?.[key] || []).filter((x) => x.uid !== uid) };
     this.requestUpdate();
     this.hass.callService("todo", "update_item", { entity_id: entity, item: uid, status: "completed" });
+    clearTimeout(this._tdT);
+    this._tdT = setTimeout(() => this._fetchTodo(ids, key), 2000);
+  }
+
+  /** Add an item, and stay open for the next one — a shopping list is rarely one thing. */
+  _todoAdd(ids, entity, text) {
+    const summary = String(text || "").trim();
+    const key = [...ids].sort().join(",");
+    if (!summary) { this._todoNew = null; return; }
+    this._td = { ...this._td, [key]: [...(this._td?.[key] || []),
+      { id: entity, uid: `pending-${Date.now()}`, summary, due: "" }] };
+    this._todoNew = { key, text: "" };
+    this.hass.callService("todo", "add_item", { entity_id: entity, item: summary });
     clearTimeout(this._tdT);
     this._tdT = setTimeout(() => this._fetchTodo(ids, key), 2000);
   }

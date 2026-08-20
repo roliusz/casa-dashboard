@@ -815,25 +815,57 @@ function widgetCard(ctx, c) {
       const items = ctx.todo(ids);
       const rows = c.h || 3;
       const title = c.name || "To do";
+      const key = [...ids].sort().join(",");
+      const draft = ctx.todoDraft(key);
+      const adding = draft !== null;
+      const target = ids[0];                     // several lists merge for reading; new items go to the first
+      const compose = (ev) => {
+        ev.stopPropagation();
+        ctx.todoDraftSet(key, adding ? null : "");
+        // autofocus only fires for an input present at parse time, so focus it once it is rendered.
+        // The card element survives the re-render, so it is safe to hold on to across the tick.
+        if (adding) return;
+        const cardEl = ev.currentTarget.closest(".gcard");
+        setTimeout(() => cardEl?.querySelector(".td-input")?.focus(), 0);
+      };
       const head = (sub) => html`<div class="nrg-head"><div class="nrg-meta">
         <span class="hl-name">${title}</span>
         ${sub ? html`<span class="hl-sub">${sub}</span>` : ""}
-      </div><ha-icon class="cal-ic" icon="mdi:check-circle-outline"></ha-icon></div>`;
-      if (items === null) return html`<div class="gcard cal">${head("Loading")}</div>`;
-      if (!items.length) return html`<div class="gcard cal">${head("All done")}</div>`;
+      </div>
+      <button class="td-new ${adding ? "on" : ""}" title="Add an item" @click=${compose}>
+        <ha-icon icon="mdi:plus"></ha-icon></button>
+      <ha-icon class="cal-ic" icon="mdi:check-circle-outline"></ha-icon></div>`;
 
+      // The composer takes a row of its own, so one fewer item shows while it is open.
+      const box = () => html`<div class="att-row td-row">
+        <span class="td-box ghost"></span>
+        <input class="td-input" .value=${draft || ""} placeholder="Add an item"
+          @click=${(ev) => ev.stopPropagation()}
+          @input=${(ev) => ctx.todoDraftSet(key, ev.target.value)}
+          @keydown=${(ev) => {
+            ev.stopPropagation();
+            if (ev.key === "Enter") ctx.todoAdd(ids, target, ev.target.value);
+            if (ev.key === "Escape") ctx.todoDraftSet(key, null);
+          }}>
+      </div>`;
+
+      if (items === null) return html`<div class="gcard cal">${head("Loading")}</div>`;
       const n = items.length;
-      const { fits, more } = listFits(rows, n);
+      if (!n && !adding) return html`<div class="gcard cal">${head("All done")}</div>`;
+
+      const { fits, more } = listFits(rows, n + (adding ? 1 : 0));
+      const shown = Math.max(0, adding ? fits - 1 : fits);
       return html`<div class="gcard cal">
-        ${head(`${n} ${n === 1 ? "item" : "items"}`)}
+        ${head(n ? `${n} ${n === 1 ? "item" : "items"}` : "All done")}
         <div class="att-list">
-          ${items.slice(0, fits).map((it) => html`
+          ${adding ? box() : ""}
+          ${items.slice(0, shown).map((it) => html`
             <div class="att-row td-row">
               <button class="td-box" title="Mark done"
                 @click=${(ev) => { ev.stopPropagation(); ctx.todoDone(ids, it.id, it.uid); }}></button>
               <span class="att-name">${it.summary}</span>
             </div>`)}
-          ${more ? html`<div class="att-more">+${more} more</div>` : ""}
+          ${n > shown ? html`<div class="att-more">+${n - shown} more</div>` : ""}
         </div>
       </div>`;
     }
@@ -1550,6 +1582,15 @@ export const cardStyles = `
   .td-box{flex:none;width:15px;height:15px;border-radius:50%;padding:0;cursor:pointer;
     border:1.5px solid var(--dim,rgba(235,235,245,.6));background:none;}
   .td-box:hover{border-color:var(--text);background:rgba(255,255,255,.12);}
+  .td-box.ghost{border-style:dashed;opacity:.5;}
+  .td-new{flex:none;width:24px;height:24px;border-radius:50%;padding:0;margin-right:2px;cursor:pointer;
+    border:1px solid var(--cardBorder,rgba(255,255,255,.14));background:var(--chip,rgba(255,255,255,.09));
+    color:inherit;display:inline-flex;align-items:center;justify-content:center;}
+  .td-new ha-icon{--mdc-icon-size:15px;}
+  .td-new.on{background:#fff;color:#0e1620;border-color:transparent;}
+  .td-input{flex:1;min-width:0;border:none;background:none;color:inherit;font:inherit;font-size:12.5px;
+    padding:0;outline:none;}
+  .td-input::placeholder{color:var(--dim,rgba(235,235,245,.6));}
 
   /* A row of the list, so the space above it is the space between two entries, exactly. */
   .att-more{font-size:11px;color:var(--dim);height:19px;display:flex;align-items:center;}
