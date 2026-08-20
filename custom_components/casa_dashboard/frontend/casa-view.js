@@ -18,7 +18,7 @@ const {
   newWidget,
   compactCards, newSidebarItem, newTab, placeNear, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
-const { renderCard, cardStyles, stateIcon, cap, domainIcon } = await import(`./casa-cards.js${V}`);
+const { renderCard, cardStyles, stateIcon, cap, domainIcon, WLABEL } = await import(`./casa-cards.js${V}`);
 
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
@@ -441,7 +441,7 @@ export class CasaView extends LitElement {
     if (p.type === "weather")
       return html`<ha-icon icon=${s?.state ? DOMAIN_ICON.weather : "mdi:weather-cloudy-alert"}></ha-icon>
         <span>${s ? Math.round(s.attributes.temperature) + "°" : "–"}</span>
-        <span class="dim">${s?.state || "no entity"}</span>`;
+        <span class="dim">${s ? WLABEL[s.state] || cap(String(s.state).replace(/[-_]/g, " ")) : "no entity"}</span>`;
     return html`<ha-icon icon=${this._iconOf(p)}></ha-icon><span>${this._sub(p)}</span>`;
   }
 

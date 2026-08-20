@@ -585,7 +585,7 @@ const WICON = {
   windy: "mdi:weather-windy", "windy-variant": "mdi:weather-windy-variant", exceptional: "mdi:alert-circle-outline",
 };
 /** Home Assistant's condition names are run together, so they need spelling out rather than splitting. */
-const WLABEL = {
+export const WLABEL = {
   "clear-night": "Clear night", partlycloudy: "Partly cloudy", "snowy-rainy": "Sleet",
   "lightning-rainy": "Thunderstorms", "windy-variant": "Windy", pouring: "Heavy rain",
   exceptional: "Severe weather",
@@ -1253,7 +1253,11 @@ export const cardStyles = `
     font-size:11px;color:var(--dim);}
   .g-ref-lbl{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--dim);white-space:nowrap;}
 
-  .nrg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  /* The title sits at the top of the card, as every other card's does — centring it against a
+     figure two or three times its height dropped it well below where the eye expects it. */
+  .nrg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  /* One row is a single line of type, where the two do belong on the same centre. */
+  .nrg.one .nrg-head{align-items:center;}
   .nrg-meta{display:flex;flex-direction:column;min-width:0;line-height:1.3;}
   /* the reading as it was: the big semibold number with the unit dim beside it */
   .nrg-figure{display:flex;align-items:baseline;gap:6px;flex:none;}
