@@ -642,6 +642,24 @@ const GREETING = () => {
 };
 
 /** Cards that show the dashboard itself rather than an entity. */
+/**
+ * How many list rows a card this tall can actually show, and whether a "+N more" line is needed.
+ * The card's chrome comes off first — padding, header, and the more-line itself, which costs a
+ * row's worth of space and so has to be counted before deciding how many rows are left.
+ */
+const LIST_ROW = 22, LIST_GAP = 2;                 // a row and the space under it
+const LIST_CHROME = 74;                            // 16 padding + 33 header + 9 gap, and 16 below
+const LIST_MORE = 24;                              // the "+N more" line and its own gap
+function listFits(rows, total) {
+  const height = rows * (GRID_ROW + GRID_GAP) - GRID_GAP;
+  const room = (extra) =>
+    Math.max(0, Math.floor((height - LIST_CHROME - extra + LIST_GAP) / (LIST_ROW + LIST_GAP)));
+  const all = room(0);
+  if (total <= all) return { fits: total, more: 0 };
+  const fits = room(LIST_MORE);
+  return { fits, more: total - fits };
+}
+
 /** Device classes where "on" means something is standing open. */
 const OPEN_CLASSES = new Set(["door", "window", "garage_door", "opening"]);
 
@@ -814,9 +832,8 @@ function widgetCard(ctx, c) {
         const at = ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         return day ? `${day} ${at}` : at;
       };
-      const fits = Math.max(1, Math.min(events.length,
-        Math.floor((rows * (GRID_ROW + GRID_GAP) - 66) / 26)));
       const n = events.length;
+      const { fits, more } = listFits(rows, n);
       return html`<div class="gcard cal">
         ${head(`${n} ${n === 1 ? "event" : "events"}`)}
         <div class="cal-list">
@@ -824,7 +841,7 @@ function widgetCard(ctx, c) {
             <span class="cal-when">${when(ev)}</span>
             <span class="cal-name">${ev.summary}</span>`)}
         </div>
-        ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
+        ${more ? html`<div class="att-more">+${more} more</div>` : ""}
       </div>`;
     }
     case "attention": {
@@ -842,7 +859,7 @@ function widgetCard(ctx, c) {
       </div>`;
 
       // One row can only carry the count; taller cards list as many as they have lines for.
-      const fits = Math.max(0, Math.min(n, Math.floor((rows * (GRID_ROW + GRID_GAP) - 66) / 26)));
+      const { fits, more } = listFits(rows, n);
       return html`<div class="gcard att ${rows === 1 ? "one" : ""}">
         <div class="nrg-head"><div class="nrg-meta">
           <span class="hl-name">${title}</span>
@@ -855,7 +872,7 @@ function widgetCard(ctx, c) {
               <span class="att-name">${it.name}</span>
               <span class="att-note">${it.note}</span>
             </button>`)}
-          ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
+          ${more ? html`<div class="att-more">+${more} more</div>` : ""}
         </div>` : ""}
       </div>`;
     }
@@ -1482,8 +1499,8 @@ export const cardStyles = `
   /* A grid, not a fixed column: an auto track makes the time column exactly as wide as the longest
      in this card, so the times start at the card's edge, the summaries line up down the card, and
      there is no slack between the two. A fixed width could only have two of those three. */
-  .cal-list{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 9px;
-    grid-auto-rows:22px;align-items:center;min-height:0;}
+  .cal-list{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 9px;
+    grid-auto-rows:22px;align-items:center;align-content:start;min-height:0;overflow:hidden;}
   .cal-when{font-size:11.5px;font-weight:600;color:var(--dim);
     font-variant-numeric:tabular-nums;white-space:nowrap;}
   .cal-name{font-size:12.5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1493,13 +1510,16 @@ export const cardStyles = `
   .att.one .att-n{font-size:20px;}
   .att-n{font-size:26px;font-weight:600;line-height:1;flex:none;}
   .att-ok{--mdc-icon-size:24px;color:var(--green,#5ad06a);flex:none;}
-  .att-list{display:flex;flex-direction:column;gap:4px;min-height:0;}
+  .att-list{display:flex;flex-direction:column;gap:2px;min-height:0;overflow:hidden;}
   .att-row{display:flex;align-items:center;gap:9px;min-width:0;height:22px;padding:0;border:none;
     background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;}
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
   .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
-  .att-more{font-size:11px;color:var(--dim);padding-top:2px;}
+  .att-more{font-size:11px;color:var(--dim);}
+  /* Inside the list the row gap is deliberately tight, so this line buys its own space. The
+     calendar's copy sits beside its list and already has the card's gap — hence the scoping. */
+  .att-list .att-more{margin-top:7px;}
 
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
   .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;touch-action:none;}
