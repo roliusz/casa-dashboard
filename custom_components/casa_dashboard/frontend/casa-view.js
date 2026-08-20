@@ -23,6 +23,19 @@ const { renderCard, cardStyles, stateIcon, cap, domainIcon, WLABEL } = await imp
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
 
+/**
+ * Whether the pointer has gone far enough into a neighbour to take its place. Swapping the moment
+ * the pointer touched it flip-flopped between two items of different heights: the swap moved them
+ * far enough that the pointer immediately qualified for the reverse swap, and the spring restarted
+ * every frame. Requiring the pointer past the neighbour's middle, in the direction of travel,
+ * leaves it on the far side afterwards — so the swap cannot immediately undo itself.
+ */
+const pastMiddle = (el, at, forward, axis = "y") => {
+  const r = el.getBoundingClientRect();
+  const mid = axis === "x" ? r.left + r.width / 2 : r.top + r.height / 2;
+  return forward ? at > mid : at < mid;
+};
+
 /** Below this the layout stacks: one section to a row, and no more than this many card columns. */
 const STACK_W = 760;
 const STACK_COLS = 2;
@@ -554,7 +567,7 @@ export class CasaView extends LitElement {
       follow(ev);
       const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".tab");
       const to = over?.dataset.ti != null ? Number(over.dataset.ti) : -1;
-      if (to >= 0 && to !== idx) {
+      if (to >= 0 && to !== idx && pastMiddle(over, ev.clientX, to > idx, "x")) {
         this._flipBefore();
         tabs.splice(idx, 1);
         tabs.splice(to, 0, tab);
@@ -610,7 +623,7 @@ export class CasaView extends LitElement {
       follow(ev);
       const over = this.renderRoot.elementFromPoint?.(ev.clientX, ev.clientY)?.closest?.(".sit");
       const to = over ? Number(over.dataset.i) : -1;
-      if (to >= 0 && to !== idx) {
+      if (to >= 0 && to !== idx && pastMiddle(over, ev.clientY, to > idx)) {
         this._flipBefore();
         items.splice(idx, 1);
         items.splice(to, 0, item);
