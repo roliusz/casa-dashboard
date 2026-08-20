@@ -833,8 +833,7 @@ function widgetCard(ctx, c) {
         ${sub ? html`<span class="hl-sub">${sub}</span>` : ""}
       </div>
       <button class="td-new ${adding ? "on" : ""}" title="Add an item" @click=${compose}>
-        <ha-icon icon="mdi:plus"></ha-icon></button>
-      <ha-icon class="cal-ic" icon="mdi:check-circle-outline"></ha-icon></div>`;
+        <ha-icon icon="mdi:plus"></ha-icon></button></div>`;
 
       // The composer takes a row of its own, so one fewer item shows while it is open.
       const box = () => html`<div class="att-row td-row">
@@ -1583,7 +1582,7 @@ export const cardStyles = `
     border:1.5px solid var(--dim,rgba(235,235,245,.6));background:none;}
   .td-box:hover{border-color:var(--text);background:rgba(255,255,255,.12);}
   .td-box.ghost{border-style:dashed;opacity:.5;}
-  .td-new{flex:none;width:24px;height:24px;border-radius:50%;padding:0;margin-right:2px;cursor:pointer;
+  .td-new{flex:none;width:24px;height:24px;border-radius:50%;padding:0;cursor:pointer;
     border:1px solid var(--cardBorder,rgba(255,255,255,.14));background:var(--chip,rgba(255,255,255,.09));
     color:inherit;display:inline-flex;align-items:center;justify-content:center;}
   .td-new ha-icon{--mdc-icon-size:15px;}
