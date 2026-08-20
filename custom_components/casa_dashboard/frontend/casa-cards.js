@@ -116,6 +116,9 @@ const round1 = (v) => String(Math.round(v * 10) / 10);
 /** Degrees and percentages sit against the number; a word unit like kWh needs its space. */
 const unitGap = (unit) => (/^[°%]/.test(unit || "") ? "" : " ");
 
+/** How far the hover label is held off the ends of a trace, clear of the card's corner. */
+const TIP_EDGE = 8;
+
 /**
  * The reading under the pointer on a history trace. Written straight to the DOM rather than held
  * as state: a card that re-rendered on every mouse move would redraw its whole trace to move one
@@ -141,9 +144,12 @@ function hoverPoint(ev, pts, at, y, unit, span) {
   tip.textContent = `${round1(p.val)}${unitGap(unit)}${unit} · ${stamp}`;
   plot.classList.add("hovering");
   // Placed after the text, so its measured width is the one being clamped — otherwise the label
-  // hangs off the card at either end of the trace.
+  // hangs off the card at either end of the trace. Held a little short of the edge as well, so it
+  // clears the card's rounded corner rather than sitting flush against it.
   const half = tip.offsetWidth / 2;
-  tip.style.left = `${Math.max(half, Math.min(box.width - half, (x / 100) * box.width))}px`;
+  const want = (x / 100) * box.width;
+  const lo = half + TIP_EDGE, hi = box.width - half - TIP_EDGE;
+  tip.style.left = `${lo > hi ? box.width / 2 : Math.max(lo, Math.min(hi, want))}px`;
 }
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
