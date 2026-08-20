@@ -808,6 +808,34 @@ function widgetCard(ctx, c) {
         <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
       </div>`;
     }
+    case "todo": {
+      const ids = c.entities || [];
+      if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a list</div></div>`;
+      const items = ctx.todo(ids);
+      const rows = c.h || 3;
+      const title = c.name || "To do";
+      const head = (sub) => html`<div class="nrg-head"><div class="nrg-meta">
+        <span class="hl-name">${title}</span>
+        ${sub ? html`<span class="hl-sub">${sub}</span>` : ""}
+      </div><ha-icon class="cal-ic" icon="mdi:check-circle-outline"></ha-icon></div>`;
+      if (items === null) return html`<div class="gcard cal">${head("Loading")}</div>`;
+      if (!items.length) return html`<div class="gcard cal">${head("All done")}</div>`;
+
+      const n = items.length;
+      const { fits, more } = listFits(rows, n);
+      return html`<div class="gcard cal">
+        ${head(`${n} ${n === 1 ? "item" : "items"}`)}
+        <div class="att-list">
+          ${items.slice(0, fits).map((it) => html`
+            <div class="att-row td-row">
+              <button class="td-box" title="Mark done"
+                @click=${(ev) => { ev.stopPropagation(); ctx.todoDone(ids, it.id, it.uid); }}></button>
+              <span class="att-name">${it.summary}</span>
+            </div>`)}
+          ${more ? html`<div class="att-more">+${more} more</div>` : ""}
+        </div>
+      </div>`;
+    }
     case "calendar": {
       const ids = c.entities || [];
       if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a calendar</div></div>`;
@@ -1516,6 +1544,12 @@ export const cardStyles = `
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
   .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
+  /* The tick box is the only control; the rest of the row is just the item's text. */
+  .td-row{cursor:default;}
+  .td-box{flex:none;width:15px;height:15px;border-radius:50%;padding:0;cursor:pointer;
+    border:1.5px solid var(--dim,rgba(235,235,245,.6));background:none;}
+  .td-box:hover{border-color:var(--text);background:rgba(255,255,255,.12);}
+
   /* A row of the list, so the space above it is the space between two entries, exactly. */
   .att-more{font-size:11px;color:var(--dim);height:19px;display:flex;align-items:center;}
   .cal-list .att-more{grid-column:1 / -1;}

@@ -104,6 +104,8 @@ export class CasaView extends LitElement {
       forecast: (id) => this._forecast(id),
       history: (id, span) => this._history(id, span),
       calendar: (ids, span) => this._calendar(ids, span),
+      todo: (ids) => this._todo(ids),
+      todoDone: (ids, entity, uid) => this._todoDone(ids, entity, uid),
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -373,6 +375,53 @@ export class CasaView extends LitElement {
    * Events from one or more calendars, soonest first. Keyed by the calendars asked for and how far
    * ahead, so changing either fetches rather than redrawing what the last card wanted.
    */
+  /** Open items across the chosen lists. */
+  _todo(ids) {
+    if (!ids?.length || !this.hass) return null;
+    const key = [...ids].sort().join(",");
+    this._td = this._td || {};
+    if (!(key in this._td)) {
+      this._td[key] = null;                                  // asked for, nothing back yet
+      this._fetchTodo(ids, key);
+    }
+    return this._td[key];
+  }
+
+  async _fetchTodo(ids, key) {
+    try {
+      const res = await this.hass.callWS({
+        type: "call_service", domain: "todo", service: "get_items",
+        service_data: { status: ["needs_action"] },
+        target: { entity_id: ids }, return_response: true,
+      });
+      const items = [];
+      for (const id of ids)
+        for (const it of res?.response?.[id]?.items || [])
+          items.push({ id, uid: it.uid, summary: it.summary || "(untitled)", due: it.due || "" });
+      this._td = { ...this._td, [key]: items };
+    } catch (err) {
+      console.warn("Casa Dashboard: could not read to-do items for", ids, err);
+      this._td = { ...this._td, [key]: [] };
+    }
+    this.requestUpdate();
+    clearTimeout(this._tdT);
+    this._tdT = setTimeout(() => this._fetchTodo(ids, key), 300000);
+  }
+
+  /**
+   * Tick an item off. The list is dropped from view at once rather than waiting for the round
+   * trip — a checkbox that does nothing for a second reads as broken — and re-read shortly after
+   * in case the write did not take.
+   */
+  _todoDone(ids, entity, uid) {
+    const key = [...ids].sort().join(",");
+    this._td = { ...this._td, [key]: (this._td?.[key] || []).filter((x) => x.uid !== uid) };
+    this.requestUpdate();
+    this.hass.callService("todo", "update_item", { entity_id: entity, item: uid, status: "completed" });
+    clearTimeout(this._tdT);
+    this._tdT = setTimeout(() => this._fetchTodo(ids, key), 2000);
+  }
+
   _calendar(ids, span) {
     if (!ids?.length || !this.hass) return null;
     const key = `${[...ids].sort().join(",")}|${span || "48h"}`;

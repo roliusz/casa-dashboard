@@ -95,6 +95,9 @@ export const WIDGET_TYPES = {
   // No single row: a trace needs height to say anything, and one row leaves none for it.
   history:  { label: "History",     icon: "mdi:chart-line",       w: 2, h: 2, needsEntity: true,
               minH: 2, sizes: [[2, 1], [3, 1], [3, 2], [3, 3]] },
+  todo:     { label: "To do",       icon: "mdi:check-circle-outline", w: 2, h: 3, needsEntities: true,
+              domain: "todo", minH: 2,
+              sizes: [[2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3]] },
   // No single row: one row has space for the title and nothing else, which is not a calendar.
   calendar: { label: "Calendar",    icon: "mdi:calendar-month",  w: 2, h: 3, needsEntities: true,
               domain: "calendar", minH: 2,
