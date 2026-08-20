@@ -109,6 +109,9 @@ export const stateIcon = (ctx, e, cls, explicit, fallback) => {
   return html`<ha-icon class=${cls} icon=${DEFAULT_ICON[d]?.(s?.state) || fallback}></ha-icon>`;
 };
 const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
+
+/** One decimal, and no trailing .0 — a temperature reads 20.4, a humidity 61, not 61.0. */
+const round1 = (v) => String(Math.round(v * 10) / 10);
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
   return !!s && !["off", "unavailable", "unknown"].includes(s.state);
@@ -876,6 +879,54 @@ function widgetCard(ctx, c) {
           </div>`}
       </div>`;
     }
+    case "history": {
+      if (!c.entity) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a sensor</div></div>`;
+      const span = c.span || "day";
+      const pts = ctx.history(c.entity, span);
+      if (pts === null) return html`<div class="gcard wdg col"><div class="wdg-big">…</div>
+        <div class="hl-sub">Loading</div></div>`;
+      const unit = attr(ctx, c.entity, "unit_of_measurement") || "";
+      const name = c.name || attr(ctx, c.entity, "friendly_name") || c.entity;
+      const now = Number(st(ctx, c.entity)?.state);
+      const shownNow = Number.isFinite(now) ? round1(now) : "–";
+      if (pts.length < 2) return html`<div class="gcard wdg col" @click=${() => ctx.more(c.entity)}>
+        <span class="hl-name">${name}</span>
+        <div class="cc-cur">${shownNow}<span class="nrg-unit">${unit}</span></div>
+        <div class="hl-sub">Nothing recorded yet</div></div>`;
+
+      const vals = pts.map((p) => p.val);
+      const lo = Math.min(...vals), hi = Math.max(...vals);
+      // Drawn in a 0..100 box and stretched by the card, so the shape is the same at every size.
+      // A sensor that has not moved has no range to scale to; draw it down the middle, since
+      // resting it on the floor of the plot reads as zero rather than as steady.
+      const at = (i) => (pts.length === 1 ? 0 : (i / (pts.length - 1)) * 100);
+      const y = (v) => (hi === lo ? 50 : 100 - ((v - lo) / (hi - lo)) * 100);
+      const line = pts.map((p, i) => `${at(i).toFixed(2)},${y(p.val).toFixed(2)}`).join(" ");
+      const area = `0,100 ${line} 100,100`;
+      const rows = c.h || 2;
+
+      // One row is a single line of type: the span has to go, or the header is taller than the card.
+      return html`<div class="gcard hst ${rows === 1 ? "one" : ""}" @click=${() => ctx.more(c.entity)}>
+        <div class="nrg-head">
+          <div class="nrg-meta">
+            <span class="hl-name">${name}</span>
+            ${rows > 1 ? html`<span class="hl-sub">${
+              span === "week" ? "Last 7 days" : "Last 24 hours"}</span>` : ""}
+          </div>
+          <span class="nrg-figure">
+            <span class=${(c.w || 2) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${shownNow}</span>
+            <span class="nrg-unit">${unit}</span></span>
+        </div>
+        ${rows >= 2 ? html`<div class="hst-plot">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <polygon class="hst-fill" points=${area}></polygon>
+            <polyline class="hst-line" points=${line}></polyline>
+          </svg>
+          ${rows >= 3 ? html`<span class="hst-hi">${round1(hi)}</span>
+            <span class="hst-lo">${round1(lo)}</span>` : ""}
+        </div>` : ""}
+      </div>`;
+    }
     case "energy": {
       const bars = ctx.energy(c.entity);
       if (!c.entity) return html`<div class="gcard wdg col"><div class="hl-sub">Pick an energy sensor</div></div>`;
@@ -1257,6 +1308,20 @@ export const cardStyles = `
   .g-lbls{position:relative;display:flex;justify-content:space-between;margin-top:5px;
     font-size:11px;color:var(--dim);}
   .g-ref-lbl{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--dim);white-space:nowrap;}
+
+  /* History: the same header as the energy card, with the trace taking whatever is left. The plot
+     is drawn in a 0..100 box and stretched, so one path serves every card size. */
+  .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
+  .hst.one{padding:9px 14px;}
+  .hst.one .nrg-head{align-items:center;}
+  .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;}
+  .hst-plot svg{width:100%;height:100%;display:block;overflow:visible;}
+  .hst-line{fill:none;stroke:var(--text);stroke-width:2;vector-effect:non-scaling-stroke;
+    stroke-linejoin:round;stroke-linecap:round;}
+  .hst-fill{fill:rgba(255,255,255,.10);stroke:none;}
+  .hst-hi,.hst-lo{position:absolute;right:0;font-size:11px;color:var(--dim);pointer-events:none;}
+  .hst-hi{top:-2px;}
+  .hst-lo{bottom:-2px;}
 
   /* The title sits at the top of the card, as every other card's does — centring it against a
      figure two or three times its height dropped it well below where the eye expects it. */

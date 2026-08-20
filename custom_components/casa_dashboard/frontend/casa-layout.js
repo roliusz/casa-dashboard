@@ -92,6 +92,8 @@ export const WIDGET_TYPES = {
               domain: "climate", sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
   energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
+  history:  { label: "History",     icon: "mdi:chart-line",       w: 2, h: 2, needsEntity: true,
+              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
   // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
   // alongside `sizes` and clamps like any other shape.
   media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,

@@ -23,6 +23,9 @@ const { renderCard, cardStyles, stateIcon, cap, domainIcon, WLABEL } = await imp
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
 
+/** Points a raw history is thinned to — more than a card is wide in pixels buys nothing. */
+const HISTORY_POINTS = 120;
+
 /**
  * Whether the pointer has gone far enough into a neighbour to take its place. Swapping the moment
  * the pointer touched it flip-flopped between two items of different heights: the swap moved them
@@ -89,6 +92,7 @@ export class CasaView extends LitElement {
       // you happen to be looking, not something worth saving.
       energy: (id) => this._energy(id),
       forecast: (id) => this._forecast(id),
+      history: (id, span) => this._history(id, span),
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -352,6 +356,63 @@ export class CasaView extends LitElement {
     this.requestUpdate();
     clearTimeout(this._nrgT);
     this._nrgT = setTimeout(() => this._fetchEnergy(id), 3600000);
+  }
+
+  /**
+   * A sensor's recent readings, for the history widget. Keyed by span as well as entity, so
+   * switching between a day and a week fetches rather than redrawing stale points.
+   */
+  _history(id, span) {
+    if (!id || !this.hass) return null;
+    const key = `${id}|${span || "day"}`;
+    this._hist = this._hist || {};
+    if (!(key in this._hist)) {
+      this._hist[key] = null;                                // asked for, nothing back yet
+      this._fetchHistory(id, span || "day", key);
+    }
+    return this._hist[key];
+  }
+
+  async _fetchHistory(id, span, key) {
+    const week = span === "week";
+    const start = new Date();
+    if (week) { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
+    else start.setHours(start.getHours() - 24);
+    const put = (pts) => { this._hist = { ...this._hist, [key]: pts }; };
+    try {
+      // Long-term statistics where the sensor keeps them — cheap, already bucketed, and it is what
+      // the energy card reads. Sensors without a state_class keep none, so fall back to the raw
+      // history for those; it is the only way a plain temperature sensor charts at all.
+      const stats = await this.hass.callWS({
+        type: "recorder/statistics_during_period",
+        start_time: start.toISOString(), end_time: new Date().toISOString(),
+        statistic_ids: [id], period: week ? "day" : "hour", types: ["mean"],
+      });
+      const rows = (stats?.[id] || []).filter((e) => e.mean != null);
+      if (rows.length > 1) put(rows.map((e) => ({ ts: e.start, val: e.mean })));
+      else put(await this._rawHistory(id, start));
+    } catch (err) {
+      console.warn("Casa Dashboard: could not read history for", id, err);
+      put([]);
+    }
+    this.requestUpdate();
+    clearTimeout(this._histT);
+    this._histT = setTimeout(() => this._fetchHistory(id, span, key), 600000);
+  }
+
+  /** Recorder history for a sensor that keeps no statistics, thinned to a drawable number of points. */
+  async _rawHistory(id, start) {
+    const res = await this.hass.callWS({
+      type: "history/history_during_period",
+      start_time: start.toISOString(), end_time: new Date().toISOString(),
+      entity_ids: [id], minimal_response: true, no_attributes: true,
+    });
+    const raw = (res?.[id] || [])
+      .map((e) => ({ ts: (e.lu ?? e.last_updated ?? 0) * 1000, val: Number(e.s ?? e.state) }))
+      .filter((p) => Number.isFinite(p.val) && p.ts);
+    if (raw.length <= HISTORY_POINTS) return raw;
+    const step = raw.length / HISTORY_POINTS;                // even sampling, endpoints kept
+    return Array.from({ length: HISTORY_POINTS }, (_, i) => raw[Math.min(raw.length - 1, Math.round(i * step))]);
   }
 
   _shown(sec) {
@@ -1246,6 +1307,12 @@ export class CasaView extends LitElement {
               <button class="chip ${(c.period || "week") === key ? "on" : ""}"
                 @click=${() => patchCard({ period: key })}>${label}</button>`)}
           </div></div>` : ""}
+        ${c.widget === "history" ? html`
+          <div class="f"><label>Shows</label><div class="chips">
+            ${[["day", "Last 24 hours"], ["week", "Last 7 days"]].map(([key, label]) => html`
+              <button class="chip ${(c.span || "day") === key ? "on" : ""}"
+                @click=${() => patchCard({ span: key })}>${label}</button>`)}
+          </div><div class="hint">A week is averaged per day; a day, per hour.</div></div>` : ""}
         ${c.widget ? html`
           <div class="two">
             <div class="f"><label>Name (optional)</label><input .value=${c.name || ""}
