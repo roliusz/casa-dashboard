@@ -350,8 +350,8 @@ function mediaWidget(ctx, c) {
   const pct = dur ? (el / dur) * 100 : 0;
   const call = (svc) => (ev) => { ev.stopPropagation(); ctx.call("media_player", svc, { entity_id: e }); };
   const name = c.name || a.friendly_name || e;
-  const room = c.h >= 3;                       // only a three row card has the height for the bar
-  return html`<div class="gcard mw ${room ? "tall" : ""}">
+  const times = c.h >= 3;                      // only a three row card has room to label the bar
+  return html`<div class="gcard mw ${times ? "tall" : ""}">
     <div class="mw-head rclick" @click=${() => ctx.more(e)}>
       <div class="mw-art" style=${art ? `background-image:url('${art}')` : ""}>
         ${art ? "" : stateIcon(ctx, e, "mw-ic", c.icon, "mdi:music")}</div>
@@ -361,7 +361,10 @@ function mediaWidget(ctx, c) {
         <div class="mw-a">${a.media_artist || a.app_name || ""}</div>
       </div>
     </div>
-    ${room && dur ? html`<div class="mw-prog"><div class="mw-fill" style="width:${pct}%"></div></div>` : ""}
+    ${dur ? html`<div class="mw-bar">
+      <div class="mw-prog"><div class="mw-fill" style="width:${pct}%"></div></div>
+      ${times ? html`<div class="mw-times"><span>${fmt(el)}</span><span>${fmt(dur)}</span></div>` : ""}
+    </div>` : ""}
     <div class="mw-ctrls">
       <ha-icon class="mw-sk" icon="mdi:skip-previous" @click=${call("media_previous_track")}></ha-icon>
       <ha-icon class="mw-play" icon=${playing ? "mdi:pause-circle" : "mdi:play-circle"} @click=${call("media_play_pause")}></ha-icon>
@@ -1165,18 +1168,25 @@ export const cardStyles = `
   .mw-art{flex:none;width:46px;height:46px;border-radius:11px;background-size:cover;
     background-position:center;background-image:linear-gradient(135deg,#8a5bff,#d06bff);
     display:flex;align-items:center;justify-content:center;}
-  .mw.tall .mw-art{width:54px;height:54px;border-radius:13px;}
+  /* Three rows: the artwork takes the height of the three lines beside it rather than a size of
+     its own, so the two blocks end together however the type falls. */
+  .mw.tall .mw-head{align-items:stretch;}
+  .mw.tall .mw-art{width:auto;height:auto;align-self:stretch;aspect-ratio:1;border-radius:13px;}
   .mw-art .mw-ic{--mdc-icon-size:22px;color:#fff;}
   .mw-txt{flex:1;min-width:0;}
   .mw-t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .mw-a{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .mw-bar{display:flex;flex-direction:column;gap:3px;flex:none;}
+  .mw-times{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);
+    font-variant-numeric:tabular-nums;line-height:1;}
   .mw-prog{height:4px;border-radius:2px;background:rgba(255,255,255,.16);overflow:hidden;flex:none;}
   .mw-fill{height:100%;border-radius:2px;background:var(--text);}
   .mw-ctrls{display:flex;align-items:center;justify-content:center;gap:clamp(16px,9%,34px);}
   .mw-sk{--mdc-icon-size:23px;color:var(--text);opacity:.85;cursor:pointer;}
   .mw-play{--mdc-icon-size:33px;color:var(--text);cursor:pointer;}
-  .mw.tall .mw-play{--mdc-icon-size:38px;}
-  .mw.tall .mw-sk{--mdc-icon-size:26px;}
+  .mw.tall{gap:7px;padding:12px 14px 10px;}
+  .mw.tall .mw-play{--mdc-icon-size:46px;}
+  .mw.tall .mw-sk{--mdc-icon-size:31px;}
 
   /* Centred, not stretched: rows added beyond what the artwork can use leave space above and
      below rather than pushing everything to the edges. container-type makes cq units resolve
