@@ -27,6 +27,16 @@ const TAB_LIFT_Y = 8;
 const HISTORY_POINTS = 120;
 
 /**
+ * A local timestamp without a zone, which is what calendar.get_events wants. An ISO string would
+ * be read as UTC and shift every event by the offset.
+ */
+const localStamp = (d) => {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ` +
+    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+};
+
+/**
  * Whether the pointer has gone far enough into a neighbour to take its place. Swapping the moment
  * the pointer touched it flip-flopped between two items of different heights: the swap moved them
  * far enough that the pointer immediately qualified for the reverse swap, and the spring restarted
@@ -93,6 +103,7 @@ export class CasaView extends LitElement {
       energy: (id) => this._energy(id),
       forecast: (id) => this._forecast(id),
       history: (id, span) => this._history(id, span),
+      calendar: (ids, span) => this._calendar(ids, span),
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -356,6 +367,53 @@ export class CasaView extends LitElement {
     this.requestUpdate();
     clearTimeout(this._nrgT);
     this._nrgT = setTimeout(() => this._fetchEnergy(id), 3600000);
+  }
+
+  /**
+   * Events from one or more calendars, soonest first. Keyed by the calendars asked for and how far
+   * ahead, so changing either fetches rather than redrawing what the last card wanted.
+   */
+  _calendar(ids, span) {
+    if (!ids?.length || !this.hass) return null;
+    const key = `${[...ids].sort().join(",")}|${span || "48h"}`;
+    this._cal = this._cal || {};
+    if (!(key in this._cal)) {
+      this._cal[key] = null;                                 // asked for, nothing back yet
+      this._fetchCalendar(ids, span || "48h", key);
+    }
+    return this._cal[key];
+  }
+
+  async _fetchCalendar(ids, span, key) {
+    const from = new Date();
+    const to = new Date(from);
+    if (span === "today") to.setHours(23, 59, 59, 0);
+    else if (span === "week") to.setDate(to.getDate() + 7);
+    else to.setHours(to.getHours() + 48);
+    try {
+      const res = await this.hass.callWS({
+        type: "call_service", domain: "calendar", service: "get_events",
+        service_data: { start_date_time: localStamp(from), end_date_time: localStamp(to) },
+        target: { entity_id: ids }, return_response: true,
+      });
+      const events = [];
+      for (const id of ids)
+        for (const ev of res?.response?.[id]?.events || []) {
+          // An all-day event carries a plain date where a timed one carries a datetime.
+          const allDay = !String(ev.start || "").includes("T");
+          events.push({
+            id, summary: ev.summary || "(no title)", location: ev.location || "",
+            allDay, start: new Date(ev.start), at: new Date(ev.start).getTime(),
+          });
+        }
+      this._cal = { ...this._cal, [key]: events.sort((a, b) => a.at - b.at) };
+    } catch (err) {
+      console.warn("Casa Dashboard: could not read calendar events", err);
+      this._cal = { ...this._cal, [key]: [] };
+    }
+    this.requestUpdate();
+    clearTimeout(this._calT);
+    this._calT = setTimeout(() => this._fetchCalendar(ids, span, key), 900000);
   }
 
   /**
@@ -1308,6 +1366,13 @@ export class CasaView extends LitElement {
             ${[["week", "Last 7 days"], ["today", "Today"]].map(([key, label]) => html`
               <button class="chip ${(c.period || "week") === key ? "on" : ""}"
                 @click=${() => patchCard({ period: key })}>${label}</button>`)}
+          </div></div>` : ""}
+        ${c.widget === "calendar" ? html`
+          <div class="f"><label>Shows</label><div class="chips">
+            ${[["today", "Rest of today"], ["48h", "Next 48 hours"], ["week", "Next 7 days"]]
+              .map(([key, label]) => html`
+                <button class="chip ${(c.span || "48h") === key ? "on" : ""}"
+                  @click=${() => patchCard({ span: key })}>${label}</button>`)}
           </div></div>` : ""}
         ${c.widget === "attention" ? html`
           <div class="f"><label>Watch for</label><div class="chips">

@@ -789,6 +789,45 @@ function widgetCard(ctx, c) {
         <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
       </div>`;
     }
+    case "calendar": {
+      const ids = c.entities || [];
+      if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a calendar</div></div>`;
+      const events = ctx.calendar(ids, c.span);
+      const rows = c.h || 3;
+      const title = c.name || "Calendar";
+      const head = (sub) => html`<div class="nrg-head"><div class="nrg-meta">
+        <span class="hl-name">${title}</span>
+        ${rows > 1 && sub ? html`<span class="hl-sub">${sub}</span>` : ""}
+      </div><ha-icon class="cal-ic" icon="mdi:calendar-month"></ha-icon></div>`;
+      if (events === null)
+        return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">${head("Loading")}</div>`;
+      if (!events.length)
+        return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">${head("Nothing scheduled")}</div>`;
+
+      const now = new Date();
+      const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+      // "14:30" for today, "Fri 14:30" beyond it — the weekday only where it tells you something.
+      const when = (ev) => {
+        const day = ev.start < midnight ? "" : ev.start.toLocaleDateString([], { weekday: "short" });
+        if (ev.allDay) return day || "Today";
+        const at = ev.start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        return day ? `${day} ${at}` : at;
+      };
+      const fits = Math.max(1, Math.min(events.length,
+        Math.floor((rows * (GRID_ROW + GRID_GAP) - 66) / 26)));
+      const n = events.length;
+      return html`<div class="gcard cal ${rows === 1 ? "one" : ""}">
+        ${head(`${n} ${n === 1 ? "event" : "events"}`)}
+        ${rows > 1 ? html`<div class="att-list">
+          ${events.slice(0, fits).map((ev) => html`
+            <div class="att-row cal-row">
+              <span class="cal-when">${when(ev)}</span>
+              <span class="att-name">${ev.summary}</span>
+            </div>`)}
+          ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
+        </div>` : ""}
+      </div>`;
+    }
     case "attention": {
       const checks = c.checks || {};
       const level = c.battery ?? 20;
@@ -1439,6 +1478,17 @@ export const cardStyles = `
      is drawn in a 0..100 box and stretched, so one path serves every card size. */
   /* Needs attention: the header carries the count, the rest is a list of what is wrong. */
   .att{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
+  .cal{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
+  .cal.one{padding:9px 14px;justify-content:center;}
+  .cal.one .nrg-head{align-items:center;}
+  .cal-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
+  /* The time is a fixed column so the summaries line up down the card. */
+  .cal-row{cursor:default;}
+  /* Wide enough for a weekday and a 12-hour time — "Fri 09:30 AM" — since the format follows the
+     viewer's locale, not ours. */
+  .cal-when{flex:none;width:78px;font-size:11.5px;font-weight:600;color:var(--dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
   .att.one{padding:9px 14px;justify-content:center;}
   .att.one .nrg-head{align-items:center;}
   .att.one .att-n{font-size:20px;}
