@@ -648,17 +648,15 @@ const GREETING = () => {
  * row's worth of space and so has to be counted before deciding how many rows are left.
  */
 const LIST_ROW = 19, LIST_GAP = 0;                 // a row and the space under it
-const LIST_CHROME = 74;                            // 16 padding + 33 header + 9 gap, and 16 below
-const LIST_MORE = 13;                              // the "+N more" line, and no gap of its own
+const LIST_CHROME = 65;                            // 12 padding + 32 header + 9 gap, and 12 below
 function listFits(rows, total) {
   const height = rows * (GRID_ROW + GRID_GAP) - GRID_GAP;
-  const room = (extra) =>
-    Math.max(0, Math.floor((height - LIST_CHROME - extra + LIST_GAP) / (LIST_ROW + LIST_GAP)));
-  const all = room(0);
-  if (total <= all) return { fits: total, more: 0 };
-  // The footer is only its own line height — it takes no gap and will sit against the last entry
-  // on a card with no room to spare, which is cheaper than losing an entry to it.
-  const fits = room(LIST_MORE);
+  const slots = Math.max(0,
+    Math.floor((height - LIST_CHROME + LIST_GAP) / (LIST_ROW + LIST_GAP)));
+  if (total <= slots) return { fits: total, more: 0 };
+  // The "+N more" line is a row of the list like any other, so it costs a slot — and is spaced
+  // like an entry without anything having to say so.
+  const fits = Math.max(0, slots - 1);
   return { fits, more: total - fits };
 }
 
@@ -842,8 +840,8 @@ function widgetCard(ctx, c) {
           ${events.slice(0, fits).map((ev) => html`
             <span class="cal-when">${when(ev)}</span>
             <span class="cal-name">${ev.summary}</span>`)}
+          ${more ? html`<div class="att-more">+${more} more</div>` : ""}
         </div>
-        ${more ? html`<div class="att-more">+${more} more</div>` : ""}
       </div>`;
     }
     case "attention": {
@@ -874,8 +872,8 @@ function widgetCard(ctx, c) {
               <span class="att-name">${it.name}</span>
               <span class="att-note">${it.note}</span>
             </button>`)}
+          ${more ? html`<div class="att-more">+${more} more</div>` : ""}
         </div>` : ""}
-        ${rows > 1 && more ? html`<div class="att-more">+${more} more</div>` : ""}
       </div>`;
     }
     case "counter": {
@@ -1495,8 +1493,8 @@ export const cardStyles = `
   /* History: the same header as the energy card, with the trace taking whatever is left. The plot
      is drawn in a 0..100 box and stretched, so one path serves every card size. */
   /* Needs attention: the header carries the count, the rest is a list of what is wrong. */
-  .att{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
-  .cal{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
+  .att{padding:12px 16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
+  .cal{padding:12px 16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
   .cal-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
   /* A grid, not a fixed column: an auto track makes the time column exactly as wide as the longest
      in this card, so the times start at the card's edge, the summaries line up down the card, and
@@ -1518,8 +1516,9 @@ export const cardStyles = `
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
   .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
-  /* Pushed to the foot of the card, so it reads as a footnote rather than another entry. */
-  .att-more{font-size:11px;color:var(--dim);margin-top:auto;}
+  /* A row of the list, so the space above it is the space between two entries, exactly. */
+  .att-more{font-size:11px;color:var(--dim);height:19px;display:flex;align-items:center;}
+  .cal-list .att-more{grid-column:1 / -1;}
 
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
   .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;touch-action:none;}
