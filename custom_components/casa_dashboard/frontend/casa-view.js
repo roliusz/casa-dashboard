@@ -1128,8 +1128,10 @@ export class CasaView extends LitElement {
             }}>${n}</button>`)}
         </div><div class="hint">Columns out of ${TAB_COLS}. Two sections of three sit side by side.</div></div>
         <div class="f"><label>Order</label><div class="chips">
-          <button class="chip" @click=${() => move(-1)}>← Earlier</button>
-          <button class="chip" @click=${() => move(1)}>Later →</button>
+          <button class="chip" ?disabled=${this._insp.si === 0}
+            @click=${() => move(-1)}>← Earlier</button>
+          <button class="chip" ?disabled=${this._insp.si >= (this._cur.sections?.length || 1) - 1}
+            @click=${() => move(1)}>Later →</button>
         </div></div>
         ${this._showChips(sec)}${this._condition(sec)}`;
     }
