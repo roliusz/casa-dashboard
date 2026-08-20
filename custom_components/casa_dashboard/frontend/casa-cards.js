@@ -115,6 +115,36 @@ const round1 = (v) => String(Math.round(v * 10) / 10);
 
 /** Degrees and percentages sit against the number; a word unit like kWh needs its space. */
 const unitGap = (unit) => (/^[°%]/.test(unit || "") ? "" : " ");
+
+/**
+ * The reading under the pointer on a history trace. Written straight to the DOM rather than held
+ * as state: a card that re-rendered on every mouse move would redraw its whole trace to move one
+ * dot, and the marker is not something worth saving anyway.
+ */
+function hoverPoint(ev, pts, at, y, unit, span) {
+  const plot = ev.currentTarget;
+  const box = plot.getBoundingClientRect();
+  if (!box.width || !pts.length) return;
+  const f = (ev.clientX - box.left) / box.width;
+  const i = Math.max(0, Math.min(pts.length - 1, Math.round(f * (pts.length - 1))));
+  const p = pts[i];
+  const when = new Date(p.ts);
+  const stamp = span === "week"
+    ? when.toLocaleDateString([], { weekday: "short" })
+    : when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const [rule, dot, tip] = ["hst-rule", "hst-dot", "hst-tip"].map((k) => plot.querySelector(`.${k}`));
+  if (!tip) return;
+  const x = at(i);
+  rule.style.left = `${x}%`;
+  dot.style.left = `${x}%`;
+  dot.style.top = `${y(p.val)}%`;
+  tip.textContent = `${round1(p.val)}${unitGap(unit)}${unit} · ${stamp}`;
+  plot.classList.add("hovering");
+  // Placed after the text, so its measured width is the one being clamped — otherwise the label
+  // hangs off the card at either end of the trace.
+  const half = tip.offsetWidth / 2;
+  tip.style.left = `${Math.max(half, Math.min(box.width - half, (x / 100) * box.width))}px`;
+}
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
   return !!s && !["off", "unavailable", "unknown"].includes(s.state);
@@ -926,11 +956,16 @@ function widgetCard(ctx, c) {
             <span class=${(c.w || 2) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${shownNow}</span>
             <span class="nrg-unit">${unit}</span></span>
         </div>
-        ${rows >= 2 ? html`<div class="hst-plot">
+        ${rows >= 2 ? html`<div class="hst-plot"
+            @pointermove=${(ev) => hoverPoint(ev, pts, at, y, unit, span)}
+            @pointerdown=${(ev) => hoverPoint(ev, pts, at, y, unit, span)}
+            @pointerleave=${(ev) => ev.currentTarget.classList.remove("hovering")}
+            @pointercancel=${(ev) => ev.currentTarget.classList.remove("hovering")}>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <polygon class="hst-fill" points=${area}></polygon>
             <polyline class="hst-line" points=${line}></polyline>
           </svg>
+          <span class="hst-rule"></span><span class="hst-dot"></span><span class="hst-tip"></span>
         </div>` : ""}
       </div>`;
     }
@@ -1321,7 +1356,16 @@ export const cardStyles = `
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
   .hst.one{padding:9px 14px;}
   .hst.one .nrg-head{align-items:center;}
-  .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;}
+  .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;touch-action:none;}
+  /* The marker only exists while the pointer is over the plot. */
+  .hst-rule,.hst-dot,.hst-tip{position:absolute;opacity:0;pointer-events:none;transition:opacity .12s;}
+  .hst-plot.hovering .hst-rule,.hst-plot.hovering .hst-dot,.hst-plot.hovering .hst-tip{opacity:1;}
+  .hst-rule{top:0;bottom:0;width:1px;background:rgba(255,255,255,.28);transform:translateX(-.5px);}
+  .hst-dot{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:var(--text);
+    box-shadow:0 0 0 3px rgba(0,0,0,.35);}
+  .hst-tip{top:-2px;transform:translateX(-50%);white-space:nowrap;font-size:11.5px;font-weight:600;
+    padding:3px 7px;border-radius:8px;background:rgba(0,0,0,.62);color:#fff;
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
   .hst-plot svg{width:100%;height:100%;display:block;overflow:visible;}
   .hst-line{fill:none;stroke:var(--text);stroke-width:2;vector-effect:non-scaling-stroke;
     stroke-linejoin:round;stroke-linecap:round;}
