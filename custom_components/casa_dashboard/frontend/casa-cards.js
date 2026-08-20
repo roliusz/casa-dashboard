@@ -943,7 +943,6 @@ function widgetCard(ctx, c) {
       // sit half outside the plot and graze the header above it.
       const y = (v) => (hi === lo ? 50 : 4 + (1 - (v - lo) / (hi - lo)) * 92);
       const line = pts.map((p, i) => `${at(i).toFixed(2)},${y(p.val).toFixed(2)}`).join(" ");
-      const area = `0,100 ${line} 100,100`;
       const rows = c.h || 2;
 
       // One row is a single line of type: the span has to go, or the header is taller than the card.
@@ -968,7 +967,6 @@ function widgetCard(ctx, c) {
             @pointerleave=${(ev) => ev.currentTarget.classList.remove("hovering")}
             @pointercancel=${(ev) => ev.currentTarget.classList.remove("hovering")}>
           <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polygon class="hst-fill" points=${area}></polygon>
             <polyline class="hst-line" points=${line}></polyline>
           </svg>
           <span class="hst-rule"></span><span class="hst-dot"></span><span class="hst-tip"></span>
@@ -1375,7 +1373,6 @@ export const cardStyles = `
   .hst-plot svg{width:100%;height:100%;display:block;overflow:visible;}
   .hst-line{fill:none;stroke:var(--text);stroke-width:2;vector-effect:non-scaling-stroke;
     stroke-linejoin:round;stroke-linecap:round;}
-  .hst-fill{fill:rgba(255,255,255,.10);stroke:none;}
 
   /* The title sits at the top of the card, as every other card's does — centring it against a
      figure two or three times its height dropped it well below where the eye expects it. */
