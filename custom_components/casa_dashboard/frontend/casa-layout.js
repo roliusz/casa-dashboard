@@ -98,7 +98,7 @@ export const WIDGET_TYPES = {
   gauge:    { label: "Gauge",       icon: "mdi:gauge",            w: 1, h: 3, needsEntity: true,
               domains: ["sensor", "number", "input_number", "counter"], minH: 2,
               // No single row: without the dial it is a reading, which the sensor card already is.
-              sizes: [[2, 1], [3, 1], [3, 2], [4, 2]] },
+              sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]] },
   actions:  { label: "Quick actions", icon: "mdi:gesture-tap-button", w: 2, h: 1, needsEntities: true,
               domains: ["scene", "script", "button", "input_button", "automation"],
               sizes: [[1, 1], [1, 2], [1, 3], [2, 1], [2, 2], [2, 3], [3, 2], [3, 3]] },
