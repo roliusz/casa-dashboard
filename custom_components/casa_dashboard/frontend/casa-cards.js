@@ -112,6 +112,9 @@ const attr = (ctx, e, a) => st(ctx, e)?.attributes?.[a];
 
 /** One decimal, and no trailing .0 — a temperature reads 20.4, a humidity 61, not 61.0. */
 const round1 = (v) => String(Math.round(v * 10) / 10);
+
+/** Degrees and percentages sit against the number; a word unit like kWh needs its space. */
+const unitGap = (unit) => (/^[°%]/.test(unit || "") ? "" : " ");
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
   return !!s && !["off", "unavailable", "unknown"].includes(s.state);
@@ -900,7 +903,9 @@ function widgetCard(ctx, c) {
       // A sensor that has not moved has no range to scale to; draw it down the middle, since
       // resting it on the floor of the plot reads as zero rather than as steady.
       const at = (i) => (pts.length === 1 ? 0 : (i / (pts.length - 1)) * 100);
-      const y = (v) => (hi === lo ? 50 : 100 - ((v - lo) / (hi - lo)) * 100);
+      // Kept off the very edges: the stroke is centred on the path, so a point at 0 or 100 would
+      // sit half outside the plot and graze the header above it.
+      const y = (v) => (hi === lo ? 50 : 4 + (1 - (v - lo) / (hi - lo)) * 92);
       const line = pts.map((p, i) => `${at(i).toFixed(2)},${y(p.val).toFixed(2)}`).join(" ");
       const area = `0,100 ${line} 100,100`;
       const rows = c.h || 2;
@@ -911,7 +916,11 @@ function widgetCard(ctx, c) {
           <div class="nrg-meta">
             <span class="hl-name">${name}</span>
             ${rows > 1 ? html`<span class="hl-sub">${
-              span === "week" ? "Last 7 days" : "Last 24 hours"}</span>` : ""}
+              span === "week" ? "Last 7 days" : "Last 24 hours"}${
+              // The range only earns its place where the line has room for it — on one column it
+              // would be ellipsised away, which says less than leaving it out.
+              hi === lo || (c.w || 2) < 2 ? ""
+                : ` · ${round1(lo)}–${round1(hi)}${unitGap(unit)}${unit}`}</span>` : ""}
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 2) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${shownNow}</span>
@@ -922,8 +931,6 @@ function widgetCard(ctx, c) {
             <polygon class="hst-fill" points=${area}></polygon>
             <polyline class="hst-line" points=${line}></polyline>
           </svg>
-          ${rows >= 3 ? html`<span class="hst-hi">${round1(hi)}</span>
-            <span class="hst-lo">${round1(lo)}</span>` : ""}
         </div>` : ""}
       </div>`;
     }
@@ -1319,9 +1326,6 @@ export const cardStyles = `
   .hst-line{fill:none;stroke:var(--text);stroke-width:2;vector-effect:non-scaling-stroke;
     stroke-linejoin:round;stroke-linecap:round;}
   .hst-fill{fill:rgba(255,255,255,.10);stroke:none;}
-  .hst-hi,.hst-lo{position:absolute;right:0;font-size:11px;color:var(--dim);pointer-events:none;}
-  .hst-hi{top:-2px;}
-  .hst-lo{bottom:-2px;}
 
   /* The title sits at the top of the card, as every other card's does — centring it against a
      figure two or three times its height dropped it well below where the eye expects it. */
