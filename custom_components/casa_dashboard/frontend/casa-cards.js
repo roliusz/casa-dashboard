@@ -634,16 +634,40 @@ function widgetCard(ctx, c) {
           </div>
         </div>`;
 
-      // Taller is the Casa app's mobile square: condition above, the reading with the condition
-      // beside it, then the place with today's high and low.
       const fc = ctx.forecast(c.entity);
       const today = fc?.[0];
       const hi = today?.temperature != null ? Math.round(today.temperature) : null;
       const lo = today?.templow != null ? Math.round(today.templow) : null;
-      // The days after today sit beside the current conditions rather than under them, so a wide
-      // card gains the forecast without having to grow taller.
-      const days = (c.w || 2) >= 2 ? (fc || []).slice(1, 6) : [];
-      return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""} ${days.length ? "wide" : ""}"
+      // A wide card lays out like the phone's weather widget: the place and the reading top left,
+      // the condition top right, and the days along the bottom. Three columns fit a fifth day.
+      if ((c.w || 2) >= 2) {
+        const days = (fc || []).slice(1, (c.w || 2) >= 3 ? 6 : 5);
+        return html`<div class="gcard wx2" @click=${() => ctx.more(c.entity)}>
+          <div class="wx2-top">
+            <div class="wx2-now">
+              <div class="wx2-place">${place}</div>
+              <div class="wx2-temp">${temp != null ? temp : "–"}°</div>
+            </div>
+            <div class="wx2-cond">
+              <ha-icon icon=${icon}></ha-icon>
+              <div class="wx2-cname">${cond}</div>
+              <div class="wx2-hl">${fc === null ? "…" : `H:${hi ?? "–"}°  L:${lo ?? "–"}°`}</div>
+            </div>
+          </div>
+          ${days.length ? html`<div class="wx2-fc">
+            ${days.map((d) => html`<div class="wx2-day">
+              <span class="wx2-dn">${new Date(d.datetime).toLocaleDateString([], { weekday: "short" })}</span>
+              <ha-icon icon=${WICON[d.condition] || "mdi:weather-partly-cloudy"}></ha-icon>
+              <span class="wx2-t">${d.temperature != null ? Math.round(d.temperature) + "°" : "–"}<span>${
+                d.templow != null ? Math.round(d.templow) + "°" : ""}</span></span>
+            </div>`)}
+          </div>` : ""}
+        </div>`;
+      }
+
+      // One column: the Casa app's mobile square — condition above, the reading with the condition
+      // beside it, then the place with today's high and low. No room for a forecast.
+      return html`<div class="gcard wx-sq ${(c.h || 3) <= 2 ? "sm" : ""}"
           @click=${() => ctx.more(c.entity)}>
         <div class="wx-main">
           <ha-icon class="wx-ic" icon=${icon}></ha-icon>
@@ -653,14 +677,6 @@ function widgetCard(ctx, c) {
             <div class="hl-sub">${fc === null ? "…" : `H:${hi ?? "–"}° · L:${lo ?? "–"}°`}</div>
           </div>
         </div>
-        ${days.length ? html`<div class="wx-fc">
-          ${days.map((d) => html`<div class="wx-day">
-            <span class="wx-dn">${new Date(d.datetime).toLocaleDateString([], { weekday: "short" })}</span>
-            <ha-icon icon=${WICON[d.condition] || "mdi:weather-partly-cloudy"}></ha-icon>
-            <span class="wx-hl">${d.temperature != null ? Math.round(d.temperature) + "°" : "–"}<span>${
-              d.templow != null ? Math.round(d.templow) + "°" : ""}</span></span>
-          </div>`)}
-        </div>` : ""}
       </div>`;
     }
     case "rooms": {
@@ -1247,6 +1263,26 @@ export const cardStyles = `
   .nrg-days span{flex:1;text-align:center;font-size:11px;color:var(--dim);}
 
   /* weather, the app's mobile square */
+  /* Wide weather: the phone widget's arrangement — place and reading top left, condition top
+     right, days along the bottom. Compact by design; the old layout spread the same content
+     across the full width and read as mostly gap. */
+  .wx2{padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;
+    gap:10px;cursor:pointer;min-height:0;}
+  .wx2-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;}
+  .wx2-now{min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .wx2-place{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wx2-temp{font-size:44px;font-weight:300;line-height:1;letter-spacing:-2.5px;white-space:nowrap;}
+  .wx2-cond{display:flex;flex-direction:column;align-items:flex-end;gap:1px;text-align:right;min-width:0;}
+  .wx2-cond ha-icon{--mdc-icon-size:26px;color:var(--text);}
+  .wx2-cname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+  .wx2-hl{font-size:12px;color:var(--dim);white-space:nowrap;}
+  .wx2-fc{display:flex;align-items:flex-end;justify-content:space-between;gap:4px;min-width:0;}
+  .wx2-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .wx2-dn{font-size:11px;color:var(--dim);}
+  .wx2-day ha-icon{--mdc-icon-size:20px;color:var(--text);}
+  .wx2-t{font-size:12px;font-weight:600;white-space:nowrap;}
+  .wx2-t span{font-weight:400;color:var(--dim);margin-left:3px;}
+
   .wx-sq{padding:15px;justify-content:space-between;cursor:pointer;}
   .wx-ic{--mdc-icon-size:30px;color:var(--text);flex:none;}
   .wx-temp{font-size:46px;font-weight:300;line-height:1;letter-spacing:-2.5px;white-space:nowrap;}
@@ -1259,16 +1295,7 @@ export const cardStyles = `
   .wx-sq.sm{padding:10px 15px;}
   .wx-sq.sm .wx-ic{--mdc-icon-size:24px;}
 
-  /* the days after today, beside the current conditions on a wide card */
-  .wx-sq.wide{flex-direction:row;align-items:stretch;gap:14px;}
   .wx-main{display:flex;flex-direction:column;justify-content:space-between;flex:0 1 auto;min-width:0;}
-  .wx-fc{flex:1;display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;
-    padding-left:14px;border-left:1px solid rgba(255,255,255,.10);}
-  .wx-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;}
-  .wx-dn{font-size:10.5px;color:var(--dim);}
-  .wx-day ha-icon{--mdc-icon-size:19px;color:var(--text);}
-  .wx-hl{font-size:11.5px;font-weight:600;white-space:nowrap;}
-  .wx-hl span{font-weight:400;color:var(--dim);margin-left:3px;}
 
   /* the app's mobile climate square, at the two-row card's scale */
   .clim-sq{padding:15px;justify-content:space-between;cursor:pointer;}
