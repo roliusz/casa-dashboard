@@ -835,7 +835,7 @@ function widgetCard(ctx, c) {
         return svg`<line class="gg-t ${on ? "on" : ""}"
           x1=${x(78)} y1=${y(78)} x2=${x(96)} y2=${y(96)}></line>`;
       });
-      return html`<div class="gcard gg" @click=${() => ctx.more(e)}>
+      return html`<div class="gcard gg ${(c.w || 1) === 1 ? "narrow" : ""}" @click=${() => ctx.more(e)}>
         <div class="nrg-head"><div class="nrg-meta">
           <span class="hl-name">${c.name || a.friendly_name || e}</span>
           <span class="hl-sub">${round1(min)}–${round1(max)}${unitGap(unit)}${unit}</span>
@@ -1642,6 +1642,12 @@ export const cardStyles = `
   .gg-dial svg{width:100%;height:100%;}
   .gg-t{stroke:rgba(255,255,255,.18);stroke-width:3.4;stroke-linecap:round;}
   .gg-t.on{stroke:var(--green,#62D621);filter:drop-shadow(0 0 5px rgba(98,214,33,.55));}
+  /* The shared reading style shrinks and hides its overflow, which sliced the last pixel off the
+     unit. Here it is the only thing on its side of the header, so let it take the width it needs. */
+  .gg .cc-cur{flex:none;overflow:visible;}
+  /* One column has no room for a 48px reading beside a title — it ellipsised the number itself. */
+  .gg.narrow .cc-cur{font-size:28px;letter-spacing:-1px;}
+  .gg.narrow .gg-u{font-size:11px;margin-left:2px;}
   .gg-u{font-size:12px;color:var(--dim);margin-left:3px;font-weight:600;}
 
   /* Quick actions: every button is a cell of the card's own grid, so they fill it exactly. */
