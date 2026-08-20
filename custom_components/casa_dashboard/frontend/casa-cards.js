@@ -650,7 +650,12 @@ function widgetCard(ctx, c) {
       // A wide card lays out like the phone's weather widget: the place and the reading top left,
       // the condition top right, and the days along the bottom. Three columns fit a fifth day.
       if ((c.w || 2) >= 2) {
-        const days = (fc || []).slice(1, (c.w || 2) >= 3 ? 6 : 5);
+        // Integrations differ in how far ahead they publish — five days is common, and dropping
+        // today from five leaves only four columns. Fall back to starting at today so the row is
+        // full either way.
+        const want = (c.w || 2) >= 3 ? 5 : 4;
+        const all = fc || [];
+        const days = all.length > want ? all.slice(1, 1 + want) : all.slice(0, want);
         return html`<div class="gcard wx2" @click=${() => ctx.more(c.entity)}>
           <div class="wx2-top">
             <div class="wx2-now">
