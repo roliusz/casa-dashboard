@@ -650,15 +650,18 @@ const GREETING = () => {
  */
 const LIST_ROW = 19, LIST_GAP = 0;                 // a row and the space under it
 const LIST_CHROME = 65;                            // 12 padding + 32 header + 9 gap, and 12 below
-function listFits(rows, total) {
+function listFits(rows, total, cols = 1) {
   const height = rows * (GRID_ROW + GRID_GAP) - GRID_GAP;
   const slots = Math.max(0,
     Math.floor((height - LIST_CHROME + LIST_GAP) / (LIST_ROW + LIST_GAP)));
-  if (total <= slots) return { fits: total, more: 0 };
+  // A wide card runs the list into as many columns as it is wide, rather than leaving the space
+  // to the right of a narrow list empty.
+  const capacity = slots * Math.max(1, cols);
+  if (total <= capacity) return { fits: total, more: 0, slots };
   // The "+N more" line is a row of the list like any other, so it costs a slot — and is spaced
   // like an entry without anything having to say so.
-  const fits = Math.max(0, slots - 1);
-  return { fits, more: total - fits };
+  const fits = Math.max(0, capacity - 1);
+  return { fits, more: total - fits, slots };
 }
 
 /** Device classes where "on" means something is standing open. */
@@ -852,11 +855,12 @@ function widgetCard(ctx, c) {
       const n = items.length;
       if (!n && !adding) return html`<div class="gcard cal">${head("All done")}</div>`;
 
-      const { fits, more } = listFits(rows, n + (adding ? 1 : 0));
+      const lcols = Math.max(1, c.w || 1);
+      const { fits, more, slots } = listFits(rows, n + (adding ? 1 : 0), lcols);
       const shown = Math.max(0, adding ? fits - 1 : fits);
       return html`<div class="gcard cal">
         ${head(n ? `${n} ${n === 1 ? "item" : "items"}` : "All done")}
-        <div class="att-list">
+        <div class="att-list" style="--lcols:${lcols};--lrows:${slots}">
           ${adding ? box() : ""}
           ${items.slice(0, shown).map((it) => html`
             <div class="att-row td-row">
@@ -893,13 +897,16 @@ function widgetCard(ctx, c) {
         return day ? `${day} ${at}` : at;
       };
       const n = events.length;
-      const { fits, more } = listFits(rows, n);
+      const lcols = Math.max(1, c.w || 1);
+      const { fits, more, slots } = listFits(rows, n, lcols);
       return html`<div class="gcard cal">
         ${head(`${n} ${n === 1 ? "event" : "events"}`)}
-        <div class="cal-list">
+        <div class="att-list" style="--lcols:${lcols};--lrows:${slots}">
           ${events.slice(0, fits).map((ev) => html`
-            <span class="cal-when">${when(ev)}</span>
-            <span class="cal-name">${ev.summary}</span>`)}
+            <div class="att-row">
+              <span class="cal-when">${when(ev)}</span>
+              <span class="cal-name">${ev.summary}</span>
+            </div>`)}
           ${more ? html`<div class="att-more">+${more} more</div>` : ""}
         </div>
       </div>`;
@@ -919,13 +926,14 @@ function widgetCard(ctx, c) {
       </div>`;
 
       // One row can only carry the count; taller cards list as many as they have lines for.
-      const { fits, more } = listFits(rows, n);
+      const lcols = Math.max(1, c.w || 1);
+      const { fits, more, slots } = listFits(rows, n, lcols);
       return html`<div class="gcard att ${rows === 1 ? "one" : ""}">
         <div class="nrg-head"><div class="nrg-meta">
           <span class="hl-name">${title}</span>
           ${rows > 1 ? html`<span class="hl-sub">${n} ${n === 1 ? "thing" : "things"}</span>` : ""}
         </div><span class="att-n">${n}</span></div>
-        ${rows > 1 ? html`<div class="att-list">
+        ${rows > 1 ? html`<div class="att-list" style="--lcols:${lcols};--lrows:${slots}">
           ${items.slice(0, fits).map((it) => html`
             <button class="att-row" @click=${(ev) => { ev.stopPropagation(); ctx.more(it.id); }}>
               <ha-icon icon=${it.icon}></ha-icon>
@@ -1559,10 +1567,9 @@ export const cardStyles = `
   /* A grid, not a fixed column: an auto track makes the time column exactly as wide as the longest
      in this card, so the times start at the card's edge, the summaries line up down the card, and
      there is no slack between the two. A fixed width could only have two of those three. */
-  .cal-list{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 9px;
-    grid-auto-rows:19px;align-items:center;align-content:start;min-height:0;overflow:hidden;}
-  .cal-when{font-size:11.5px;font-weight:600;color:var(--dim);
-    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  /* A fixed width keeps the times in line down a column now that each row is its own cell. */
+  .cal-when{flex:none;width:70px;font-size:11.5px;font-weight:600;color:var(--dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cal-name{font-size:12.5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   .att.one{padding:9px 14px;justify-content:center;}
@@ -1570,7 +1577,9 @@ export const cardStyles = `
   .att.one .att-n{font-size:20px;}
   .att-n{font-size:26px;font-weight:600;line-height:1;flex:none;}
   .att-ok{--mdc-icon-size:24px;color:var(--green,#5ad06a);flex:none;}
-  .att-list{display:flex;flex-direction:column;gap:0;min-height:0;overflow:hidden;}
+  .att-list{display:grid;grid-template-columns:repeat(var(--lcols,1),minmax(0,1fr));
+    grid-template-rows:repeat(var(--lrows,1),19px);grid-auto-flow:column;gap:0 20px;
+    align-content:start;min-height:0;overflow:hidden;}
   .att-row{display:flex;align-items:center;gap:9px;min-width:0;height:19px;padding:0;border:none;
     background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;}
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
@@ -1593,7 +1602,6 @@ export const cardStyles = `
 
   /* A row of the list, so the space above it is the space between two entries, exactly. */
   .att-more{font-size:11px;color:var(--dim);height:19px;display:flex;align-items:center;}
-  .cal-list .att-more{grid-column:1 / -1;}
 
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
   .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;touch-action:none;}
