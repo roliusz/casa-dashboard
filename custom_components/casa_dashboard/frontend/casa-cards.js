@@ -81,6 +81,7 @@ const DEFAULT_ICON = {
   number: () => "mdi:ray-vertex",
   select: () => "mdi:format-list-bulleted",
   button: () => "mdi:gesture-tap-button",
+  calendar: () => "mdi:calendar-month",
 };
 
 /**
