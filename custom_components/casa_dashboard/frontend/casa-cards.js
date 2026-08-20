@@ -16,7 +16,7 @@
 // The panel is loaded with a ?v=<integration version> query. Propagating that query to every
 // import means a HACS update can never leave a stale module cached in someone's browser.
 const V = new URL(import.meta.url).search;
-const { html } = await import(`./lit-all.min.js${V}`);
+const { html, svg } = await import(`./lit-all.min.js${V}`);
 const { COL_W, GRID_GAP, GRID_ROW, tileRows } = await import(`./casa-layout.js${V}`);
 
 /** Three rows or more: the name, the reading large in the middle, controls underneath. */
@@ -812,6 +812,39 @@ function widgetCard(ctx, c) {
         <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
       </div>`;
     }
+    case "gauge": {
+      const e = c.entity, s = st(ctx, e);
+      if (!s) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a sensor</div></div>`;
+      const a = s.attributes || {};
+      const v = Number(s.state);
+      const ok = Number.isFinite(v);
+      // A number entity carries its own range; anything else is a percentage until told otherwise.
+      const min = c.min ?? (a.min != null ? Number(a.min) : 0);
+      const max = c.max ?? (a.max != null ? Number(a.max) : 100);
+      const unit = a.unit_of_measurement || "";
+      const span = max - min;
+      const pct = ok && span > 0 ? Math.max(0, Math.min(1, (v - min) / span)) : 0;
+      const TICKS = 33;
+      // Drawn in a viewBox rather than placed in pixels, so one gauge fits every card size.
+      const marks = Array.from({ length: TICKS }, (_, i) => {
+        const t = i / (TICKS - 1);
+        const ang = Math.PI * (1 - t);                      // left round to right
+        const x = (r) => 100 + Math.cos(ang) * r;
+        const y = (r) => 100 - Math.sin(ang) * r;
+        const on = ok && t <= pct;
+        return svg`<line class="gg-t ${on ? "on" : ""}"
+          x1=${x(78)} y1=${y(78)} x2=${x(96)} y2=${y(96)}></line>`;
+      });
+      return html`<div class="gcard gg" @click=${() => ctx.more(e)}>
+        <div class="nrg-head"><div class="nrg-meta">
+          <span class="hl-name">${c.name || a.friendly_name || e}</span>
+          <span class="hl-sub">${round1(min)}–${round1(max)}${unitGap(unit)}${unit}</span>
+        </div><span class="cc-cur">${ok ? round1(v) : "–"}<span class="gg-u">${unit}</span></span></div>
+        <div class="gg-dial">
+          <svg viewBox="0 0 200 104" preserveAspectRatio="xMidYMax meet">${marks}</svg>
+        </div>
+      </div>`;
+    }
     case "actions": {
       const ids = c.entities || [];
       if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick scenes or scripts</div></div>`;
@@ -1602,6 +1635,15 @@ export const cardStyles = `
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
   .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
+  /* Gauge: ported from the casa app, as a viewBox so it scales instead of being placed in pixels. */
+  .gg{padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden;
+    cursor:pointer;}
+  .gg-dial{flex:1;min-height:0;display:flex;align-items:flex-end;justify-content:center;}
+  .gg-dial svg{width:100%;height:100%;}
+  .gg-t{stroke:rgba(255,255,255,.18);stroke-width:3.4;stroke-linecap:round;}
+  .gg-t.on{stroke:var(--green,#62D621);filter:drop-shadow(0 0 5px rgba(98,214,33,.55));}
+  .gg-u{font-size:12px;color:var(--dim);margin-left:3px;font-weight:600;}
+
   /* Quick actions: every button is a cell of the card's own grid, so they fill it exactly. */
   .qa{padding:12px;display:grid;gap:8px;min-height:0;overflow:hidden;
     grid-template-columns:repeat(var(--acols,1),minmax(0,1fr));

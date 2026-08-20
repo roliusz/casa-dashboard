@@ -1130,9 +1130,10 @@ export class CasaView extends LitElement {
   _entityField(value, onPick, key, domain) {
     const q = (this._acq?.[key] ?? value ?? "").toLowerCase().trim();
     const open = this._ac === key && q.length > 0;
-    // A field that only makes sense for one domain offers nothing else — a media card cannot play
-    // a light.
-    const inDomain = (id) => !domain || id.startsWith(`${domain}.`);
+    // A field that only makes sense for certain domains offers nothing else — a media card cannot
+    // play a light. Some widgets accept several, so this takes one or a list.
+    const allowed = domain == null ? null : [].concat(domain);
+    const inDomain = (id) => !allowed || allowed.some((d) => id.startsWith(`${d}.`));
     const matches = !open ? [] : Object.keys(this.hass?.states || {})
       .filter(inDomain)
       .map((id) => ({ id, name: this._st(id)?.attributes?.friendly_name || "", room: areaOf(this.hass, id, this._rooms) || "" }))
@@ -1161,7 +1162,7 @@ export class CasaView extends LitElement {
       };
     };
     return html`<div class="acwrap">
-      <input placeholder=${domain ? `${domain}.…` : "entity id"} .value=${value || ""}
+      <input placeholder=${allowed?.length === 1 ? `${allowed[0]}.…` : "entity id"} .value=${value || ""}
         @focus=${(e) => set(e.target.value, e.target)}
         @input=${(e) => set(e.target.value, e.target)}
         @change=${(e) => { onPick(e.target.value); this._ac = null; }}
@@ -1451,7 +1452,7 @@ export class CasaView extends LitElement {
         ${c.widget && WIDGET_TYPES[c.widget]?.needsEntity ? html`
           <div class="f"><label>Entity</label>
             ${this._entityField(c.entity, (v) => patchCard({ entity: v }), `wcard:${c.id}`,
-              WIDGET_TYPES[c.widget].domain)}</div>` : ""}
+              WIDGET_TYPES[c.widget].domains || WIDGET_TYPES[c.widget].domain)}</div>` : ""}
         ${c.widget === "energy" ? html`
           <div class="f"><label>Shows</label><div class="chips">
             ${[["week", "Last 7 days"], ["today", "Today"]].map(([key, label]) => html`
@@ -1465,6 +1466,16 @@ export class CasaView extends LitElement {
                 <button class="chip ${(c.span || "48h") === key ? "on" : ""}"
                   @click=${() => patchCard({ span: key })}>${label}</button>`)}
           </div></div>` : ""}
+        ${c.widget === "gauge" ? html`
+          <div class="two">
+            <div class="f"><label>Minimum</label>
+              <input type="number" .value=${String(c.min ?? "")} placeholder="0"
+                @change=${(ev) => patchCard({ min: ev.target.value === "" ? undefined : Number(ev.target.value) })}></div>
+            <div class="f"><label>Maximum</label>
+              <input type="number" .value=${String(c.max ?? "")} placeholder="100"
+                @change=${(ev) => patchCard({ max: ev.target.value === "" ? undefined : Number(ev.target.value) })}></div>
+          </div>
+          <div class="hint">Left blank, a number entity uses its own range and anything else reads 0–100.</div>` : ""}
         ${c.widget === "attention" ? html`
           <div class="f"><label>Watch for</label><div class="chips">
             ${[["battery", "Low batteries"], ["open", "Doors & windows"], ["offline", "Unavailable"]]
