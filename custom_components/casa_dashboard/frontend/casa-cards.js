@@ -82,6 +82,7 @@ const DEFAULT_ICON = {
   select: () => "mdi:format-list-bulleted",
   button: () => "mdi:gesture-tap-button",
   calendar: () => "mdi:calendar-month",
+  todo: () => "mdi:clipboard-list",           // what Home Assistant itself shows for a list
 };
 
 /**
