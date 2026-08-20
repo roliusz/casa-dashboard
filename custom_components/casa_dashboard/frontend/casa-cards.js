@@ -84,6 +84,15 @@ const DEFAULT_ICON = {
 };
 
 /**
+ * The icon a domain wears at rest. A picker offers entities before it has any interest in their
+ * state, and kept its own shorter list that quietly missed whole domains — alarms among them.
+ */
+export const domainIcon = (id) => {
+  const f = DEFAULT_ICON[String(id || "").split(".")[0]];
+  return typeof f === "function" ? f("") : f || "";
+};
+
+/**
  * The icon for an entity. Home Assistant does not put default icons in the state — only one that
  * has been configured explicitly appears there — so the frontend works the rest out from the
  * domain, the device class and the current state. Use its own element when it is available, which
@@ -1276,11 +1285,15 @@ export const cardStyles = `
   .wx2-cond ha-icon{--mdc-icon-size:26px;color:var(--text);}
   .wx2-cname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
   .wx2-hl{font-size:12px;color:var(--dim);white-space:nowrap;}
-  .wx2-fc{display:flex;align-items:flex-end;justify-content:space-between;gap:4px;min-width:0;}
-  .wx2-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;}
-  .wx2-dn{font-size:11px;color:var(--dim);}
-  .wx2-day ha-icon{--mdc-icon-size:20px;color:var(--text);}
-  .wx2-t{font-size:12px;font-weight:600;white-space:nowrap;}
+  /* The row takes whatever height the top block leaves, rather than sitting small at the bottom
+     with the slack above it. */
+  .wx2-fc{flex:1;min-height:0;display:flex;align-items:center;justify-content:space-between;
+    gap:4px;min-width:0;}
+  .wx2-day{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:5px;}
+  .wx2-dn{font-size:13px;color:var(--dim);}
+  .wx2-day ha-icon{--mdc-icon-size:28px;color:var(--text);}
+  .wx2-t{font-size:14px;font-weight:600;white-space:nowrap;}
   .wx2-t span{font-weight:400;color:var(--dim);margin-left:3px;}
 
   .wx-sq{padding:15px;justify-content:space-between;cursor:pointer;}

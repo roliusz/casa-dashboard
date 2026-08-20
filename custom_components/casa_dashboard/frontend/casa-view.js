@@ -18,7 +18,7 @@ const {
   newWidget,
   compactCards, newSidebarItem, newTab, placeNear, sectionsOf, starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
-const { renderCard, cardStyles, stateIcon, cap } = await import(`./casa-cards.js${V}`);
+const { renderCard, cardStyles, stateIcon, cap, domainIcon } = await import(`./casa-cards.js${V}`);
 
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
@@ -32,7 +32,9 @@ const DOMAIN_ICON = {
   climate: "mdi:thermostat", sensor: "mdi:eye", binary_sensor: "mdi:radiobox-marked",
   scene: "mdi:creation", script: "mdi:play", fan: "mdi:fan", lock: "mdi:lock", weather: "mdi:weather-partly-cloudy",
 };
-const iconFor = (e) => DOMAIN_ICON[String(e || "").split(".")[0]] || "mdi:card-outline";
+// The list above is what a picker prefers to show; anything it does not name falls back to the
+// icon the card itself would draw, so a domain can never go missing from one and not the other.
+const iconFor = (e) => DOMAIN_ICON[String(e || "").split(".")[0]] || domainIcon(e) || "mdi:card-outline";
 
 export class CasaView extends LitElement {
   static properties = {
