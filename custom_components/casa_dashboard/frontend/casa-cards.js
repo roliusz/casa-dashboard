@@ -1606,7 +1606,9 @@ export const cardStyles = `
   .qa{padding:12px;display:grid;gap:8px;min-height:0;overflow:hidden;
     grid-template-columns:repeat(var(--acols,1),minmax(0,1fr));
     grid-template-rows:repeat(var(--arows,1),minmax(0,1fr));}
-  .qa-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;padding:0 10px;
+  /* Icon left, label beside it: centring the pair moved the icon with every label's length, so
+     no two buttons lined up. */
+  .qa-btn{display:flex;align-items:center;justify-content:flex-start;gap:9px;min-width:0;padding:0 12px;
     border-radius:14px;border:1px solid var(--cardBorder,rgba(255,255,255,.12));
     background:var(--chip,rgba(255,255,255,.09));color:inherit;font:inherit;font-size:12.5px;
     font-weight:600;cursor:pointer;transition:background .18s,color .18s;}
