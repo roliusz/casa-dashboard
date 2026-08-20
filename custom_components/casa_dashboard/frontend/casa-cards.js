@@ -819,14 +819,12 @@ function widgetCard(ctx, c) {
       const n = events.length;
       return html`<div class="gcard cal">
         ${head(`${n} ${n === 1 ? "event" : "events"}`)}
-        <div class="att-list">
+        <div class="cal-list">
           ${events.slice(0, fits).map((ev) => html`
-            <div class="att-row cal-row">
-              <span class="cal-when">${when(ev)}</span>
-              <span class="att-name">${ev.summary}</span>
-            </div>`)}
-          ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
+            <span class="cal-when">${when(ev)}</span>
+            <span class="cal-name">${ev.summary}</span>`)}
         </div>
+        ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
       </div>`;
     }
     case "attention": {
@@ -1481,13 +1479,14 @@ export const cardStyles = `
   .att{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
   .cal{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
   .cal-ic{--mdc-icon-size:20px;color:var(--dim);flex:none;}
-  /* A fixed column, so the summaries line up down the card, wide enough for a weekday and a
-     12-hour time — "Fri 09:30 AM" — since the format follows the viewer's locale, not ours.
-     Ranged right, so a short time sits against its summary rather than leaving the column's slack
-     between them. Two classes to outrank .att-row's gap, which is set further down. */
-  .att-row.cal-row{gap:8px;}
-  .cal-when{flex:none;width:70px;text-align:right;font-size:11.5px;font-weight:600;color:var(--dim);
-    font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* A grid, not a fixed column: an auto track makes the time column exactly as wide as the longest
+     in this card, so the times start at the card's edge, the summaries line up down the card, and
+     there is no slack between the two. A fixed width could only have two of those three. */
+  .cal-list{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 9px;
+    grid-auto-rows:22px;align-items:center;min-height:0;}
+  .cal-when{font-size:11.5px;font-weight:600;color:var(--dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .cal-name{font-size:12.5px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
   .att.one{padding:9px 14px;justify-content:center;}
   .att.one .nrg-head{align-items:center;}
