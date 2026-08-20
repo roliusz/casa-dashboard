@@ -1016,22 +1016,22 @@ function widgetCard(ctx, c) {
       const rows = c.h || 2;
 
       // One row is a single line of type: the span has to go, or the header is taller than the card.
-      return html`<div class="gcard hst ${rows === 1 ? "one" : ""}" @click=${() => ctx.more(c.entity)}>
+      return html`<div class="gcard hst" @click=${() => ctx.more(c.entity)}>
         <div class="nrg-head">
           <div class="nrg-meta">
             <span class="hl-name">${name}</span>
-            ${rows > 1 ? html`<span class="hl-sub">${
+            <span class="hl-sub">${
               span === "week" ? "Last 7 days" : "Last 24 hours"}${
               // The range only earns its place where the line has room for it — on one column it
               // would be ellipsised away, which says less than leaving it out.
               hi === lo || (c.w || 2) < 2 ? ""
-                : ` · ${round1(lo)}–${round1(hi)}${unitGap(unit)}${unit}`}</span>` : ""}
+                : ` · ${round1(lo)}–${round1(hi)}${unitGap(unit)}${unit}`}</span>
           </div>
           <span class="nrg-figure">
             <span class=${(c.w || 2) >= 2 && rows >= 3 ? "cc-cur" : "cmp-val"}>${shownNow}</span>
             <span class="nrg-unit">${unit}</span></span>
         </div>
-        ${rows >= 2 ? html`<div class="hst-plot"
+        <div class="hst-plot"
             @pointermove=${(ev) => hoverPoint(ev, pts, at, y, unit, span)}
             @pointerdown=${(ev) => hoverPoint(ev, pts, at, y, unit, span)}
             @pointerleave=${(ev) => ev.currentTarget.classList.remove("hovering")}
@@ -1040,7 +1040,7 @@ function widgetCard(ctx, c) {
             <polyline class="hst-line" points=${line}></polyline>
           </svg>
           <span class="hst-rule"></span><span class="hst-dot"></span><span class="hst-tip"></span>
-        </div>` : ""}
+        </div>
       </div>`;
     }
     case "energy": {
@@ -1453,8 +1453,6 @@ export const cardStyles = `
   .att-more{font-size:11px;color:var(--dim);padding-top:2px;}
 
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
-  .hst.one{padding:9px 14px;}
-  .hst.one .nrg-head{align-items:center;}
   .hst-plot{position:relative;flex:1;min-height:0;margin:0 -2px;touch-action:none;}
   /* The marker only exists while the pointer is over the plot. */
   .hst-rule,.hst-dot,.hst-tip{position:absolute;opacity:0;pointer-events:none;transition:opacity .12s;}

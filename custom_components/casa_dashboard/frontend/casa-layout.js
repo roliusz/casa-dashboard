@@ -92,8 +92,9 @@ export const WIDGET_TYPES = {
               domain: "climate", sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
   energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
+  // No single row: a trace needs height to say anything, and one row leaves none for it.
   history:  { label: "History",     icon: "mdi:chart-line",       w: 2, h: 2, needsEntity: true,
-              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
+              minH: 2, sizes: [[2, 1], [3, 1], [3, 2], [3, 3]] },
   // Reports on the whole house rather than a chosen entity, so it asks for none.
   attention: { label: "Needs attention", icon: "mdi:alert-circle-outline", w: 2, h: 3,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [4, 2], [5, 2]] },
