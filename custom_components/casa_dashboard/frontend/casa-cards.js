@@ -649,20 +649,17 @@ const GREETING = () => {
  */
 const LIST_ROW = 19, LIST_GAP = 0;                 // a row and the space under it
 const LIST_CHROME = 74;                            // 16 padding + 33 header + 9 gap, and 16 below
-const LIST_MORE = 22;                              // the "+N more" line and its own gap
+const LIST_MORE = 13;                              // the "+N more" line, and no gap of its own
 function listFits(rows, total) {
   const height = rows * (GRID_ROW + GRID_GAP) - GRID_GAP;
   const room = (extra) =>
     Math.max(0, Math.floor((height - LIST_CHROME - extra + LIST_GAP) / (LIST_ROW + LIST_GAP)));
   const all = room(0);
-  if (total <= all) return { fits: total, more: 0, inline: false };
-  // The footer costs a row, which on a short card is the difference between a list and a single
-  // entry. Where it would leave fewer than two, spend the space on another entry and say how many
-  // are left in the subtitle instead — the count is worth keeping, a whole line of it is not.
-  const withMore = room(LIST_MORE);
-  return withMore >= 2
-    ? { fits: withMore, more: total - withMore, inline: false }
-    : { fits: all, more: total - all, inline: true };
+  if (total <= all) return { fits: total, more: 0 };
+  // The footer is only its own line height — it takes no gap and will sit against the last entry
+  // on a card with no room to spare, which is cheaper than losing an entry to it.
+  const fits = room(LIST_MORE);
+  return { fits, more: total - fits };
 }
 
 /** Device classes where "on" means something is standing open. */
@@ -838,16 +835,15 @@ function widgetCard(ctx, c) {
         return day ? `${day} ${at}` : at;
       };
       const n = events.length;
-      const { fits, more, inline } = listFits(rows, n);
-      const count = `${n} ${n === 1 ? "event" : "events"}`;
+      const { fits, more } = listFits(rows, n);
       return html`<div class="gcard cal">
-        ${head(inline && more ? `${count} · +${more} more` : count)}
+        ${head(`${n} ${n === 1 ? "event" : "events"}`)}
         <div class="cal-list">
           ${events.slice(0, fits).map((ev) => html`
             <span class="cal-when">${when(ev)}</span>
             <span class="cal-name">${ev.summary}</span>`)}
         </div>
-        ${more && !inline ? html`<div class="att-more">+${more} more</div>` : ""}
+        ${more ? html`<div class="att-more">+${more} more</div>` : ""}
       </div>`;
     }
     case "attention": {
@@ -865,13 +861,11 @@ function widgetCard(ctx, c) {
       </div>`;
 
       // One row can only carry the count; taller cards list as many as they have lines for.
-      const { fits, more, inline } = listFits(rows, n);
-      const count = `${n} ${n === 1 ? "thing" : "things"}`;
+      const { fits, more } = listFits(rows, n);
       return html`<div class="gcard att ${rows === 1 ? "one" : ""}">
         <div class="nrg-head"><div class="nrg-meta">
           <span class="hl-name">${title}</span>
-          ${rows > 1 ? html`<span class="hl-sub">${
-            inline && more ? `${count} · +${more} more` : count}</span>` : ""}
+          ${rows > 1 ? html`<span class="hl-sub">${n} ${n === 1 ? "thing" : "things"}</span>` : ""}
         </div><span class="att-n">${n}</span></div>
         ${rows > 1 ? html`<div class="att-list">
           ${items.slice(0, fits).map((it) => html`
@@ -881,7 +875,7 @@ function widgetCard(ctx, c) {
               <span class="att-note">${it.note}</span>
             </button>`)}
         </div>` : ""}
-        ${rows > 1 && more && !inline ? html`<div class="att-more">+${more} more</div>` : ""}
+        ${rows > 1 && more ? html`<div class="att-more">+${more} more</div>` : ""}
       </div>`;
     }
     case "counter": {
