@@ -1184,7 +1184,10 @@ export const cardStyles = `
   .mw-ctrls{display:flex;align-items:center;justify-content:center;gap:clamp(16px,9%,34px);}
   .mw-sk{--mdc-icon-size:23px;color:var(--text);opacity:.85;cursor:pointer;}
   .mw-play{--mdc-icon-size:33px;color:var(--text);cursor:pointer;}
-  .mw.tall{gap:7px;padding:12px 14px 10px;}
+  /* Three rows has height to spare. Spread it evenly rather than centring the stack and leaving
+     it all at the edges — the bar wants air above and below it, not a margin at the top of the
+     card. */
+  .mw.tall{gap:0;justify-content:space-evenly;padding:10px 14px;}
   .mw.tall .mw-play{--mdc-icon-size:46px;}
   .mw.tall .mw-sk{--mdc-icon-size:31px;}
 
