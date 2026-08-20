@@ -812,6 +812,23 @@ function widgetCard(ctx, c) {
         <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
       </div>`;
     }
+    case "actions": {
+      const ids = c.entities || [];
+      if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick scenes or scripts</div></div>`;
+      const cols = Math.max(1, c.w || 1);
+      const rows = Math.max(1, c.h || 1);
+      // The card's own size decides how many fit: every button is a whole cell, so there is never
+      // one you can see but not press.
+      const shown = ids.slice(0, cols * rows);
+      return html`<div class="gcard qa" style="--acols:${cols};--arows:${rows}">
+        ${shown.map((e) => html`
+          <button class="qa-btn ${ctx.fired(e) ? "fired" : ""}"
+            @click=${(ev) => { ev.stopPropagation(); ctx.fire(e); }}>
+            ${stateIcon(ctx, e, "qa-ic", null, "mdi:play-circle-outline")}
+            <span class="qa-name">${attr(ctx, e, "friendly_name") || e}</span>
+          </button>`)}
+      </div>`;
+    }
     case "todo": {
       const ids = c.entities || [];
       if (!ids.length) return html`<div class="gcard wdg col"><div class="hl-sub">Pick a list</div></div>`;
@@ -1585,6 +1602,20 @@ export const cardStyles = `
   .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
   .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
+  /* Quick actions: every button is a cell of the card's own grid, so they fill it exactly. */
+  .qa{padding:12px;display:grid;gap:8px;min-height:0;overflow:hidden;
+    grid-template-columns:repeat(var(--acols,1),minmax(0,1fr));
+    grid-template-rows:repeat(var(--arows,1),minmax(0,1fr));}
+  .qa-btn{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0;padding:0 10px;
+    border-radius:14px;border:1px solid var(--cardBorder,rgba(255,255,255,.12));
+    background:var(--chip,rgba(255,255,255,.09));color:inherit;font:inherit;font-size:12.5px;
+    font-weight:600;cursor:pointer;transition:background .18s,color .18s;}
+  .qa-btn:hover{background:rgba(255,255,255,.16);}
+  /* A scene has no state to watch, so the press is the only feedback there is. */
+  .qa-btn.fired{background:#fff;color:#0e1620;border-color:transparent;}
+  .qa-ic{--mdc-icon-size:18px;flex:none;}
+  .qa-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
   /* The tick box is the only control; the rest of the row is just the item's text. */
   .td-row{cursor:default;}
   .td-box{flex:none;width:15px;height:15px;border-radius:50%;padding:0;cursor:pointer;

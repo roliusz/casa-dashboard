@@ -88,6 +88,7 @@ export class CasaView extends LitElement {
     _ac: { state: true },       // which entity field is completing
     _acq: { state: true },      // what has been typed into it
     _todoNew: { state: true },  // the to-do composer: which card, and what is typed so far
+    _fired: { state: true },    // quick actions that have just been run, so they can flash
   };
 
   constructor() { super(); this._tab = 0; this._q = ""; this._af = {}; this._anim = 0; }
@@ -111,6 +112,8 @@ export class CasaView extends LitElement {
       todoDraft: (key) => (this._todoNew?.key === key ? this._todoNew.text : null),
       todoDraftSet: (key, text) => { this._todoNew = text === null ? null : { key, text }; },
       todoAdd: (ids, entity, text) => this._todoAdd(ids, entity, text),
+      fire: (entity) => this._fire(entity),
+      fired: (entity) => !!this._fired?.[entity],
       // climate: the previewed target, the scale drag, and which picker menu is open
       target: (entity) => this._climT?.[entity],
       setTarget: (entity, t) => this._setTarget(entity, t),
@@ -425,6 +428,27 @@ export class CasaView extends LitElement {
     this.hass.callService("todo", "update_item", { entity_id: entity, item: uid, status: "completed" });
     clearTimeout(this._tdT);
     this._tdT = setTimeout(() => this._fetchTodo(ids, key), 2000);
+  }
+
+  /**
+   * Run a scene, script, button or automation. Nothing about these entities changes visibly when
+   * they fire — a scene has no state to watch — so the button acknowledges the press itself.
+   */
+  _fire(entity) {
+    const domain = String(entity).split(".")[0];
+    const call = {
+      scene: ["scene", "turn_on"], script: ["script", "turn_on"],
+      button: ["button", "press"], input_button: ["input_button", "press"],
+      automation: ["automation", "trigger"],
+    }[domain];
+    if (!call) return;
+    this.hass.callService(call[0], call[1], { entity_id: entity });
+    this._fired = { ...(this._fired || {}), [entity]: true };
+    setTimeout(() => {
+      const next = { ...(this._fired || {}) };
+      delete next[entity];
+      this._fired = next;
+    }, 700);
   }
 
   /** Add an item, and stay open for the next one — a shopping list is rarely one thing. */
@@ -1540,10 +1564,12 @@ export class CasaView extends LitElement {
     const target = mode === "cardents" ? this._pick.card : null;
     const tab = this._cur;
     const q = this._q.toLowerCase();
-    // A widget that only works with one domain is not offered anything else.
-    const only = target?.widget ? WIDGET_TYPES[target.widget]?.domain : null;
+    // A widget that only works with certain domains is not offered anything else. Quick actions
+    // takes several — a scene and a script are the same thing to it — hence the list.
+    const t = target?.widget ? WIDGET_TYPES[target.widget] : null;
+    const only = t?.domains || (t?.domain ? [t.domain] : null);
     const matches = Object.keys(this.hass?.states || {})
-      .filter((id) => !only || id.startsWith(`${only}.`))
+      .filter((id) => !only || only.some((d) => id.startsWith(`${d}.`)))
       .filter((id) => !q || id.includes(q) || (this._st(id).attributes.friendly_name || "").toLowerCase().includes(q));
 
     // Whatever was already chosen sits at the top of the list, so it can be found among hundreds
