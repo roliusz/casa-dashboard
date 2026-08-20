@@ -1309,6 +1309,20 @@ export class CasaView extends LitElement {
               <button class="chip ${(c.period || "week") === key ? "on" : ""}"
                 @click=${() => patchCard({ period: key })}>${label}</button>`)}
           </div></div>` : ""}
+        ${c.widget === "attention" ? html`
+          <div class="f"><label>Watch for</label><div class="chips">
+            ${[["battery", "Low batteries"], ["open", "Doors & windows"], ["offline", "Unavailable"]]
+              .map(([key, label]) => html`
+                <button class="chip ${(c.checks || {})[key] !== false ? "on" : ""}"
+                  @click=${() => patchCard({ checks: { ...(c.checks || {}), [key]: (c.checks || {})[key] === false } })}
+                  >${label}</button>`)}
+          </div></div>
+          ${(c.checks || {}).battery !== false ? html`
+            <div class="f"><label>Battery below</label><div class="chips">
+              ${[10, 15, 20, 30].map((n) => html`
+                <button class="chip ${(c.battery ?? 20) === n ? "on" : ""}"
+                  @click=${() => patchCard({ battery: n })}>${n}%</button>`)}
+            </div></div>` : ""}` : ""}
         ${c.widget === "history" ? html`
           <div class="f"><label>Shows</label><div class="chips">
             ${[["day", "Last 24 hours"], ["week", "Last 7 days"]].map(([key, label]) => html`

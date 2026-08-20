@@ -17,7 +17,7 @@
 // import means a HACS update can never leave a stale module cached in someone's browser.
 const V = new URL(import.meta.url).search;
 const { html } = await import(`./lit-all.min.js${V}`);
-const { COL_W, tileRows } = await import(`./casa-layout.js${V}`);
+const { COL_W, GRID_GAP, GRID_ROW, tileRows } = await import(`./casa-layout.js${V}`);
 
 /** Three rows or more: the name, the reading large in the middle, controls underneath. */
 /**
@@ -641,6 +641,41 @@ const GREETING = () => {
 };
 
 /** Cards that show the dashboard itself rather than an entity. */
+/** Device classes where "on" means something is standing open. */
+const OPEN_CLASSES = new Set(["door", "window", "garage_door", "opening"]);
+
+/**
+ * Everything in the house that wants looking at. The only widget that reports on entities nobody
+ * chose to put on the dashboard — which is the point: a flat battery is exactly the thing you
+ * never think to add a card for.
+ */
+function attentionItems(ctx, checks, level) {
+  const states = ctx.hass?.states || {};
+  const found = [];
+  for (const id in states) {
+    const s = states[id], a = s.attributes || {};
+    const domain = id.split(".")[0];
+    const name = a.friendly_name || id;
+    if (checks.battery !== false && domain === "sensor" && a.device_class === "battery") {
+      const pct = Number(s.state);
+      if (Number.isFinite(pct) && pct <= level) {
+        found.push({ id, name, icon: "mdi:battery-alert-variant-outline", note: `${Math.round(pct)}%`, rank: pct });
+        continue;
+      }
+    }
+    if (checks.open !== false && domain === "binary_sensor"
+        && OPEN_CLASSES.has(a.device_class) && s.state === "on") {
+      found.push({ id, name, icon: a.device_class === "window" ? "mdi:window-open" : "mdi:door-open",
+        note: "Open", rank: 1000 });
+      continue;
+    }
+    // `unknown` is the resting state of a scene or a script, so only `unavailable` counts as wrong
+    if (checks.offline !== false && s.state === "unavailable")
+      found.push({ id, name, icon: "mdi:lan-disconnect", note: "Unavailable", rank: 2000 });
+  }
+  return found.sort((x, y) => x.rank - y.rank || x.name.localeCompare(y.name));
+}
+
 function widgetCard(ctx, c) {
   const now = new Date();
   switch (c.widget) {
@@ -752,6 +787,38 @@ function widgetCard(ctx, c) {
             : anyOn ? `${on.length} of ${list.length} on` : "All off"}</div>
         </div>
         <div class="wdg-sw ${anyOn ? "on" : ""}"><span></span></div>
+      </div>`;
+    }
+    case "attention": {
+      const checks = c.checks || {};
+      const level = c.battery ?? 20;
+      const items = attentionItems(ctx, checks, level);
+      const n = items.length;
+      const rows = c.h || 3;
+      const title = c.name || "Needs attention";
+      if (!n) return html`<div class="gcard att ${rows === 1 ? "one" : ""} clear">
+        <div class="nrg-head"><div class="nrg-meta">
+          <span class="hl-name">${title}</span>
+          ${rows > 1 ? html`<span class="hl-sub">Nothing to report</span>` : ""}
+        </div><ha-icon class="att-ok" icon="mdi:check-circle-outline"></ha-icon></div>
+      </div>`;
+
+      // One row can only carry the count; taller cards list as many as they have lines for.
+      const fits = Math.max(0, Math.min(n, Math.floor((rows * (GRID_ROW + GRID_GAP) - 66) / 26)));
+      return html`<div class="gcard att ${rows === 1 ? "one" : ""}">
+        <div class="nrg-head"><div class="nrg-meta">
+          <span class="hl-name">${title}</span>
+          ${rows > 1 ? html`<span class="hl-sub">${n} ${n === 1 ? "thing" : "things"}</span>` : ""}
+        </div><span class="att-n">${n}</span></div>
+        ${rows > 1 ? html`<div class="att-list">
+          ${items.slice(0, fits).map((it) => html`
+            <button class="att-row" @click=${(ev) => { ev.stopPropagation(); ctx.more(it.id); }}>
+              <ha-icon icon=${it.icon}></ha-icon>
+              <span class="att-name">${it.name}</span>
+              <span class="att-note">${it.note}</span>
+            </button>`)}
+          ${n > fits ? html`<div class="att-more">+${n - fits} more</div>` : ""}
+        </div>` : ""}
       </div>`;
     }
     case "counter": {
@@ -1370,6 +1437,21 @@ export const cardStyles = `
 
   /* History: the same header as the energy card, with the trace taking whatever is left. The plot
      is drawn in a 0..100 box and stretched, so one path serves every card size. */
+  /* Needs attention: the header carries the count, the rest is a list of what is wrong. */
+  .att{padding:16px;display:flex;flex-direction:column;gap:9px;min-height:0;overflow:hidden;}
+  .att.one{padding:9px 14px;justify-content:center;}
+  .att.one .nrg-head{align-items:center;}
+  .att.one .att-n{font-size:20px;}
+  .att-n{font-size:26px;font-weight:600;line-height:1;flex:none;}
+  .att-ok{--mdc-icon-size:24px;color:var(--green,#5ad06a);flex:none;}
+  .att-list{display:flex;flex-direction:column;gap:4px;min-height:0;}
+  .att-row{display:flex;align-items:center;gap:9px;min-width:0;height:22px;padding:0;border:none;
+    background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;}
+  .att-row ha-icon{--mdc-icon-size:16px;color:var(--dim);flex:none;}
+  .att-name{flex:1;min-width:0;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .att-note{font-size:11.5px;font-weight:600;color:var(--dim);flex:none;}
+  .att-more{font-size:11px;color:var(--dim);padding-top:2px;}
+
   .hst{padding:16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;min-height:0;}
   .hst.one{padding:9px 14px;}
   .hst.one .nrg-head{align-items:center;}

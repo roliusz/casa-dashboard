@@ -94,6 +94,9 @@ export const WIDGET_TYPES = {
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
   history:  { label: "History",     icon: "mdi:chart-line",       w: 2, h: 2, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
+  // Reports on the whole house rather than a chosen entity, so it asks for none.
+  attention: { label: "Needs attention", icon: "mdi:alert-circle-outline", w: 2, h: 3,
+              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [4, 2], [5, 2]] },
   // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
   // alongside `sizes` and clamps like any other shape.
   media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,
