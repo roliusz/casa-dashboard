@@ -1299,8 +1299,14 @@ function plainCard(ctx, c) {
   const d = String(e || "").split(".")[0];
   // Only something switchable can be "on" — a sensor reading "Not home" is not active, it is data.
   const on = ["switch", "input_boolean", "fan", "lock", "binary_sensor"].includes(d) && isOn(ctx, e);
+  // A reading that is a number is set like every other number on the dashboard — the speaker's
+  // volume, the light's percentage — with its unit alongside rather than as part of the words.
+  const num = s && s.state !== "" && Number.isFinite(Number(s.state)) ? Number(s.state) : null;
+  const unit = s?.attributes?.unit_of_measurement || "";
   const sub = s ? (d === "climate" ? `${s.attributes.current_temperature ?? "–"}° · ${cap(s.state)}`
-    : `${cap(s.state)}${s.attributes.unit_of_measurement ? " " + s.attributes.unit_of_measurement : ""}`) : "Not set";
+    : cap(s.state)) : "Not set";
+  const value = num === null ? "" : html`<div class="cmp-val">${round1(num)}${
+    unit ? html`<span>${unit}</span>` : ""}</div>`;
   return html`<div class="gcard plain ${on ? "on" : ""} ${c.type === "small" ? "one" : ""}"
       @click=${() => (["switch", "input_boolean", "fan", "lock"].includes(d)
         ? ctx.call("homeassistant", "toggle", { entity_id: e }) : ctx.more(e))}>
@@ -1308,9 +1314,11 @@ function plainCard(ctx, c) {
       ${stateIcon(ctx, e, "pl-ic", c.icon, "mdi:card-outline")}
       <div class="pl-meta">
         <div class="hl-name">${c.name || attr(ctx, e, "friendly_name") || e || "Not set"}</div>
-        ${c.type !== "small" ? html`<div class="hl-sub">${sub}</div>` : ""}
+        ${c.type !== "small" && num === null ? html`<div class="hl-sub">${sub}</div>` : ""}
       </div>
-      ${c.type === "small" ? html`<div class="hl-sub end">${sub}</div>` : ""}
+      ${num === null
+        ? (c.type === "small" ? html`<div class="hl-sub end">${sub}</div>` : "")
+        : value}
     </div>
   </div>`;
 }
@@ -1477,6 +1485,8 @@ export const cardStyles = `
   /* compact head, same shape as the light card: icon, name over status, value on the right */
   .cmp-head{display:flex;align-items:center;gap:11px;min-width:0;max-width:100%;width:100%;cursor:pointer;}
   .cmp-val{margin-left:auto;padding-left:9px;flex:none;font-size:19px;font-weight:600;}
+  /* The unit rides with the number, smaller and dimmer — never a word spaced away from it. */
+  .cmp-val span{font-size:12px;font-weight:600;color:var(--dim);margin-left:1px;}
   .clim2.heat .spk-ic,.clim-card.heat .spk-ic{color:var(--orange);}
   .clim2.cool .spk-ic,.clim-card.cool .spk-ic{color:#7db2ff;}
   .cc-head{display:flex;align-items:center;gap:11px;min-width:0;max-width:100%;width:100%;color:var(--dim);cursor:pointer;}
