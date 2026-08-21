@@ -1190,8 +1190,10 @@ export class CasaView extends LitElement {
   _condition(item) {
     const { mode, rules } = rulesOf(item);
     const save = (nextRules, nextMode = mode) => {
-      const live = nextRules.filter((r) => r?.entity);
-      item.conditions = live.length ? { mode: nextMode, rules: nextRules } : undefined;
+      // Kept whenever there is a row at all, empty or not — dropping the rules that had no entity
+      // yet meant a rule just added vanished before it could be filled in. An unfinished rule
+      // constrains nothing, so carrying one costs only itself.
+      item.conditions = nextRules.length ? { mode: nextMode, rules: nextRules } : undefined;
       item.visibleWhen = undefined;                  // migrated: the old field is no longer read
       this._emit();
     };
