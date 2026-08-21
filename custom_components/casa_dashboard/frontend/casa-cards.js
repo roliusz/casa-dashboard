@@ -148,10 +148,14 @@ function hoverPoint(ev, pts, at, y, unit, span) {
   // Placed after the text, so its measured width is the one being clamped — otherwise the label
   // hangs off the card at either end of the trace. Held a little short of the edge as well, so it
   // clears the card's rounded corner rather than sitting flush against it.
+  // offsetWidth, not the rect: the panel is scaled with `zoom`, so a rect is in scaled pixels
+  // while offsetWidth and the `left` being set here are in layout pixels. Mixing them let the
+  // label past the edge by exactly the scale factor.
+  const width = plot.offsetWidth;
   const half = tip.offsetWidth / 2;
-  const want = (x / 100) * box.width;
-  const lo = half + TIP_EDGE, hi = box.width - half - TIP_EDGE;
-  tip.style.left = `${lo > hi ? box.width / 2 : Math.max(lo, Math.min(hi, want))}px`;
+  const want = (x / 100) * width;
+  const lo = half + TIP_EDGE, hi = width - half - TIP_EDGE;
+  tip.style.left = `${lo > hi ? width / 2 : Math.max(lo, Math.min(hi, want))}px`;
 }
 const isOn = (ctx, e) => {
   const s = st(ctx, e);
