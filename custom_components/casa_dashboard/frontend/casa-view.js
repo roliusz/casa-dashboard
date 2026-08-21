@@ -24,6 +24,9 @@ const { renderCard, cardStyles, stateIcon, cap, domainIcon, WLABEL } = await imp
 /** How far a tab may lift off the row. The row reserves exactly this much, so nothing is clipped. */
 const TAB_LIFT_Y = 8;
 
+/** The box a widget preview is scaled into. */
+const PREVIEW_W = 196, PREVIEW_H = 104;
+
 /** Points a raw history is thinned to — more than a card is wide in pixels buys nothing. */
 const HISTORY_POINTS = 120;
 
@@ -51,6 +54,64 @@ const pastMiddle = (el, at, forward, axis = "y") => {
 };
 
 /** Below this the layout stacks: one section to a row, and no more than this many card columns. */
+/* --------------------------------------------------------------------------------------------
+ * A sample home, for the widget picker's previews.
+ *
+ * The previews are real cards, so they need something to show. Reading the user's own home would
+ * mean a preview that says "Pick a weather entity" for anyone who has none, and would fire a
+ * statistics or calendar fetch for every widget the moment the sheet opened. This is a small
+ * invented house instead: nothing is requested, and every widget looks like itself.
+ * ------------------------------------------------------------------------------------------ */
+const sampleState = (id, state, attributes = {}) => [id, { entity_id: id, state, attributes }];
+const SAMPLE_STATES = Object.fromEntries([
+  sampleState("weather.sample", "partlycloudy", { friendly_name: "Amsterdam", temperature: 20 }),
+  sampleState("climate.sample", "heat", { friendly_name: "Living Room", current_temperature: 21.4,
+    temperature: 22, min_temp: 7, max_temp: 30, hvac_action: "heating",
+    hvac_modes: ["off", "heat", "cool", "auto"] }),
+  sampleState("media_player.sample", "playing", { friendly_name: "Kitchen", media_title: "Nightcall",
+    media_artist: "Kavinsky", media_duration: 214, media_position: 71, volume_level: 0.4 }),
+  sampleState("sensor.sample_energy", "12.3", { friendly_name: "Energy", unit_of_measurement: "kWh" }),
+  sampleState("sensor.sample_humidity", "54", { friendly_name: "Humidity", unit_of_measurement: "%" }),
+  sampleState("todo.sample", "3", { friendly_name: "Shopping" }),
+  sampleState("calendar.sample", "on", { friendly_name: "Home" }),
+  sampleState("person.sample", "home", { friendly_name: "Alex" }),
+  sampleState("light.sample_a", "on", { friendly_name: "Kitchen", brightness: 200 }),
+  sampleState("light.sample_b", "on", { friendly_name: "Hallway", brightness: 120 }),
+  sampleState("light.sample_c", "off", { friendly_name: "Lamp" }),
+  sampleState("sensor.sample_battery", "12", { friendly_name: "Remote Battery", device_class: "battery" }),
+  sampleState("binary_sensor.sample_door", "on", { friendly_name: "Back Door", device_class: "door" }),
+  sampleState("scene.sample_night", "unknown", { friendly_name: "Night" }),
+  sampleState("scene.sample_morning", "unknown", { friendly_name: "Morning" }),
+  sampleState("script.sample_away", "off", { friendly_name: "Leaving" }),
+]);
+
+/** Which sample entity each widget should be pointed at. */
+const SAMPLE_FOR = {
+  weather: "weather.sample", climate: "climate.sample", media: "media_player.sample",
+  energy: "sensor.sample_energy", history: "sensor.sample_humidity", gauge: "sensor.sample_humidity",
+  todo: "todo.sample", calendar: "calendar.sample",
+};
+const SAMPLE_LIST = {
+  rooms: ["light.sample_a", "light.sample_b", "light.sample_c"],
+  counter: ["light.sample_a", "light.sample_b", "light.sample_c"],
+  climate: ["climate.sample"], todo: ["todo.sample"], calendar: ["calendar.sample"],
+  actions: ["scene.sample_night", "scene.sample_morning", "script.sample_away"],
+};
+
+const sampleSeries = (n, f) => Array.from({ length: n }, (_, i) => ({ ts: i, val: f(i) }));
+const SAMPLE_DATA = {
+  energy: sampleSeries(7, (i) => 8 + ((i * 5) % 9)),
+  history: sampleSeries(24, (i) => Math.round((54 + 6 * Math.sin(i / 3)) * 10) / 10),
+  forecast: ["rainy", "cloudy", "partlycloudy", "sunny", "sunny"].map((condition, i) => ({
+    condition, temperature: 19 + i, templow: 11 + i, datetime: `2026-01-0${i + 1}T12:00:00`,
+  })),
+  todo: [{ uid: "1", summary: "Milk" }, { uid: "2", summary: "Bread" }, { uid: "3", summary: "Coffee" }],
+  events: [
+    { id: "calendar.sample", summary: "Standup", allDay: false, start: new Date(0), at: 0 },
+    { id: "calendar.sample", summary: "Lunch with Sam", allDay: false, start: new Date(0), at: 1 },
+  ],
+};
+
 const STACK_W = 760;
 const STACK_COLS = 2;
 
@@ -1584,6 +1645,59 @@ export class CasaView extends LitElement {
   }
 
   /**
+   * A context for the picker's previews: the sample home in place of the real one, canned data in
+   * place of every fetch, and actions that do nothing — a preview must not turn a light off.
+   */
+  get _previewCtx() {
+    const stamped = (list) => list.map((e) => ({ ...e, start: new Date() }));
+    const live = this._ctx;
+    // Everything callable is stubbed out first, then the few that feed a preview are given canned
+    // data back. Listing what to disable would mean a card acting for real the day someone adds a
+    // context method and forgets this — inert by default, and only data is opted back in.
+    const inert = {};
+    for (const [k, v] of Object.entries(live)) if (typeof v === "function") inert[k] = () => {};
+    return {
+      ...live, ...inert,
+      hass: { ...(this.hass || {}), states: { ...(this.hass?.states || {}), ...SAMPLE_STATES },
+        callService: () => {}, callWS: async () => ({}) },
+      energy: () => SAMPLE_DATA.energy,
+      history: () => SAMPLE_DATA.history,
+      forecast: () => SAMPLE_DATA.forecast,
+      todo: () => SAMPLE_DATA.todo,
+      calendar: () => stamped(SAMPLE_DATA.events),
+    };
+  }
+
+  /** The sample card a widget is previewed as — a shape wide enough to show what it is. */
+  _sampleCard(kind) {
+    const t = WIDGET_TYPES[kind] || {};
+    const card = newWidget(kind);
+    const [h, w] = (t.sizes || []).find(([, ww]) => ww >= 2) || [t.h || 1, t.w || 1];
+    card.h = h; card.w = w;
+    card.entity = SAMPLE_FOR[kind] || "";
+    card.entities = SAMPLE_LIST[kind] || (SAMPLE_FOR[kind] ? [SAMPLE_FOR[kind]] : []);
+    if (kind === "heading" || kind === "greeting") card.name = WIDGET_TYPES[kind].label;
+    return card;
+  }
+
+  /** One widget, drawn as itself and scaled to fit the tile. */
+  _widgetTile(kind, meta, onPick) {
+    const card = this._sampleCard(kind);
+    const w = card.w * COL_W + (card.w - 1) * GRID_GAP;
+    const h = card.h * GRID_ROW + (card.h - 1) * GRID_GAP;
+    const scale = Math.min(PREVIEW_W / w, PREVIEW_H / h);
+    return html`<button class="wtile" @click=${onPick}>
+      <div class="wprev">
+        <div class="wprev-in" style="width:${w}px;height:${h}px;transform:scale(${scale});
+             margin-left:${(PREVIEW_W - w * scale) / 2}px;margin-top:${(PREVIEW_H - h * scale) / 2}px">
+          ${renderCard(this._previewCtx, card)}
+        </div>
+      </div>
+      <div class="wtile-t"><ha-icon icon=${meta.icon}></ha-icon>${meta.label}</div>
+    </button>`;
+  }
+
+  /**
    * Pick an entity on or off. Picking one off also unpins it, so it stays where it fell instead of
    * springing back to the top the moment it is picked again.
    */
@@ -1654,8 +1768,8 @@ export class CasaView extends LitElement {
       return html`<div class="scrim" @click=${close}><div class="sheet" @click=${(e) => e.stopPropagation()}>
         <div class="sh-t">Add a card</div>
         ${this._pickTabs()}
-        <div class="chips wrap">${Object.entries(WIDGET_TYPES).map(([k, v]) => html`
-          <button class="chip" @click=${() => {
+        <div class="wgrid">${Object.entries(WIDGET_TYPES).map(([k, v]) =>
+          this._widgetTile(k, v, () => {
             const sec = this._cur.sections?.[si];
             if (!sec) return;
             const card = clampCard(newWidget(k), sec.cols);
@@ -1664,8 +1778,9 @@ export class CasaView extends LitElement {
             sec.cards.push(card);
             compactCards(sec.cards, sec.cols, (n) => this._rows(n, sec.cols));
             close(); this._emit();
-          }}><ha-icon icon=${v.icon}></ha-icon> ${v.label}</button>`)}</div>
-        <div class="hint">A widget that needs an entity asks for it in its own settings.</div>
+          }))}</div>
+        <div class="hint">Previews use a sample home. A widget that needs an entity asks for it in
+          its own settings.</div>
       </div></div>`;
     return html`<div class="scrim" @click=${close}><div class="sheet tall" @click=${(e) => e.stopPropagation()}>
       <div class="sh-t">${mode === "auto" ? "Choose entities — they'll be grouped automatically"
@@ -2012,6 +2127,20 @@ export class CasaView extends LitElement {
     .f input,.search{width:100%;box-sizing:border-box;padding:9px 11px;border-radius:10px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.14));background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:13px;}
     .chips{display:flex;gap:6px;flex-wrap:wrap;}
+
+    /* The widget picker: each one drawn as itself rather than named on a button. */
+    .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+    .wtile{padding:0;border:1px solid var(--cardBorder,rgba(255,255,255,.14));border-radius:16px;
+      background:rgba(255,255,255,.04);color:inherit;font:inherit;cursor:pointer;overflow:hidden;
+      text-align:left;transition:background .15s,border-color .15s;}
+    .wtile:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.28);}
+    /* Inert: the tile is the control, and a preview must not toggle what it draws. */
+    .wprev{height:104px;overflow:hidden;pointer-events:none;
+      background:radial-gradient(120% 120% at 30% 0%,rgba(255,255,255,.06),transparent 70%);}
+    .wprev-in{transform-origin:top left;}
+    .wtile-t{display:flex;align-items:center;gap:7px;padding:9px 12px;font-size:12.5px;
+      font-weight:600;border-top:1px solid var(--cardBorder,rgba(255,255,255,.12));}
+    .wtile-t ha-icon{--mdc-icon-size:16px;color:var(--dim,rgba(235,235,245,.6));}
     .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:11px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.14));background:var(--chip,rgba(255,255,255,.09));
       color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
