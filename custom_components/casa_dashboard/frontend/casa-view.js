@@ -1021,7 +1021,8 @@ export class CasaView extends LitElement {
         ${renderCard(this._ctx, c)}
         ${this.editing ? html`<div class="edit-veil"></div>` : ""}
         ${this.editing ? html`
-          <button class="pencil" @click=${(e) => { e.stopPropagation(); this._insp = { kind: "card", si, ci }; }}>
+          <button class="pencil" @click=${(e) => {
+            e.stopPropagation(); this._insp = { kind: "card", si, ci: this._storedIdx(si, c, auto) }; }}>
             <ha-icon icon="mdi:pencil"></ha-icon></button>` : ""}
       </div>`;
   }
@@ -1162,6 +1163,18 @@ export class CasaView extends LitElement {
    * The cards a section draws. Editing works on the real ones so a drag writes where it should —
    * except when stacked, where they would not fit the narrower grid and are packed into copies.
    */
+  /**
+   * Where a card sits in the stored list. On a phone the cards are re-flowed into fewer columns,
+   * so the order they are drawn in is not the order they are kept in — an index taken from the
+   * screen would open a different card's settings.
+   */
+  _storedIdx(si, card, auto) {
+    const list = (auto ? this._secs?.[si] : this._cur.sections?.[si])?.cards || [];
+    const key = card.id || card.entity;
+    const at = list.findIndex((k) => (k.id || k.entity) === key);
+    return at >= 0 ? at : 0;
+  }
+
   _laid(sec) {
     return this.editing && !this._stacked ? sec.cards : this._shown(sec);
   }
