@@ -59,6 +59,19 @@ class CasaPanel extends LitElement {
     this._loaded = false;
   }
 
+  /**
+   * Lovelace calls this on a card. Being a card as well as a panel is what lets someone make this
+   * their default dashboard: Home Assistant's default-dashboard setting — and the companion app's
+   * — only ever lists Lovelace dashboards, never a custom panel like the sidebar entry.
+   *
+   * There is nothing to configure: the layout lives in the integration's own storage, the same one
+   * the panel reads, so both show the same dashboard and editing either edits both.
+   */
+  setConfig(config) { this._cardConfig = config || {}; }
+
+  /** Tall: it is meant to be the only card in a panel view. */
+  getCardSize() { return 100; }
+
   connectedCallback() {
     super.connectedCallback();
     // The same width the view stacks at, so the scale and the two-column layout switch together.
@@ -250,3 +263,13 @@ class CasaPanel extends LitElement {
 }
 
 if (!customElements.get("casa-panel")) customElements.define("casa-panel", CasaPanel);
+
+// Show up in Lovelace's own card picker, so it can be added without knowing the type by heart.
+window.customCards = window.customCards || [];
+if (!window.customCards.some((c) => c.type === "casa-panel"))
+  window.customCards.push({
+    type: "casa-panel",
+    name: "Casa Dashboard",
+    description: "The whole dashboard as a card — put it in a panel view to use it as your default.",
+    preview: false,
+  });
