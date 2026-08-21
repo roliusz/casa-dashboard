@@ -32,19 +32,20 @@ export const SCALES = [
   { v: 1.15, label: "1.15×" },
 ];
 
+// Where this module was served from, so the wallpapers resolve wherever the integration is
+// mounted rather than against a path written down twice.
+const ASSETS = new URL(".", import.meta.url).href;
+
 /**
- * Built-in wallpapers. Gradients rather than photographs: nothing to download, nothing to license,
- * sharp at any size, and they suit glass better than a busy image does. The first is the default,
- * and its value is "" so a dashboard that has never chosen one already has it.
+ * The wallpapers that ship with the integration. Dusk keeps the empty value, so a dashboard that
+ * has never chosen one is already on it.
  */
 export const WALLPAPERS = [
-  { name: "Dusk",     value: "",        css: "radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014)" },
-  { name: "Midnight", value: "midnight", css: "radial-gradient(120% 90% at 30% 0%,#1b2430,#111820 45%,#06080b)" },
-  { name: "Taupe",    value: "taupe",   css: "radial-gradient(120% 90% at 70% 10%,#3b3630,#2a2724 45%,#17150f)" },
-  { name: "Aurora",   value: "aurora",  css: "radial-gradient(120% 90% at 20% 10%,#1d3b3a,#172a33 45%,#0a1116)" },
-  { name: "Sunset",   value: "sunset",  css: "radial-gradient(120% 90% at 80% 15%,#4a2f36,#2b2029 45%,#120c11)" },
-  { name: "Slate",    value: "slate",   css: "radial-gradient(120% 90% at 50% 0%,#333b44,#232a31 45%,#0e1216)" },
-];
+  { name: "Dusk",   value: "",       file: "wallpapers/dusk.jpg" },
+  { name: "Taupe",  value: "taupe",  file: "wallpapers/taupe.jpg" },
+  { name: "Aurora", value: "aurora", file: "wallpapers/aurora.jpg" },
+  { name: "Sunset", value: "sunset", file: "wallpapers/sunset.jpg" },
+].map((w) => ({ ...w, css: `url('${ASSETS}${w.file}')` }));
 
 /** A wallpaper the user typed, rather than one of the presets above. */
 const isUrl = (v) => !!v && !WALLPAPERS.some((w) => w.value === v);
@@ -284,7 +285,8 @@ class CasaPanel extends LitElement {
     .seg-b.on{color:#0e1620;font-weight:600;}
     .wps{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
     .wp{position:relative;height:54px;border-radius:12px;cursor:pointer;padding:0;overflow:hidden;
-      border:1px solid var(--cardBorder);background:var(--sw);color:#fff;font:inherit;font-size:11px;}
+      border:1px solid var(--cardBorder);background:var(--sw) center/cover no-repeat;
+      color:#fff;font:inherit;font-size:11px;}
     .wp span{position:absolute;left:0;right:0;bottom:0;padding:3px 0 4px;
       background:linear-gradient(transparent,rgba(0,0,0,.55));}
     .wp.on{border-color:#fff;box-shadow:0 0 0 1px #fff inset;}
