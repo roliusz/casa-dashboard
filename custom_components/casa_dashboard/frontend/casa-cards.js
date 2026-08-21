@@ -825,29 +825,31 @@ function widgetCard(ctx, c) {
       const span = max - min;
       const pct = ok && span > 0 ? Math.max(0, Math.min(1, (v - min) / span)) : 0;
       const TICKS = 33;
-      // A half circle is as tall as it is wide, which a two row card has to squash. Sweep a
-      // shallower arc there instead, so the dial spreads across the card rather than down it.
-      const half = (c.h || 3) <= 2 ? Math.PI / 3 : Math.PI / 2;
+      // An arc that filled a two row card's width would need a sweep so shallow it reads as a bent
+      // line. A short card gets a straight run of ticks instead — the same reading, in a shape
+      // that suits the space.
+      const flat = (c.h || 3) <= 2;
       const R = 96;
-      // Drawn in a viewBox rather than placed in pixels, so one gauge fits every card size. The
-      // box is the arc's own bounds, so a flatter sweep is a wider, shorter drawing.
-      const view = `${100 - R * Math.sin(half)} ${100 - R} ${2 * R * Math.sin(half)} ${R - R * Math.cos(half)}`;
+      const lit = (i) => ok && i / (TICKS - 1) <= pct;
+      // Drawn in a viewBox rather than placed in pixels, so one gauge fits every card size.
       const marks = Array.from({ length: TICKS }, (_, i) => {
-        const t = i / (TICKS - 1);
-        const ang = Math.PI / 2 + half - t * 2 * half;      // left end round to right end
+        const ang = Math.PI * (1 - i / (TICKS - 1));        // left round to right
         const x = (r) => 100 + Math.cos(ang) * r;
         const y = (r) => 100 - Math.sin(ang) * r;
-        const on = ok && t <= pct;
-        return svg`<line class="gg-t ${on ? "on" : ""}"
+        return svg`<line class="gg-t ${lit(i) ? "on" : ""}"
           x1=${x(78)} y1=${y(78)} x2=${x(96)} y2=${y(96)}></line>`;
       });
-      return html`<div class="gcard gg ${(c.w || 1) === 1 ? "narrow" : ""}" @click=${() => ctx.more(e)}>
+      return html`<div class="gcard gg ${(c.w || 1) === 1 ? "narrow" : ""} ${flat ? "flat" : ""}"
+          @click=${() => ctx.more(e)}>
         <div class="nrg-head"><div class="nrg-meta">
           <span class="hl-name">${c.name || a.friendly_name || e}</span>
           <span class="hl-sub">${round1(min)}–${round1(max)}${unitGap(unit)}${unit}</span>
         </div><span class="cc-cur">${ok ? round1(v) : "–"}<span class="gg-u">${unit}</span></span></div>
         <div class="gg-dial">
-          <svg viewBox=${view} preserveAspectRatio="xMidYMax meet">${marks}</svg>
+          ${flat
+            ? html`<div class="gg-bar">${Array.from({ length: TICKS }, (_, i) =>
+                html`<span class="gg-b ${lit(i) ? "on" : ""}"></span>`)}</div>`
+            : html`<svg viewBox="4 4 192 96" preserveAspectRatio="xMidYMax meet">${marks}</svg>`}
         </div>
       </div>`;
     }
@@ -1645,9 +1647,16 @@ export const cardStyles = `
   .gg{padding:12px 16px;display:flex;flex-direction:column;gap:6px;min-height:0;overflow:hidden;
     cursor:pointer;}
   .gg-dial{flex:1;min-height:0;display:flex;align-items:flex-end;justify-content:center;}
+  .gg.flat .gg-dial{align-items:center;}
   .gg-dial svg{width:100%;height:100%;}
   .gg-t{stroke:rgba(255,255,255,.18);stroke-width:3.4;stroke-linecap:round;}
   .gg-t.on{stroke:var(--green,#62D621);filter:drop-shadow(0 0 5px rgba(98,214,33,.55));}
+  /* The straight run: each tick takes an equal share of the width, so it fills the card however
+     wide it is, and the height is whatever the dial has left. */
+  .gg-bar{display:flex;align-items:stretch;gap:clamp(2px,1.2%,7px);width:100%;height:100%;
+    min-height:0;max-height:44px;}
+  .gg-b{flex:1;min-width:0;border-radius:3px;background:rgba(255,255,255,.18);}
+  .gg-b.on{background:var(--green,#62D621);box-shadow:0 0 6px rgba(98,214,33,.5);}
   /* The shared reading style shrinks and hides its overflow, which sliced the last pixel off the
      unit. Here it is the only thing on its side of the header, so let it take the width it needs. */
   .gg .cc-cur{flex:none;overflow:visible;}
