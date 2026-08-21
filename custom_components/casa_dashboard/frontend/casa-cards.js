@@ -1251,7 +1251,10 @@ function widgetCard(ctx, c) {
       const yest = n > 1 ? bars[n - 2].val : 0;
       const scale = Math.max(today, yest, 1);
       const pct = Math.max(0, Math.min(1, today / scale)) * 100;
-      const refPct = yest > 0 && today > yest ? (yest / scale) * 100 : null;
+      // Shown whichever way the comparison falls. It used to appear only when today was the
+      // larger, so the marker vanished on exactly the days worth noticing — the ones using less
+      // than yesterday, where it sits at the far end of the bar.
+      const refPct = yest > 0 ? (yest / scale) * 100 : null;
       return html`<div class="gcard nrg ${rows === 1 ? "one" : ""}" @click=${() => ctx.more(c.entity)}>
         <div class="nrg-head">
           <div class="nrg-meta">
@@ -1273,7 +1276,8 @@ function widgetCard(ctx, c) {
             <div class="ruler">${Array.from({ length: 44 }, (_, i) =>
               html`<span class="rk ${i % 5 === 0 ? "lg" : ""}"></span>`)}</div>
             <div class="g-lbls"><span>Today · ${today.toFixed(1)} ${unit}</span>
-              ${refPct != null ? html`<span class="g-ref-lbl" style="left:${refPct}%">${yest.toFixed(1)} ${unit}</span>` : ""}
+              ${refPct != null ? html`<span class="g-ref-lbl ${refPct > 60 ? "end" : ""}"
+                style="left:${refPct}%">${yest.toFixed(1)} ${unit}</span>` : ""}
             </div>
           </div>` : ""}
 
@@ -1626,6 +1630,8 @@ export const cardStyles = `
   .g-lbls{position:relative;display:flex;justify-content:space-between;margin-top:5px;
     font-size:11px;color:var(--dim);}
   .g-ref-lbl{position:absolute;transform:translateX(-50%);font-size:11px;color:var(--dim);white-space:nowrap;}
+  /* Near the right end there is no room to centre on the mark without leaving the card. */
+  .g-ref-lbl.end{transform:translateX(-100%);}
 
   /* History: the same header as the energy card, with the trace taking whatever is left. The plot
      is drawn in a 0..100 box and stretched, so one path serves every card size. */
