@@ -48,6 +48,30 @@ Home Assistant **2024.11** or newer.
 **Casa** appears in the sidebar. There is nothing to add to `configuration.yaml` and nothing to
 copy into `www/`.
 
+## Opening Casa by default
+
+Home Assistant's default-dashboard setting only offers *dashboards*, and Casa is a *panel* — a
+sidebar entry — so it will not appear in that list. To land on Casa when you open Home Assistant
+or the companion app, wrap it in a dashboard of its own. It takes a minute, once.
+
+1. **Settings → Dashboards → + Add dashboard → New dashboard from scratch.** Call it `Casa`, and
+   turn **Show in sidebar** off — the integration already puts Casa there.
+2. Open the new dashboard, then **✏️ → ⋮ → Raw configuration editor**.
+3. Replace everything in it with:
+
+   ```yaml
+   views:
+     - type: panel
+       title: Casa
+       cards:
+         - type: custom:casa-panel
+   ```
+
+4. **Save**, then **Settings → Dashboards → ⋮** on that row → **Set as default**.
+
+The default is stored per user, so everyone in the house sets their own — and each can choose
+something different.
+
 ## Using the editor
 
 | | |
