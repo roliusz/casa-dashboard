@@ -26,6 +26,3 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
-          # The action reads the repository through the API rather than the checkout, so on a
-          # private repository it needs a token or it sees no files at all.
-          github_token: ${{ secrets.GITHUB_TOKEN }}
