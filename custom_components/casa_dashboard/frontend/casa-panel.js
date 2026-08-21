@@ -104,6 +104,14 @@ class CasaPanel extends LitElement {
   }
 
   /**
+   * Home Assistant sets `narrow` on a panel, but nothing sets it on a card — so on a wrapper
+   * dashboard it stayed undefined and everything was judged as though it were a desktop: a tab or
+   * card marked mobile-only was hidden even on a phone. Fall back to the width the layout stacks
+   * at, which is the same query the scale and the two-column grid already use.
+   */
+  get _narrow() { return this.narrow ?? !!this._mq?.matches; }
+
+  /**
    * A phone caps the grid at two columns, and at full size those columns are squeezed well under
    * the width the cards are drawn for — everything inside them ends up cramped. Shrinking the
    * whole view buys the columns back that width, so cards sit closer to their intended shape.
@@ -219,7 +227,7 @@ class CasaPanel extends LitElement {
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
-        <casa-view style=${`zoom:${this._scale}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this.narrow}
+        <casa-view style=${`zoom:${this._scale}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this._narrow}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}
           @toggle-edit=${() => (this._edit = !this._edit)}
           @open-settings=${() => (this._showSettings = true)}></casa-view>
