@@ -32,6 +32,23 @@ export const SCALES = [
   { v: 1.15, label: "1.15×" },
 ];
 
+/**
+ * Built-in wallpapers. Gradients rather than photographs: nothing to download, nothing to license,
+ * sharp at any size, and they suit glass better than a busy image does. The first is the default,
+ * and its value is "" so a dashboard that has never chosen one already has it.
+ */
+export const WALLPAPERS = [
+  { name: "Dusk",     value: "",        css: "radial-gradient(120% 90% at 70% 10%,#26323d,#161d24 45%,#0b1014)" },
+  { name: "Midnight", value: "midnight", css: "radial-gradient(120% 90% at 30% 0%,#1b2430,#111820 45%,#06080b)" },
+  { name: "Taupe",    value: "taupe",   css: "radial-gradient(120% 90% at 70% 10%,#3b3630,#2a2724 45%,#17150f)" },
+  { name: "Aurora",   value: "aurora",  css: "radial-gradient(120% 90% at 20% 10%,#1d3b3a,#172a33 45%,#0a1116)" },
+  { name: "Sunset",   value: "sunset",  css: "radial-gradient(120% 90% at 80% 15%,#4a2f36,#2b2029 45%,#120c11)" },
+  { name: "Slate",    value: "slate",   css: "radial-gradient(120% 90% at 50% 0%,#333b44,#232a31 45%,#0e1216)" },
+];
+
+/** A wallpaper the user typed, rather than one of the presets above. */
+const isUrl = (v) => !!v && !WALLPAPERS.some((w) => w.value === v);
+
 const DEFAULT_SETTINGS = {
   wallpaper: "",                     // image url; blank = the built-in gradient
   title: "Casa",
@@ -172,9 +189,18 @@ class CasaPanel extends LitElement {
             <div class="hint">Draws the whole dashboard larger — useful on a wall panel across the room.</div>
           </div>`;
         })()}
-        <div class="f"><label>Wallpaper URL</label>
-          <input placeholder="/local/my-wallpaper.jpg — blank for the default"
-            .value=${this._settings.wallpaper || ""} @change=${(e) => this._setSetting("wallpaper", e.target.value)}>
+        <div class="f"><label>Wallpaper</label>
+          <div class="wps">
+            ${WALLPAPERS.map((w) => html`
+              <button class="wp ${(this._settings.wallpaper || "") === w.value ? "on" : ""}"
+                title=${w.name} style=${`--sw:${w.css}`}
+                @click=${() => this._setSetting("wallpaper", w.value)}>
+                <span>${w.name}</span></button>`)}
+          </div></div>
+        <div class="f"><label>…or your own image</label>
+          <input placeholder="/local/my-wallpaper.jpg"
+            .value=${isUrl(this._settings.wallpaper) ? this._settings.wallpaper : ""}
+            @change=${(e) => this._setSetting("wallpaper", e.target.value)}>
           <div class="hint">Any image Home Assistant serves, e.g. something you've put in <code>/config/www</code>.</div></div>
         <button class="mini danger wide" @click=${() => {
           if (!confirm("Clear the whole dashboard and start again?")) return;
@@ -186,8 +212,9 @@ class CasaPanel extends LitElement {
   render() {
     if (!this._loaded) return html`<div class="shell"><div class="loading">Loading…</div></div>`;
     const wp = this._settings.wallpaper;
+    const preset = WALLPAPERS.find((w) => w.value === wp);
     return html`
-      <div class="shell" style=${wp ? `--wp:url('${wp}')` : ""}>
+      <div class="shell" style=${preset ? `--wp:${preset.css}` : wp ? `--wp:url('${wp}')` : ""}>
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
@@ -255,6 +282,12 @@ class CasaPanel extends LitElement {
       color:var(--dim);cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:500;
       transition:color .2s;}
     .seg-b.on{color:#0e1620;font-weight:600;}
+    .wps{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
+    .wp{position:relative;height:54px;border-radius:12px;cursor:pointer;padding:0;overflow:hidden;
+      border:1px solid var(--cardBorder);background:var(--sw);color:#fff;font:inherit;font-size:11px;}
+    .wp span{position:absolute;left:0;right:0;bottom:0;padding:3px 0 4px;
+      background:linear-gradient(transparent,rgba(0,0,0,.55));}
+    .wp.on{border-color:#fff;box-shadow:0 0 0 1px #fff inset;}
     .mini{padding:9px 14px;border-radius:11px;border:1px solid var(--cardBorder);background:var(--chip);
       color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
     .mini.danger{color:#ff8a80;} .mini.wide{width:100%;}
