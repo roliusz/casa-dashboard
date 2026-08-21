@@ -825,10 +825,16 @@ function widgetCard(ctx, c) {
       const span = max - min;
       const pct = ok && span > 0 ? Math.max(0, Math.min(1, (v - min) / span)) : 0;
       const TICKS = 33;
-      // Drawn in a viewBox rather than placed in pixels, so one gauge fits every card size.
+      // A half circle is as tall as it is wide, which a two row card has to squash. Sweep a
+      // shallower arc there instead, so the dial spreads across the card rather than down it.
+      const half = (c.h || 3) <= 2 ? Math.PI / 3 : Math.PI / 2;
+      const R = 96;
+      // Drawn in a viewBox rather than placed in pixels, so one gauge fits every card size. The
+      // box is the arc's own bounds, so a flatter sweep is a wider, shorter drawing.
+      const view = `${100 - R * Math.sin(half)} ${100 - R} ${2 * R * Math.sin(half)} ${R - R * Math.cos(half)}`;
       const marks = Array.from({ length: TICKS }, (_, i) => {
         const t = i / (TICKS - 1);
-        const ang = Math.PI * (1 - t);                      // left round to right
+        const ang = Math.PI / 2 + half - t * 2 * half;      // left end round to right end
         const x = (r) => 100 + Math.cos(ang) * r;
         const y = (r) => 100 - Math.sin(ang) * r;
         const on = ok && t <= pct;
@@ -841,7 +847,7 @@ function widgetCard(ctx, c) {
           <span class="hl-sub">${round1(min)}–${round1(max)}${unitGap(unit)}${unit}</span>
         </div><span class="cc-cur">${ok ? round1(v) : "–"}<span class="gg-u">${unit}</span></span></div>
         <div class="gg-dial">
-          <svg viewBox="0 0 200 104" preserveAspectRatio="xMidYMax meet">${marks}</svg>
+          <svg viewBox=${view} preserveAspectRatio="xMidYMax meet">${marks}</svg>
         </div>
       </div>`;
     }
