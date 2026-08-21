@@ -81,16 +81,20 @@ export const WIDGET_TYPES = {
   people:   { label: "People",   icon: "mdi:account-group",         w: 1, h: 1 },
   weather:  { label: "Weather",  icon: "mdi:weather-partly-cloudy", w: 1, h: 1, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 2], [3, 3]] },
+  // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
+  // alongside `sizes` and clamps like any other shape.
+  media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,
+              domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 6 } },
+  climate:  { label: "Climate",     icon: "mdi:thermostat",       w: 2, h: 3, needsEntities: true,
+              domain: "climate", sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
+  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
+              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
   spacer:   { label: "Spacer",   icon: "mdi:arrow-expand-vertical", w: 1, h: 1 },
 
   // These take a list of entities the user picks, rather than one.
   rooms:    { label: "Switch",      icon: "mdi:lightbulb-group",  w: 1, h: 1, needsEntities: true,
               sizes: [[1, 1], [1, 2], [1, 3]] },
   counter:  { label: "Counter",     icon: "mdi:counter",          w: 1, h: 2, needsEntities: true,
-              sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
-  climate:  { label: "Climate",     icon: "mdi:thermostat",       w: 2, h: 3, needsEntities: true,
-              domain: "climate", sizes: [[2, 1], [3, 2], [3, 3], [4, 2], [4, 3]] },
-  energy:   { label: "Energy",      icon: "mdi:lightning-bolt",   w: 2, h: 3, needsEntity: true,
               sizes: [[1, 1], [2, 1], [3, 1], [3, 2], [3, 3]] },
   // No single row: a trace needs height to say anything, and one row leaves none for it.
   history:  { label: "History",     icon: "mdi:chart-line",       w: 2, h: 2, needsEntity: true,
@@ -112,10 +116,6 @@ export const WIDGET_TYPES = {
   // Reports on the whole house rather than a chosen entity, so it asks for none.
   attention: { label: "Needs attention", icon: "mdi:alert-circle-outline", w: 2, h: 3,
               sizes: [[1, 1], [2, 1], [2, 2], [2, 3], [3, 1], [3, 2], [3, 3]] },
-  // `full` is a size whose width is whatever the section is, so it always spans it. It is offered
-  // alongside `sizes` and clamps like any other shape.
-  media:    { label: "Media",       icon: "mdi:play-circle",      w: 2, h: 2, needsEntity: true,
-              domain: "media_player", sizes: [[2, 1], [2, 2], [3, 1], [3, 2], [3, 3]], full: { h: 6 } },
 };
 
 /** Full spans the section; these bound the height the user may give it. */
