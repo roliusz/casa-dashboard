@@ -55,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path=PANEL_URL_PATH,
-        webcomponent_name="casa-panel",
+        webcomponent_name="casa-dashboard-panel",
         module_url=f"{URL_BASE}/casa-panel.js?v={version}",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
@@ -64,7 +64,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # The panel loads its own module, but a Lovelace *card* only exists if the module is loaded
-    # into the dashboard — without this, `type: custom:casa-panel` is a Configuration error. This
+    # into the dashboard — without this, `type: custom:casa-dashboard-panel` is a Configuration error. This
     # is what lets Casa be wrapped in a dashboard and set as someone's default.
     module_url = f"{URL_BASE}/casa-panel.js?v={version}"
     hass.data[DOMAIN]["module_url"] = module_url

@@ -305,7 +305,10 @@ class CasaPanel extends LitElement {
   `;
 }
 
-if (!customElements.get("casa-panel")) customElements.define("casa-panel", CasaPanel);
+// Named for the integration, not the generic word: "casa-panel" is short enough that another
+// dashboard could define it too, and whichever script loaded first would silently win.
+if (!customElements.get("casa-dashboard-panel"))
+  customElements.define("casa-dashboard-panel", CasaPanel);
 
 // Show up in Lovelace's own card picker, so it can be added without knowing the type by heart.
 window.customCards = window.customCards || [];

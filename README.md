@@ -64,7 +64,7 @@ or the companion app, wrap it in a dashboard of its own. It takes a minute, once
      - type: panel
        title: Casa
        cards:
-         - type: custom:casa-panel
+         - type: custom:casa-dashboard-panel
    ```
 
 4. **Save**, then **Settings → Dashboards → ⋮** on that row → **Set as default**.
@@ -96,7 +96,7 @@ views:
   - type: panel
     title: Casa
     cards:
-      - type: custom:casa-panel
+      - type: custom:casa-dashboard-panel
 ```
 
 …or per URL, which needs no configuration at all — useful for a Fully Kiosk start URL, a bookmark
