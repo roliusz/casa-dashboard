@@ -12,7 +12,6 @@ WebSocket API used by the panel:
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import voluptuous as vol
@@ -23,7 +22,6 @@ from homeassistant.components import panel_custom, websocket_api
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.storage import Store
 from homeassistant.loader import async_get_integration
 
@@ -36,11 +34,6 @@ from .const import (
     STORAGE_VERSION,
     URL_BASE,
 )
-
-_LOGGER = logging.getLogger(__name__)
-
-# The Lovelace dashboard created alongside the panel, so Casa can be a default dashboard.
-DASHBOARD_URL_PATH = "casa-dashboard"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -72,9 +65,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     websocket_api.async_register_command(hass, websocket_get_config)
     websocket_api.async_register_command(hass, websocket_set_config)
-
-    # Lovelace is set up before us in practice, but wait for the start signal rather than assume it.
-    async_at_started(hass, _async_ensure_dashboard)
     return True
 
 
@@ -85,74 +75,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     frontend.async_remove_panel(hass, PANEL_URL_PATH)
     hass.data[DOMAIN] = {"view": hass.data.get(DOMAIN, {}).get("view", False)}
     return True
-
-
-async def _async_ensure_dashboard(hass: HomeAssistant) -> None:
-    """
-    Create a Lovelace dashboard holding the card, so Casa can be chosen as a default dashboard.
-
-    Home Assistant's default-dashboard setting — and the companion app's — only ever lists Lovelace
-    dashboards, never a custom panel like our sidebar entry. Creating one on the user's behalf is
-    the difference between "open the app and you are there" and four steps in a README.
-
-    It is deliberately not set as anyone's default: that is stored per user, and an integration
-    that changes where Home Assistant opens for everyone, as a side effect of being installed, is
-    not one anybody asked for. The user picks it in their profile.
-
-    Lovelace's collection is not a public API, so every step is guarded: failing here must never
-    stop the panel itself from loading.
-    """
-    try:
-        from homeassistant.components.lovelace import dashboard as lovelace_dashboard
-
-        data = hass.data.get("lovelace")
-        collection = getattr(data, "dashboards_collection", None)
-        if collection is None and isinstance(data, dict):        # older Home Assistant
-            collection = data.get("dashboards_collection")
-        if collection is None:
-            return
-
-        if any(item.get("url_path") == DASHBOARD_URL_PATH for item in collection.async_items()):
-            return                                               # already there, or the user kept it
-
-        item = await collection.async_create_item(
-            {
-                "url_path": DASHBOARD_URL_PATH,
-                "title": PANEL_TITLE,
-                "icon": PANEL_ICON,
-                # The integration already puts Casa in the sidebar; a second entry for the same
-                # dashboard would only be something to explain.
-                "show_in_sidebar": False,
-                "require_admin": False,
-            }
-        )
-        # One card, filling the view — the card is the whole dashboard.
-        store = lovelace_dashboard.LovelaceStorage(hass, item)
-        await store.async_save(
-            {"views": [{"type": "panel", "title": PANEL_TITLE,
-                        "cards": [{"type": "custom:casa-panel"}]}]}
-        )
-        _LOGGER.info("Created the %s dashboard; pick it in your profile to open it by default",
-                     DASHBOARD_URL_PATH)
-    except Exception:                                            # noqa: BLE001 — never break setup
-        _LOGGER.debug("Could not create the Lovelace dashboard", exc_info=True)
-
-
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Take the dashboard away again — it was created by the integration, not by the user."""
-    try:
-        data = hass.data.get("lovelace")
-        collection = getattr(data, "dashboards_collection", None)
-        if collection is None and isinstance(data, dict):
-            collection = data.get("dashboards_collection")
-        if collection is None:
-            return
-        for item in collection.async_items():
-            if item.get("url_path") == DASHBOARD_URL_PATH:
-                await collection.async_delete_item(item["id"])
-                break
-    except Exception:                                            # noqa: BLE001
-        _LOGGER.debug("Could not remove the Lovelace dashboard", exc_info=True)
 
 
 class CasaFrontendView(HomeAssistantView):
