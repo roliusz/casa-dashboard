@@ -18,7 +18,7 @@ import voluptuous as vol
 
 from aiohttp import web
 
-from homeassistant.components import panel_custom, websocket_api
+from homeassistant.components import frontend, panel_custom, websocket_api
 from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -63,6 +63,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config={"casa": hass.data[DOMAIN]["config"]},
     )
 
+    # The panel loads its own module, but a Lovelace *card* only exists if the module is loaded
+    # into the dashboard — without this, `type: custom:casa-panel` is a Configuration error. This
+    # is what lets Casa be wrapped in a dashboard and set as someone's default.
+    module_url = f"{URL_BASE}/casa-panel.js?v={version}"
+    hass.data[DOMAIN]["module_url"] = module_url
+    frontend.add_extra_js_url(hass, module_url)
+
     websocket_api.async_register_command(hass, websocket_get_config)
     websocket_api.async_register_command(hass, websocket_set_config)
     return True
@@ -70,9 +77,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Remove the sidebar entry again when the integration is removed."""
-    from homeassistant.components import frontend
-
     frontend.async_remove_panel(hass, PANEL_URL_PATH)
+    if module_url := hass.data.get(DOMAIN, {}).get("module_url"):
+        frontend.remove_extra_js_url(hass, module_url)
     hass.data[DOMAIN] = {"view": hass.data.get(DOMAIN, {}).get("view", False)}
     return True
 
