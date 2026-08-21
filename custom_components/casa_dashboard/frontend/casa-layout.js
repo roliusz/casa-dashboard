@@ -380,17 +380,67 @@ export function clampCard(card, cols) {
 }
 
 /** Is this element shown on the current screen, and does its condition hold? */
+/** What a rule with no operator means: on, playing, open — anything but these. */
+const RESTING = ["off", "unavailable", "unknown", "idle"];
+
+/** The comparisons a rule may make. `needsValue` drives whether the editor asks for one. */
+export const CONDITION_OPS = {
+  active:  { label: "is active",     needsValue: false },
+  idle:    { label: "is not active", needsValue: false },
+  is:      { label: "is",            needsValue: true },
+  not:     { label: "is not",        needsValue: true },
+  above:   { label: "is above",      needsValue: true, numeric: true },
+  below:   { label: "is below",      needsValue: true, numeric: true },
+};
+
+/** Read what a rule is about: an entity's state, or one of its attributes. */
+function readRule(rule, hass) {
+  const st = hass?.states?.[rule?.entity];
+  if (!st) return undefined;
+  return rule.attribute ? st.attributes?.[rule.attribute] : st.state;
+}
+
+/** Does one rule hold right now? A rule pointing at nothing never does. */
+export function ruleHolds(rule, hass) {
+  if (!rule?.entity) return true;                    // an unfinished rule constrains nothing
+  const value = readRule(rule, hass);
+  if (value === undefined) return false;
+  const op = rule.op || "active";
+  const text = String(value);
+  switch (op) {
+    case "active": return !RESTING.includes(text);
+    case "idle":   return RESTING.includes(text);
+    case "above":  return Number(value) > Number(rule.value);
+    case "below":  return Number(value) < Number(rule.value);
+    // `value` may be one or several — any of them counts as a match.
+    case "not":    return ![].concat(rule.value ?? []).map(String).includes(text);
+    default:       return [].concat(rule.value ?? []).map(String).includes(text);
+  }
+}
+
+/**
+ * The rules on an item, in one shape. Dashboards saved before conditions could be combined carry
+ * a single `visibleWhen`, which is read as one rule so they keep working untouched.
+ */
+export function rulesOf(item) {
+  const c = item?.conditions;
+  if (c?.rules?.length) return { mode: c.mode === "any" ? "any" : "all", rules: c.rules };
+  const old = item?.visibleWhen;
+  if (!old?.entity) return { mode: "all", rules: [] };
+  const op = old.notState ? "not" : old.state ? "is" : "active";
+  return { mode: "all", rules: [{ entity: old.entity, op, value: old.notState ?? old.state }] };
+}
+
 export function isVisible(item, narrow, hass) {
   const show = item?.show;
   if (show && (narrow ? show.mobile === false : show.desktop === false)) return false;
-  const c = item?.visibleWhen;
-  if (!c?.entity) return true;
-  const st = hass?.states?.[c.entity];
-  if (!st) return false;
-  if (c.notState) return st.state !== c.notState;
-  // `state` may be one state or several — any of them counts as a match.
-  if (c.state) return (Array.isArray(c.state) ? c.state : [c.state]).includes(st.state);
-  return !["off", "unavailable", "unknown", "idle"].includes(st.state);   // "is active"
+  const { mode, rules } = rulesOf(item);
+  if (!rules.length) return true;
+  const live = rules.filter((r) => r?.entity);
+  if (!live.length) return true;
+  return mode === "any"
+    ? live.some((r) => ruleHolds(r, hass))
+    : live.every((r) => ruleHolds(r, hass));
 }
 
 /** Build the sections of an `auto` tab: chosen entities, grouped by what they are. */

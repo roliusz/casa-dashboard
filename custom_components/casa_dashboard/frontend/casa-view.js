@@ -16,7 +16,8 @@ const {
   areaOf, cardRows, statesFor, tileRows,
   WIDGET_TYPES, autoCategories, bothShown, categoryFor, clampCard, isVisible, newAutoTab, newCard, newPill, newSection,
   newWidget,
-  compactCards, newSidebarItem, newTab, placeNear, sectionsOf, starterLayout, typeAllowed,
+  compactCards, CONDITION_OPS, newSidebarItem, newTab, placeNear, rulesOf, sectionsOf,
+  starterLayout, typeAllowed,
 } = await import(`./casa-layout.js${V}`);
 const { renderCard, cardStyles, stateIcon, cap, domainIcon, WLABEL } = await import(`./casa-cards.js${V}`);
 
@@ -1182,30 +1183,75 @@ export class CasaView extends LitElement {
     </div>`;
   }
 
+  /**
+   * Conditions: any number of rules, combined with all or any. Reads dashboards saved with the
+   * single `visibleWhen` as one rule, and writes the new shape the moment anything is changed.
+   */
   _condition(item) {
-    const c = item.visibleWhen || {};
-    const put = (patch) => {
-      const next = { ...c, ...patch };
-      item.visibleWhen = next.entity ? next : undefined;
+    const { mode, rules } = rulesOf(item);
+    const save = (nextRules, nextMode = mode) => {
+      const live = nextRules.filter((r) => r?.entity);
+      item.conditions = live.length ? { mode: nextMode, rules: nextRules } : undefined;
+      item.visibleWhen = undefined;                  // migrated: the old field is no longer read
       this._emit();
     };
-    const states = c.entity ? statesFor(this.hass, c.entity) : [];
-    const picked = c.state == null ? [] : Array.isArray(c.state) ? c.state : [c.state];
-    return html`<div class="f"><label>Only show when (optional)</label>
-      ${this._entityField(c.entity, (v) => put({ entity: v }), `cond:${item.id}`)}
-      ${c.entity ? html`
+    const put = (i, patch) => save(rules.map((r, n) => (n === i ? { ...r, ...patch } : r)));
+
+    return html`<div class="f"><label>Conditions (optional)</label>
+      ${rules.length > 1 ? html`<div class="chips tight cond-mode">
+        ${[["all", "Match all"], ["any", "Match any"]].map(([k, label]) => html`
+          <button class="chip ${mode === k ? "on" : ""}"
+            @click=${() => save(rules, k)}>${label}</button>`)}
+      </div>` : ""}
+      ${rules.map((r, i) => this._conditionRow(item, r, i, put,
+        () => save(rules.filter((_, n) => n !== i))))}
+      <button class="mini add" @click=${() => save([...rules, { entity: "", op: "active" }])}>
+        <ha-icon icon="mdi:plus"></ha-icon> Add a condition</button>
+      <div class="hint">${!rules.length ? "With none it's always shown."
+        : mode === "any" ? "Shown when any one of these holds."
+        : "Shown only while all of these hold."}</div>
+    </div>`;
+  }
+
+  /** One rule: what to look at, how to compare it, and against what. */
+  _conditionRow(item, rule, i, put, remove) {
+    const op = rule.op || "active";
+    const spec = CONDITION_OPS[op] || CONDITION_OPS.active;
+    const st = rule.entity ? this._st(rule.entity) : null;
+    const attrs = Object.keys(st?.attributes || {})
+      .filter((k) => !["friendly_name", "icon", "entity_picture", "supported_features",
+                       "device_class", "hidden_by", "editable"].includes(k));
+    const states = rule.entity && !rule.attribute ? statesFor(this.hass, rule.entity) : [];
+    const picked = rule.value == null ? [] : [].concat(rule.value).map(String);
+    return html`<div class="cond">
+      <div class="cond-head">
+        ${this._entityField(rule.entity, (v) => put(i, { entity: v, attribute: "", value: undefined }),
+          `cond:${item.id}:${i}`)}
+        <button class="cond-x" title="Remove" @click=${remove}><ha-icon icon="mdi:close"></ha-icon></button>
+      </div>
+      ${rule.entity ? html`
+        ${attrs.length ? html`<select class="cond-sel"
+            @change=${(e) => put(i, { attribute: e.target.value, value: undefined })}>
+            <option value="" ?selected=${!rule.attribute}>State</option>
+            ${attrs.map((a) => html`<option value=${a} ?selected=${rule.attribute === a}>${a}</option>`)}
+          </select>` : ""}
         <div class="chips tight">
-          <button class="chip ${!c.state ? "on" : ""}" @click=${() => put({ state: undefined })}>Active</button>
-          ${states.map((v) => html`
-            <button class="chip ${picked.includes(v) ? "on" : ""}" @click=${() => {
-              const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
-              put({ state: next.length ? next : undefined });
-            }}>${v}</button>`)}
+          ${Object.entries(CONDITION_OPS).map(([k, v]) => html`
+            <button class="chip ${op === k ? "on" : ""}"
+              @click=${() => put(i, { op: k, value: CONDITION_OPS[k].needsValue ? rule.value : undefined })}
+              >${v.label}</button>`)}
         </div>
-        <div class="hint">${picked.length
-          ? `Shown while it is ${picked.map((v) => `"${v}"`).join(" or ")}.`
-          : "Shown whenever it is anything other than off, idle, unknown or unavailable."}</div>`
-        : html`<div class="hint">Left blank it's always shown.</div>`}
+        ${spec.needsValue ? (spec.numeric || rule.attribute || !states.length
+          ? html`<input class="cond-val" type=${spec.numeric ? "number" : "text"}
+              placeholder=${spec.numeric ? "number" : "value"} .value=${picked[0] ?? ""}
+              @change=${(e) => put(i, { value: e.target.value })}>`
+          : html`<div class="chips tight">
+              ${states.map((v) => html`
+                <button class="chip ${picked.includes(v) ? "on" : ""}" @click=${() => {
+                  const next = picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v];
+                  put(i, { value: next.length ? next : undefined });
+                }}>${v}</button>`)}
+            </div>`) : ""}` : ""}
     </div>`;
   }
 
@@ -1764,6 +1810,20 @@ export class CasaView extends LitElement {
     .acid{margin-left:auto;font-size:10.5px;color:var(--dim,rgba(235,235,245,.6));opacity:.6;flex:none;
       font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
     .chips.tight{margin-top:8px;}
+    /* A rule is a small stack of its own so several read as separate things, not one long form. */
+    .cond{border:1px solid var(--cardBorder,rgba(255,255,255,.12));border-radius:13px;
+      padding:9px;margin-bottom:7px;display:flex;flex-direction:column;gap:2px;
+      background:rgba(255,255,255,.03);}
+    .cond-head{display:flex;align-items:center;gap:7px;}
+    .cond-head .acwrap{flex:1;min-width:0;}
+    .cond-x{flex:none;width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;
+      background:var(--chip,rgba(255,255,255,.09));color:inherit;
+      display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:0;}
+    .cond-x ha-icon{--mdc-icon-size:14px;}
+    .cond-sel,.cond-val{width:100%;box-sizing:border-box;border-radius:10px;padding:7px 9px;
+      margin-top:8px;border:1px solid var(--cardBorder,rgba(255,255,255,.14));
+      background:rgba(0,0,0,.25);color:inherit;font:inherit;font-size:13px;}
+    .cond-mode{margin-top:0;margin-bottom:8px;}
     .hint{font-size:11px;color:var(--dim,rgba(235,235,245,.5));margin-top:5px;}
     .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-bottom:18px;}
     .pills.mob{display:none;}
