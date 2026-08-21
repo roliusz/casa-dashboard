@@ -1681,19 +1681,29 @@ export class CasaView extends LitElement {
   }
 
   /** One widget, drawn as itself and scaled to fit the tile. */
-  _widgetTile(kind, meta, onPick) {
+  _widgetTile(kind, meta, onPick, cols = TAB_COLS) {
     const card = this._sampleCard(kind);
     const w = card.w * COL_W + (card.w - 1) * GRID_GAP;
     const h = card.h * GRID_ROW + (card.h - 1) * GRID_GAP;
     const scale = Math.min(PREVIEW_W / w, PREVIEW_H / h);
+    // A transform does not change the element's layout box, so the card sits inside a wrapper the
+    // size it ends up drawn at. That is what the tile centres — the tile is as wide as its column,
+    // which is not something the scale can be worked out from.
     return html`<button class="wtile" @click=${onPick}>
+      <div class="wtile-t"><ha-icon icon=${meta.icon}></ha-icon>${meta.label}
+        <span class="wtile-n">${(() => {
+          // Counted for the section it is being added to, since Full is only offered where the
+          // section is wide enough to have one.
+          const n = widgetSizes(kind, cols).length;
+          return n ? `${n} size${n === 1 ? "" : "s"}` : "Any size";
+        })()}</span></div>
       <div class="wprev">
-        <div class="wprev-in" style="width:${w}px;height:${h}px;transform:scale(${scale});
-             margin-left:${(PREVIEW_W - w * scale) / 2}px;margin-top:${(PREVIEW_H - h * scale) / 2}px">
-          ${renderCard(this._previewCtx, card)}
+        <div class="wprev-fit" style="width:${w * scale}px;height:${h * scale}px">
+          <div class="wprev-in" style="width:${w}px;height:${h}px;transform:scale(${scale})">
+            ${renderCard(this._previewCtx, card)}
+          </div>
         </div>
       </div>
-      <div class="wtile-t"><ha-icon icon=${meta.icon}></ha-icon>${meta.label}</div>
     </button>`;
   }
 
@@ -1778,7 +1788,7 @@ export class CasaView extends LitElement {
             sec.cards.push(card);
             compactCards(sec.cards, sec.cols, (n) => this._rows(n, sec.cols));
             close(); this._emit();
-          }))}</div>
+          }, this._cur.sections?.[si]?.cols || TAB_COLS))}</div>
         <div class="hint">Previews use a sample home. A widget that needs an entity asks for it in
           its own settings.</div>
       </div></div>`;
@@ -2135,12 +2145,16 @@ export class CasaView extends LitElement {
       text-align:left;transition:background .15s,border-color .15s;}
     .wtile:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.28);}
     /* Inert: the tile is the control, and a preview must not toggle what it draws. */
-    .wprev{height:104px;overflow:hidden;pointer-events:none;
+    .wprev{height:104px;overflow:hidden;pointer-events:none;display:flex;
+      align-items:center;justify-content:center;
       background:radial-gradient(120% 120% at 30% 0%,rgba(255,255,255,.06),transparent 70%);}
-    .wprev-in{transform-origin:top left;}
+    .wprev-fit{position:relative;flex:none;}
+    .wprev-in{position:absolute;top:0;left:0;transform-origin:top left;}
     .wtile-t{display:flex;align-items:center;gap:7px;padding:9px 12px;font-size:12.5px;
-      font-weight:600;border-top:1px solid var(--cardBorder,rgba(255,255,255,.12));}
+      font-weight:600;border-bottom:1px solid var(--cardBorder,rgba(255,255,255,.12));}
     .wtile-t ha-icon{--mdc-icon-size:16px;color:var(--dim,rgba(235,235,245,.6));}
+    .wtile-n{margin-left:auto;padding-left:8px;font-size:11px;font-weight:500;
+      color:var(--dim,rgba(235,235,245,.6));white-space:nowrap;}
     .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:11px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.14));background:var(--chip,rgba(255,255,255,.09));
       color:inherit;font:inherit;font-size:12.5px;cursor:pointer;}
