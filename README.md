@@ -72,6 +72,48 @@ or the companion app, wrap it in a dashboard of its own. It takes a minute, once
 The default is stored per user, so everyone in the house sets their own — and each can choose
 something different.
 
+### Which one to point at
+
+|  | Home Assistant's toolbar | Can be the default dashboard |
+|---|---|---|
+| **`/casa`** — the sidebar entry | none, the panel fills the screen | no |
+| **the wrapper dashboard** | shown | yes |
+
+On a wall display, point the browser straight at `/casa` and there is no toolbar to hide. The
+wrapper only earns its place if you want Home Assistant to *open* on Casa.
+
+### Hiding the toolbar and sidebar
+
+Home Assistant has no setting for this, and Casa cannot do it from inside a card — the toolbar is
+not ours to remove. If you already use [kiosk-mode](https://github.com/NemesisRE/kiosk-mode), it
+can, either in the dashboard's raw configuration:
+
+```yaml
+kiosk_mode:
+  hide_header: true
+  hide_sidebar: true
+views:
+  - type: panel
+    title: Casa
+    cards:
+      - type: custom:casa-panel
+```
+
+…or per URL, which needs no configuration at all — useful for a Fully Kiosk start URL, a bookmark
+or a homescreen shortcut:
+
+```
+/dashboard-casa?hide_header&hide_sidebar
+```
+
+`?kiosk` is shorthand for both. Separate several with `&`, and only the first takes the `?`. Adding
+`&cache` makes the choice stick across dashboards on that device.
+
+Note that the default-dashboard setting stores a path and not a URL, so it cannot carry a query
+string — open the app that way and the toolbar returns. `kiosk_mode:` in the config is the one that
+survives, and it also takes `admin_settings`, `non_admin_settings`, `user_settings` and
+`mobile_settings` if you want the toolbar gone on the tablets but kept on your desktop.
+
 ## Using the editor
 
 | | |
