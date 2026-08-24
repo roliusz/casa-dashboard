@@ -2031,13 +2031,17 @@ export class CasaView extends LitElement {
 
     /* Entering edit mode: the pencils, the add buttons and the tab controls all appear at once.
        Letting them arrive rather than blink into place makes the change legible. */
-    @keyframes editIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:none;}}
+    /* Scale only, no fade. These controls are a translucent dark disc under a white glyph, so
+       fading one in shows the glyph long before the disc - it arrives white and darkens. Growing
+       it keeps it its own colour the whole way. */
+    @keyframes editIn{from{transform:scale(.55);}to{transform:none;}}
     /* backwards, not both: the start frame applies before the animation runs, so a control never
        paints at full size and then jumps back to animate in. After it finishes the element falls
        back to its own style, so a skipped animation costs the effect and not the control. */
     :host([editing]) .pencil,:host([editing]) .sec-pen,:host([editing]) .mini-pencil,
     :host([editing]) .tab.add,:host([editing]) .mini.add{
-      animation:editIn .32s cubic-bezier(.25,.9,.35,1) backwards;}
+      animation:editIn .3s cubic-bezier(.34,1.3,.5,1) backwards;}
+    :host([editing]) .pencil,:host([editing]) .mini-pencil{transform-origin:top right;}
     :host([editing]) .tab.add{animation-delay:.04s;}
     :host([editing]) .mini.add{animation-delay:.08s;}
     .mini-pencil{--mdc-icon-size:13px;margin-left:4px;opacity:.7;}
