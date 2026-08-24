@@ -2017,10 +2017,7 @@ export class CasaView extends LitElement {
     /* Columns are a fixed width, so the main column ends wherever its last column does and the
        leftover used to sit as dead space on the right. Let the sidebar take that up instead, so
        the dashboard finishes at the edge of the page. */
-    /* Grows into space the tab does not use, so the grid can finish at the edge of the page —
-       but only so far. At 480 a tab holding one narrow section handed the sidebar the rest of the
-       screen, and the media card in it became the largest thing on the dashboard. */
-    .side{flex:1 1 240px;min-width:240px;max-width:320px;display:flex;flex-direction:column;gap:6px;}
+    .side{flex:0 0 240px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
@@ -2068,7 +2065,11 @@ export class CasaView extends LitElement {
     .greet{font-size:26px;font-weight:600;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
-    .main{flex:0 1 auto;min-width:0;}
+    /* Full width, always. The pills and the tab row live in here, so sizing it to whatever the
+       tab's grid happens to need moved the header from tab to tab. The grid sizes itself instead
+       (see .secs), which leaves space to its right on a tab that uses few columns — the price of
+       columns being a fixed width rather than a share of the screen. */
+    .main{flex:1;min-width:0;}
     /* overflow-x makes this a scroll container, and a scroll container clips the other axis too.
        Pad it by the lift allowance and pull the padding back out of the margins, so a lifted tab
        has somewhere to go and nothing around it moves. */
