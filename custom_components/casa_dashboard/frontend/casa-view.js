@@ -1900,11 +1900,11 @@ export class CasaView extends LitElement {
     const sections = this.editing ? all : all.filter((sec) => this._shown(sec).length);
     this._secs = sections;
     return html`
+      ${this._headerBar("wide")}
       <div class="cols">
         ${this._headerBar("mob")}
         ${this._sidebar()}
         <main class="main">
-          ${this._headerBar()}
           ${this._bottomNav ? "" : this._tabBar()}
           ${auto && cats.length > 1 ? html`<div class="subtabs">
             ${[{ key: "", name: "All", icon: "mdi:apps" }, ...cats].map((c) => html`
@@ -1998,6 +1998,8 @@ export class CasaView extends LitElement {
     .cond-mode{margin-top:0;margin-bottom:8px;}
     .hint{font-size:11px;color:var(--dim,rgba(235,235,245,.5));margin-top:5px;}
     .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-bottom:18px;}
+    /* Spans the page, above the two columns — the clock beside it starts at the same line. */
+    .pills.wide{width:100%;}
     .pills.mob{display:none;}
     .pill{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 15px;border-radius:22px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
@@ -2017,9 +2019,13 @@ export class CasaView extends LitElement {
     /* Columns are a fixed width, so the main column ends wherever its last column does and the
        leftover used to sit as dead space on the right. Let the sidebar take that up instead, so
        the dashboard finishes at the edge of the page. */
-    /* min-width on a flex item is min-content by default, so a wide card inside could push the
-       column past its basis and it would shrink back when that card went away. Pin it. */
-    .side{flex:0 0 240px;width:240px;min-width:0;display:flex;flex-direction:column;gap:6px;}
+    /* Takes whatever width the tab's grid leaves, so the cards finish at the edge of the page
+       rather than trailing off into dead space. min-width would otherwise be min-content, which
+       let a wide card inside push the column about as its contents changed. */
+    /* A fixed share of the width — never sized by what is in it, nor by what the tab's grid
+       needs, so the two columns keep the same proportions on every tab. The floor only bites
+       below about 1200px, where a fifth of the screen stops being enough for a clock. */
+    .side{flex:0 0 20%;min-width:240px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
@@ -2035,7 +2041,9 @@ export class CasaView extends LitElement {
        is the small row with the art beside it. */
     .np{position:relative;border-radius:26px;background:var(--card,rgba(255,255,255,.07));
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));overflow:hidden;width:100%;box-sizing:border-box;}
-    .np-art{position:relative;width:100%;aspect-ratio:1;background:linear-gradient(135deg,#8a5bff,#d06bff);
+    /* The column is as wide as the tab's grid leaves it, so square artwork could otherwise become
+       the largest thing on the dashboard. Cap the art, not the column. */
+    .np-art{position:relative;width:100%;max-width:340px;aspect-ratio:1;background:linear-gradient(135deg,#8a5bff,#d06bff);
       background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:#fff;}
     .np-art ha-icon,.np-art ha-state-icon{--mdc-icon-size:40px;}
     .np-body{padding:16px 20px 20px;min-width:0;}
@@ -2067,10 +2075,7 @@ export class CasaView extends LitElement {
     .greet{font-size:26px;font-weight:600;line-height:1.2;}
     .spill{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 13px;border-radius:19px;
       background:var(--chip,rgba(255,255,255,.09));border:1px solid var(--cardBorder,rgba(255,255,255,.12));font-size:13px;}
-    /* Full width, always. The pills and the tab row live in here, so sizing it to whatever the
-       tab's grid happens to need moved the header from tab to tab. The grid sizes itself instead
-       (see .secs), which leaves space to its right on a tab that uses few columns — the price of
-       columns being a fixed width rather than a share of the screen. */
+    /* Everything the sidebar does not take. */
     .main{flex:1;min-width:0;}
     /* overflow-x makes this a scroll container, and a scroll container clips the other axis too.
        Pad it by the lift allowance and pull the padding back out of the margins, so a lifted tab
@@ -2092,8 +2097,10 @@ export class CasaView extends LitElement {
     .blank ha-icon{--mdc-icon-size:34px;opacity:.5;margin-bottom:3px;}
     .blank-t{font-size:15px;font-weight:600;color:var(--text,#fff);opacity:.85;}
     .blank-s{font-size:12.5px;}
-    .secs{display:grid;grid-template-columns:repeat(var(--tabcols),minmax(0,var(--colw)));
-      gap:22px var(--gap);align-items:start;justify-content:start;width:max-content;max-width:100%;}
+    /* A share of the column, not a fixed width: a tab using three of six columns still finishes
+       where the header does, instead of trailing off into space it cannot use. */
+    .secs{display:grid;grid-template-columns:repeat(var(--tabcols),minmax(0,1fr));
+      gap:22px var(--gap);align-items:start;justify-content:start;width:100%;}
     .sec{grid-column:span var(--span);min-width:0;}
     .sec-pen{width:24px;height:24px;border-radius:50%;border:none;background:var(--chip);color:var(--dim);
       cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-left:8px;vertical-align:middle;}
@@ -2285,7 +2292,7 @@ export class CasaView extends LitElement {
       .main{width:100%;}
       /* Full width, or the row shrinks to its pills and flex-end has nothing to push against.
          No bottom margin either: stacked, .cols already puts its own gap under the row. */
-      .pills.mob{display:flex;width:100%;margin-bottom:0;} .main > .pills{display:none;}
+      .pills.mob{display:flex;width:100%;margin-bottom:0;} .pills.wide{display:none;}
       /* One section to a row, and its cards stretch the width rather than holding a column width
          meant for a desktop. */
       .secs{width:auto;grid-template-columns:1fr;}
