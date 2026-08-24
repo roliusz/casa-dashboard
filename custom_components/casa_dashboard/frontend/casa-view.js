@@ -2023,9 +2023,9 @@ export class CasaView extends LitElement {
        rather than trailing off into dead space. min-width would otherwise be min-content, which
        let a wide card inside push the column about as its contents changed. */
     /* A fixed share of the width — never sized by what is in it, nor by what the tab's grid
-       needs, so the two columns keep the same proportions on every tab. The floor only bites
-       below about 1200px, where a fifth of the screen stops being enough for a clock. */
-    .side{flex:0 0 20%;min-width:240px;display:flex;flex-direction:column;gap:6px;}
+       needs, so the two columns keep the same proportions on every tab. The floor takes over
+       below about 2000px, where 12% stops being enough for a clock. */
+    .side{flex:0 0 12%;min-width:240px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
