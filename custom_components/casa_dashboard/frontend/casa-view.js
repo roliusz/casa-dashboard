@@ -2017,7 +2017,10 @@ export class CasaView extends LitElement {
     /* Columns are a fixed width, so the main column ends wherever its last column does and the
        leftover used to sit as dead space on the right. Let the sidebar take that up instead, so
        the dashboard finishes at the edge of the page. */
-    .side{flex:1 1 240px;min-width:240px;max-width:480px;display:flex;flex-direction:column;gap:6px;}
+    /* Grows into space the tab does not use, so the grid can finish at the edge of the page —
+       but only so far. At 480 a tab holding one narrow section handed the sidebar the rest of the
+       screen, and the media card in it became the largest thing on the dashboard. */
+    .side{flex:1 1 240px;min-width:240px;max-width:320px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
