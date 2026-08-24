@@ -2013,6 +2013,29 @@ export class CasaView extends LitElement {
     .pill.add{cursor:pointer;padding:0 14px;}
     .pill ha-icon{--mdc-icon-size:19px;}
     .ghost{opacity:.4;outline:1px dashed rgba(255,255,255,.3);}
+
+    /* Press feedback, as in the casa app: the control gives under the finger, so a tap is
+       acknowledged before whatever it triggers has happened. Round buttons take more of it than
+       wide ones, where the same scale reads as a lurch. A lifted tab is excluded: something being
+       dragged already owns its transform. */
+    .pill,.chip,.mini,.tab,.sub,.fchip,.sec-pen,.pencil,.mini-pencil,.x,.att-row,.td-box,.cond-x{
+      transition:transform .18s cubic-bezier(.2,.8,.3,1),opacity .22s,background .2s,color .2s;}
+    .pill.round:active,.sec-pen:active,.pencil:active,.mini-pencil:active,.x:active,
+    .cond-x:active,.td-box:active{transform:scale(.9);}
+    .pill:not(.round):active,.chip:active,.mini:active,.sub:active,.fchip:active,
+    .tab:not(.lifted):active{transform:scale(.96);}
+    .att-row:active{transform:scale(.985);}
+
+    /* Entering edit mode: the pencils, the add buttons and the tab controls all appear at once.
+       Letting them arrive rather than blink into place makes the change legible. */
+    @keyframes editIn{from{opacity:0;transform:scale(.82);}to{opacity:1;transform:none;}}
+    /* No fill: the element's resting state is visible, and the animation only overrides it while
+       it plays. With `both` a throttled or skipped animation would leave the control invisible. */
+    :host([editing]) .pencil,:host([editing]) .sec-pen,:host([editing]) .mini-pencil,
+    :host([editing]) .tab.add,:host([editing]) .mini.add{
+      animation:editIn .28s cubic-bezier(.2,.8,.3,1);}
+    :host([editing]) .tab.add{animation-delay:.04s;}
+    :host([editing]) .mini.add{animation-delay:.08s;}
     .mini-pencil{--mdc-icon-size:13px;margin-left:4px;opacity:.7;}
     .cols{display:flex;gap:26px;align-items:flex-start;}
     /* Columns are a fixed width, so the main column ends wherever its last column does and the
@@ -2144,7 +2167,14 @@ export class CasaView extends LitElement {
     @keyframes cardIn1{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
     .card.in0{animation:cardIn0 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
     .card.in1{animation:cardIn1 .3s cubic-bezier(.2,.7,.3,1) both;animation-delay:calc(var(--i,0) * 22ms);}
-    @media (prefers-reduced-motion:reduce){ .card.in0,.card.in1{animation:none;} }
+    @media (prefers-reduced-motion:reduce){
+      .card.in0,.card.in1{animation:none;}
+      :host([editing]) .pencil,:host([editing]) .sec-pen,:host([editing]) .mini-pencil,
+      :host([editing]) .tab.add,:host([editing]) .mini.add{animation:none;}
+      .pill:active,.chip:active,.mini:active,.tab:active,.sub:active,.fchip:active,
+      .sec-pen:active,.pencil:active,.mini-pencil:active,.x:active,.att-row:active,
+      .td-box:active,.cond-x:active{transform:none;}
+    }
 
     /* Last on purpose: the entry animation also sets transform, and this has to win over it.
        The lifted card must not swallow the hit-test either, or it would always be the element
