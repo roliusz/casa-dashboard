@@ -54,7 +54,7 @@ export const SIDEBAR_TYPES = {
   greeting: { label: "Greeting", icon: "mdi:hand-wave", size: 26 },
   sensor:   { label: "Sensor pill", icon: "mdi:gauge", needsEntity: true },
   heading:  { label: "Heading",  icon: "mdi:format-title", size: 13 },
-  media:    { label: "Media",    icon: "mdi:music", needsEntities: true, domain: "media_player" },
+  media:    { label: "Media",    icon: "mdi:music", needsEntity: true, domain: "media_player" },
   gap:      { label: "Gap",      icon: "mdi:arrow-expand-vertical", size: 24 },
 };
 

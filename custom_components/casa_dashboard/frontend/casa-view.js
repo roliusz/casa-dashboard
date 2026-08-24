@@ -761,14 +761,7 @@ export class CasaView extends LitElement {
    * art at the left, extended is the large one with the art above the title and controls.
    */
   _sideMedia(it) {
-    // Several players, and the card follows whichever is actually making a sound — a single
-    // entity can only ever name itself, however the music moves around the house. `entity` is
-    // still read so items saved before this keep working.
-    const ids = (it.entities?.length ? it.entities : [it.entity]).filter(Boolean);
-    const rank = (x) => (x.state === "playing" ? 0
-      : ["paused", "buffering"].includes(x.state) ? 1
-      : ["off", "unavailable", "unknown"].includes(x.state) ? 3 : 2);
-    const s = ids.map((id) => this._st(id)).filter(Boolean).sort((a2, b) => rank(a2) - rank(b))[0];
+    const s = it.entity && this._st(it.entity);
     if (!s) return html`<div class="spill"><ha-icon icon="mdi:music"></ha-icon><span>Pick a media player</span></div>`;
     const a = s.attributes || {};
     const art = a.entity_picture;
@@ -788,7 +781,7 @@ export class CasaView extends LitElement {
         ${art ? "" : stateIcon(this._ctx, it.entity, "", it.icon, "mdi:music")}</div>
       <div class="np-body">
         <div class="np-txt">
-          <div class="kick">${a.friendly_name || s.entity_id}</div>
+          <div class="kick">${a.friendly_name || this._sub(it)}</div>
           <div class="np-t">${a.media_title || (playing ? "Playing" : cap(s.state))}</div>
           <div class="np-a">${a.media_artist || a.app_name || ""}</div>
         </div>
@@ -1432,14 +1425,6 @@ export class CasaView extends LitElement {
       title = this._inspTitle(SIDEBAR_TYPES[it.type]?.label || "Sidebar item", SIDEBAR_TYPES[it.type], it.entity);
       onDelete = () => this._removeFrom(this._l.sidebar.items, this._insp.i);
       body = html`
-        ${SIDEBAR_TYPES[it.type]?.needsEntities ? html`
-          <div class="f"><label>Players</label>
-            <button class="mini wide" @click=${() => (this._pick = { mode: "cardents", card: it })}>
-              ${(it.entities || []).length ? `${it.entities.length} chosen — change` : "Choose players"}</button>
-            <div class="hint">${(it.entities || []).length
-              ? "Whichever of these is playing is the one shown."
-              : "Pick every player this card should follow."}</div>
-          </div>` : ""}
         ${SIDEBAR_TYPES[it.type]?.needsEntity ? html`<div class="f"><label>Entity</label>
           ${this._entityField(it.entity, (v) => this._patch(it, { entity: v }), `side:${it.id}`,
             SIDEBAR_TYPES[it.type].domain)}
