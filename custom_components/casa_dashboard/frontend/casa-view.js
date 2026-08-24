@@ -958,7 +958,10 @@ export class CasaView extends LitElement {
     const tabs = this._tabs.filter((t) => this._vis(t));
     if (!tabs.length) return "";
     const at = Math.max(0, tabs.findIndex((t) => t === this._cur));
-    return html`<nav class="fnav" style="--n:${tabs.length}">
+    // Four is where a 390px screen still gives each chip ~90px — enough for a word under the icon.
+    // At five they are ~74px and the labels start truncating, which says less than no label at all.
+    const labels = tabs.length <= 4;
+    return html`<nav class="fnav ${labels ? "labels" : ""}" style="--n:${tabs.length}">
       <span class="fnav-ind sq${at}" style="--i:${at}"></span>
       ${tabs.map((t, i) => html`
         <button class="fchip ${i === at ? "on" : ""}" title=${t.name}
@@ -968,6 +971,7 @@ export class CasaView extends LitElement {
             this._tab = idx;
           }}>
           <ha-icon class="fchip-ic" icon=${t.icon}></ha-icon>
+          ${labels ? html`<span class="fchip-label">${t.name}</span>` : ""}
         </button>`)}
     </nav>`;
   }
@@ -2258,8 +2262,13 @@ export class CasaView extends LitElement {
       color:var(--dim,rgba(235,235,245,.6));cursor:pointer;transition:color .22s;
       outline:none;-webkit-appearance:none;appearance:none;}
     .fchip:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:-3px;}
-    .fchip-ic{--mdc-icon-size:24px;color:inherit;}
+    .fchip-ic{--mdc-icon-size:24px;color:inherit;flex:none;}
     .fchip.on{color:#fff;}
+    .fnav.labels .fchip{flex-direction:column;gap:2px;padding:0 4px;}
+    .fnav.labels .fchip-ic{--mdc-icon-size:21px;}
+    .fchip-label{max-width:100%;font-size:10.5px;font-weight:500;line-height:1.2;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .fnav.labels .fchip.on .fchip-label{font-weight:600;}
     /* the bar floats over the page, so the last cards need room to clear it */
     .shell-pad{height:calc(78px + env(safe-area-inset-bottom));}
 
