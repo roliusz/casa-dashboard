@@ -1900,11 +1900,11 @@ export class CasaView extends LitElement {
     const sections = this.editing ? all : all.filter((sec) => this._shown(sec).length);
     this._secs = sections;
     return html`
-      ${this._headerBar("wide")}
       <div class="cols">
         ${this._headerBar("mob")}
         ${this._sidebar()}
         <main class="main">
+          ${this._headerBar()}
           ${this._bottomNav ? "" : this._tabBar()}
           ${auto && cats.length > 1 ? html`<div class="subtabs">
             ${[{ key: "", name: "All", icon: "mdi:apps" }, ...cats].map((c) => html`
@@ -1998,8 +1998,7 @@ export class CasaView extends LitElement {
     .cond-mode{margin-top:0;margin-bottom:8px;}
     .hint{font-size:11px;color:var(--dim,rgba(235,235,245,.5));margin-top:5px;}
     .pills{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-bottom:18px;}
-    /* Spans the page, above the two columns — the clock beside it starts at the same line. */
-    .pills.wide{width:100%;}
+
     .pills.mob{display:none;}
     .pill{position:relative;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 15px;border-radius:22px;
       border:1px solid var(--cardBorder,rgba(255,255,255,.12));background:var(--chip,rgba(255,255,255,.09));
@@ -2024,8 +2023,8 @@ export class CasaView extends LitElement {
        let a wide card inside push the column about as its contents changed. */
     /* A fixed share of the width — never sized by what is in it, nor by what the tab's grid
        needs, so the two columns keep the same proportions on every tab. The floor takes over
-       below about 1600px, where 15% stops being enough for a clock. */
-    .side{flex:0 0 15%;min-width:240px;display:flex;flex-direction:column;gap:6px;}
+       below about 1370px, where 17.5% stops being enough for a clock. */
+    .side{flex:0 0 17.5%;min-width:240px;display:flex;flex-direction:column;gap:6px;}
     .sgap{width:100%;}
     .sit{position:relative;border-radius:12px;padding:2px 4px;}
     /* the clock, date and greeting are block elements, so an inline pencil wraps below them —
@@ -2292,7 +2291,7 @@ export class CasaView extends LitElement {
       .main{width:100%;}
       /* Full width, or the row shrinks to its pills and flex-end has nothing to push against.
          No bottom margin either: stacked, .cols already puts its own gap under the row. */
-      .pills.mob{display:flex;width:100%;margin-bottom:0;} .pills.wide{display:none;}
+      .pills.mob{display:flex;width:100%;margin-bottom:0;} .main > .pills{display:none;}
       /* One section to a row, and its cards stretch the width rather than holding a column width
          meant for a desktop. */
       .secs{width:auto;grid-template-columns:1fr;}
