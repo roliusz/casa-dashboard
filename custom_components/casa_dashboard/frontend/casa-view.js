@@ -2018,8 +2018,11 @@ export class CasaView extends LitElement {
        acknowledged before whatever it triggers has happened. Round buttons take more of it than
        wide ones, where the same scale reads as a lurch. A lifted tab is excluded: something being
        dragged already owns its transform. */
+    /* Transform only. Transitioning background and colour here meant a control mounted with the
+       browser's defaults and then animated to its own - the pencils arrived plain and coloured in
+       afterwards. Anything that wants a colour transition declares its own. */
     .pill,.chip,.mini,.tab,.sub,.fchip,.sec-pen,.pencil,.mini-pencil,.x,.att-row,.td-box,.cond-x{
-      transition:transform .18s cubic-bezier(.2,.8,.3,1),opacity .22s,background .2s,color .2s;}
+      transition:transform .18s cubic-bezier(.2,.8,.3,1);}
     .pill.round:active,.sec-pen:active,.pencil:active,.mini-pencil:active,.x:active,
     .cond-x:active,.td-box:active{transform:scale(.9);}
     .pill:not(.round):active,.chip:active,.mini:active,.sub:active,.fchip:active,
@@ -2028,13 +2031,13 @@ export class CasaView extends LitElement {
 
     /* Entering edit mode: the pencils, the add buttons and the tab controls all appear at once.
        Letting them arrive rather than blink into place makes the change legible. */
-    @keyframes editIn{from{opacity:0;transform:scale(.82);}to{opacity:1;transform:none;}}
+    @keyframes editIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:none;}}
     /* backwards, not both: the start frame applies before the animation runs, so a control never
        paints at full size and then jumps back to animate in. After it finishes the element falls
        back to its own style, so a skipped animation costs the effect and not the control. */
     :host([editing]) .pencil,:host([editing]) .sec-pen,:host([editing]) .mini-pencil,
     :host([editing]) .tab.add,:host([editing]) .mini.add{
-      animation:editIn .28s cubic-bezier(.2,.8,.3,1) backwards;}
+      animation:editIn .32s cubic-bezier(.25,.9,.35,1) backwards;}
     :host([editing]) .tab.add{animation-delay:.04s;}
     :host([editing]) .mini.add{animation-delay:.08s;}
     .mini-pencil{--mdc-icon-size:13px;margin-left:4px;opacity:.7;}
