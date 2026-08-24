@@ -2030,7 +2030,8 @@ export class CasaView extends LitElement {
        Letting them arrive rather than blink into place makes the change legible. */
     @keyframes editIn{from{opacity:0;transform:scale(.82);}to{opacity:1;transform:none;}}
     /* No fill: the element's resting state is visible, and the animation only overrides it while
-       it plays. With `both` a throttled or skipped animation would leave the control invisible. */
+       it plays. A fill mode would hold the start frame, so a throttled or skipped animation would
+       leave the control invisible. */
     :host([editing]) .pencil,:host([editing]) .sec-pen,:host([editing]) .mini-pencil,
     :host([editing]) .tab.add,:host([editing]) .mini.add{
       animation:editIn .28s cubic-bezier(.2,.8,.3,1);}
