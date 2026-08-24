@@ -2249,9 +2249,15 @@ export class CasaView extends LitElement {
     @keyframes nsq5{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
     @keyframes nsq6{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
     @keyframes nsq7{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    /* The browser's own tap rectangle ignores border-radius, so it flashes a grey square over a
+       round chip. The indicator is the feedback here. */
+    .fnav,.fchip{-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;
+      user-select:none;-webkit-user-select:none;}
     .fchip{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;align-items:center;
       justify-content:center;height:100%;padding:0;border:none;background:none;border-radius:20px;
-      color:var(--dim,rgba(235,235,245,.6));cursor:pointer;transition:color .22s;}
+      color:var(--dim,rgba(235,235,245,.6));cursor:pointer;transition:color .22s;
+      outline:none;-webkit-appearance:none;appearance:none;}
+    .fchip:focus-visible{outline:2px solid rgba(255,255,255,.5);outline-offset:-3px;}
     .fchip-ic{--mdc-icon-size:24px;color:inherit;}
     .fchip.on{color:#fff;}
     /* the bar floats over the page, so the last cards need room to clear it */
