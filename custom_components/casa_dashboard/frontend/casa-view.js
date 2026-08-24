@@ -130,6 +130,7 @@ export class CasaView extends LitElement {
     layout: { attribute: false },
     editing: { type: Boolean, reflect: true },
     narrow: { type: Boolean },
+    nav: { attribute: false },  // "tabs" or "bar" — how the tabs are reached on a phone
     areas: { attribute: false },      // entity_id -> room name, from Home Assistant
     areaNames: { attribute: false },  // every room Home Assistant knows
     _tab: { state: true },
@@ -943,6 +944,32 @@ export class CasaView extends LitElement {
       <div class="blank-s">${hidden ? "Every card here is hidden by its own conditions."
         : auto ? "Choose the entities it should group." : "Add a card to fill it."}</div>
     </div>`;
+  }
+
+  /** A phone shows the tabs as a bar at the bottom, if that is what the user picked. */
+  get _bottomNav() { return this.nav === "bar" && this._stacked && !this.editing; }
+
+  /**
+   * The casa app's mobile navigation: a glass pill fixed within thumb reach, the tabs as icons,
+   * and a single indicator that slides to whichever is current. Editing falls back to the row at
+   * the top — that is where a tab is renamed, reordered and added, and none of that fits here.
+   */
+  _navBar() {
+    const tabs = this._tabs.filter((t) => this._vis(t));
+    if (!tabs.length) return "";
+    const at = Math.max(0, tabs.findIndex((t) => t === this._cur));
+    return html`<nav class="fnav" style="--n:${tabs.length}">
+      <span class="fnav-ind sq${at}" style="--i:${at}"></span>
+      ${tabs.map((t, i) => html`
+        <button class="fchip ${i === at ? "on" : ""}" title=${t.name}
+          @click=${() => {
+            const idx = this._tabs.indexOf(t);
+            if (idx !== this._tab) this._anim ^= 1;         // replay the entry animation
+            this._tab = idx;
+          }}>
+          <ha-icon class="fchip-ic" icon=${t.icon}></ha-icon>
+        </button>`)}
+    </nav>`;
   }
 
   /* -------------------------------------------------------------- tabs */
@@ -1874,7 +1901,7 @@ export class CasaView extends LitElement {
         ${this._sidebar()}
         <main class="main">
           ${this._headerBar()}
-          ${this._tabBar()}
+          ${this._bottomNav ? "" : this._tabBar()}
           ${auto && cats.length > 1 ? html`<div class="subtabs">
             ${[{ key: "", name: "All", icon: "mdi:apps" }, ...cats].map((c) => html`
               <button class="sub ${af === c.key ? "on" : ""}" @click=${() => {
@@ -1912,6 +1939,7 @@ export class CasaView extends LitElement {
             @click=${() => { tab.sections.push(newSection(`Section ${tab.sections.length + 1}`)); this._emit(); }}>+ Add section</button>` : ""}
         </main>
       </div>
+      ${this._bottomNav ? html`<div class="shell-pad"></div>${this._navBar()}` : ""}
       ${this._inspector()}${this._pickerSheet()}`;
   }
 
@@ -2194,6 +2222,41 @@ export class CasaView extends LitElement {
     .tagx{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:9px;font-size:11.5px;
       background:rgba(255,255,255,.08);}
     .tagx button{border:none;background:none;color:#ff8a80;cursor:pointer;font-size:11px;padding:0;}
+    /* The casa app's mobile navigation. Fixed within thumb reach, glass, with one indicator that
+       slides between the tabs — and an elastic squish keyed per index so the browser restarts the
+       animation on every change rather than only the first. */
+    .fnav{position:fixed;left:50%;translate:-50% 0;bottom:calc(14px + env(safe-area-inset-bottom));
+      z-index:60;display:flex;align-items:center;justify-content:space-between;
+      width:calc(100% - 28px);max-width:560px;height:64px;padding:7px 10px;border-radius:32px;
+      background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+      backdrop-filter:blur(16px) saturate(180%);-webkit-backdrop-filter:blur(16px) saturate(180%);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 10px 30px rgba(0,0,0,.45);}
+    .fnav-ind{position:absolute;top:7px;bottom:7px;left:10px;width:calc((100% - 20px) / var(--n));
+      border-radius:20px;pointer-events:none;translate:calc(var(--i) * 100%) 0;
+      background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.14);
+      backdrop-filter:blur(6px) saturate(170%);-webkit-backdrop-filter:blur(6px) saturate(170%);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 2px 8px rgba(0,0,0,.3);
+      transition:translate .4s cubic-bezier(1,0,.4,1);}
+    .fnav-ind.sq0{animation:nsq0 .44s ease;} .fnav-ind.sq1{animation:nsq1 .44s ease;}
+    .fnav-ind.sq2{animation:nsq2 .44s ease;} .fnav-ind.sq3{animation:nsq3 .44s ease;}
+    .fnav-ind.sq4{animation:nsq4 .44s ease;} .fnav-ind.sq5{animation:nsq5 .44s ease;}
+    .fnav-ind.sq6{animation:nsq6 .44s ease;} .fnav-ind.sq7{animation:nsq7 .44s ease;}
+    @keyframes nsq0{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq1{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq2{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq3{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq4{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq5{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq6{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    @keyframes nsq7{0%,100%{scale:1 1;}50%{scale:1.18 1;}}
+    .fchip{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;align-items:center;
+      justify-content:center;height:100%;padding:0;border:none;background:none;border-radius:20px;
+      color:var(--dim,rgba(235,235,245,.6));cursor:pointer;transition:color .22s;}
+    .fchip-ic{--mdc-icon-size:24px;color:inherit;}
+    .fchip.on{color:#fff;}
+    /* the bar floats over the page, so the last cards need room to clear it */
+    .shell-pad{height:calc(78px + env(safe-area-inset-bottom));}
+
     @media (max-width:760px){ .cols{flex-direction:column;gap:12px;}
       .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;}
       /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their

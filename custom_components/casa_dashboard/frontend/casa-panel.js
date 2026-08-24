@@ -54,7 +54,14 @@ const DEFAULT_SETTINGS = {
   wallpaper: "",                     // image url; blank = the built-in gradient
   title: "Casa",
   scale: 1,                          // how large everything is drawn; see SCALES
+  nav: "tabs",                       // on a phone: "tabs" the row at the top, "bar" a bottom bar
 };
+
+/** How the tabs are reached on a phone. On a desktop the row at the top is always used. */
+export const NAVS = [
+  { v: "tabs", label: "Tab row" },
+  { v: "bar", label: "Bottom bar" },
+];
 
 class CasaPanel extends LitElement {
   static properties = {
@@ -198,6 +205,18 @@ class CasaPanel extends LitElement {
             <div class="hint">Draws the whole dashboard larger — useful on a wall panel across the room.</div>
           </div>`;
         })()}
+        ${(() => {
+          const at = Math.max(0, NAVS.findIndex((x) => x.v === (this._settings.nav || "tabs")));
+          return html`<div class="f"><label>Tabs on a phone</label>
+            <div class="seg" style="--n:${NAVS.length};--ind:${(at / NAVS.length) * 100}%">
+              <div class="seg-ind"></div>
+              ${NAVS.map((x, i) => html`<button class="seg-b ${i === at ? "on" : ""}"
+                @click=${() => this._setSetting("nav", x.v)}>${x.label}</button>`)}
+            </div>
+            <div class="hint">A bar fixed to the bottom of the screen, within thumb reach, instead
+              of the row above the cards. Only on a phone — a desktop always uses the row.</div>
+          </div>`;
+        })()}
         <div class="f"><label>Wallpaper</label>
           <div class="wps">
             ${WALLPAPERS.map((w) => html`
@@ -227,7 +246,7 @@ class CasaPanel extends LitElement {
         ${this._err ? html`<div class="warnbar"><span class="warn"
           title="Changes are not being saved — see the browser console">not saving</span></div>` : ""}
 
-        <casa-view style=${`zoom:${this._scale}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this._narrow}
+        <casa-view style=${`zoom:${this._scale}`} .hass=${this.hass} .layout=${this._layout} .areas=${this._areas} .areaNames=${this._areaNames} ?editing=${this._edit} ?narrow=${this._narrow} .nav=${this._settings.nav || "tabs"}
           @layout-changed=${(e) => { this._layout = e.detail; this._save(); }}
           @toggle-edit=${() => (this._edit = !this._edit)}
           @open-settings=${() => (this._showSettings = true)}></casa-view>
