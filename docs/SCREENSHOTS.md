@@ -23,6 +23,7 @@ save into `docs/` under these exact names.
 | `group-tab.png` | a group tab sorted into rooms, with its filter chips | add a **+ Group tab** and choose some entities |
 | `widget-tab.png` | a tab of widgets, to show what they look like in use | build a tab from the widget picker |
 | `now-playing.png` | a tab that only exists while something plays | give a tab a condition, then start some music |
+| `mobile.png` | the bottom bar, and tabs that only appear on a phone | narrow the window under 760px, set *Tabs on a phone* to *Bottom bar* |
 
 After capturing, round the corners and bring them down to a sensible width — 1860px is plenty, and
 keeps the whole set under about 6 MB:

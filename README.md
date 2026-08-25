@@ -215,6 +215,19 @@ The **cog** holds the dashboard name, the wallpaper — four built in, or any im
 serves — a **Scale** for reading a wall panel across the room, and **Tabs on a phone**, which
 chooses between the pill row and a bottom navigation bar.
 
+### On a phone
+
+The sidebar stacks above the cards, sections re-flow into two columns, and cards are laid out
+afresh rather than keeping the columns they sit in on a desktop. With **Tabs on a phone** set to
+*Bottom bar*, the tabs move to a bar within thumb reach — naming themselves when there are four or
+fewer, and dropping to icons beyond that.
+
+Combine it with per-screen visibility and conditions and a phone can carry a different dashboard
+from the wall panel: tabs that only exist on mobile, holding cards that would be lost on a large
+screen.
+
+<img src="docs/mobile.png" alt="Casa on a phone, with the bottom bar" width="380">
+
 ![Settings](docs/settings.png)
 
 ## Development
