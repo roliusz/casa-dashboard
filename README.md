@@ -139,6 +139,8 @@ A group tab still lets you set each room's width and order, and rename the headi
 a section does that. What it will not let you do is place individual cards, because they are
 regenerated from the entity list every time the tab is drawn.
 
+![A group tab, sorted into rooms](docs/group-tab.png)
+
 ### Sections
 
 A tab is **six columns wide**. Each section takes some of them, so two three-column sections sit
@@ -186,6 +188,8 @@ offers **Full**, which always spans the section and takes a row count of its own
 **Needs attention** is the one widget that reports on entities you did not choose: flat batteries,
 doors left open, anything gone unavailable. It is the only card that can tell you about something
 you never thought to add.
+
+![Widgets on a tab of their own](docs/widget-tab.png)
 
 ### Conditions
 
