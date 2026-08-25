@@ -1,6 +1,1 @@
-# Puts a Sponsor button on the repository, and on the integration's page in HACS.
 ko_fi: roliusz
-
-# GitHub Sponsors resolves only once the account is enrolled and approved — uncomment it then,
-# rather than shipping a button that 404s.
-# github: roliusz
