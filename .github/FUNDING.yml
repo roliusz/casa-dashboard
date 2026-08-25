@@ -1,0 +1,9 @@
+# Puts a Sponsor button on the repository. The GitHub entry only resolves once GitHub Sponsors
+# has approved the account — until then the button is better left off, so keep it commented.
+#
+# github: roliusz
+
+# Other platforms need nothing but an account, and work immediately:
+# ko_fi: your-name
+# buy_me_a_coffee: your-name
+# custom: ["https://paypal.me/your-name"]
