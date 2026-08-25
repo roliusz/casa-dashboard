@@ -198,7 +198,10 @@ rule watches an entity — or one of its attributes — and tests whether it is 
 something, or above or below a number.
 
 Put them on a *tab* and everything inside follows, which is how a Now Playing tab appears only when
-something is playing.
+something is playing — the tab is simply absent the rest of the time, rather than sitting there
+empty.
+
+![A Now Playing tab, shown only while something is playing](docs/now-playing.png)
 
 ### Sidebar and pills
 

@@ -22,6 +22,7 @@ save into `docs/` under these exact names.
 | `settings.png` | the settings sheet | press the cog |
 | `group-tab.png` | a group tab sorted into rooms, with its filter chips | add a **+ Group tab** and choose some entities |
 | `widget-tab.png` | a tab of widgets, to show what they look like in use | build a tab from the widget picker |
+| `now-playing.png` | a tab that only exists while something plays | give a tab a condition, then start some music |
 
 After capturing, round the corners and bring them down to a sensible width — 1860px is plenty, and
 keeps the whole set under about 6 MB:
