@@ -2324,6 +2324,9 @@ export class CasaView extends LitElement {
 
     @media (max-width:760px){ .cols{flex-direction:column;gap:12px;}
       .side{flex:1 1 auto;width:100%;min-width:0;max-width:none;}
+      /* The cap keeps the art from towering over a 240px sidebar; stacked, the column is the width
+         of the phone and the cap just leaves a strip of empty card beside the sleeve. */
+      .np-art{max-width:none;}
       /* Stacked, .cols runs as a column and its flex-start alignment sizes children to their
          content — main has to be told to take the width. */
       .main{width:100%;}
