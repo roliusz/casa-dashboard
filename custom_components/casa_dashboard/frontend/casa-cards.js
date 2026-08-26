@@ -166,6 +166,9 @@ const briPct = (ctx, e) => {
   return b != null ? Math.max(1, Math.round(b / 2.55)) : 0;
 };
 const isActive = (ctx, e) => ["playing", "paused", "buffering"].includes(st(ctx, e)?.state);
+/** Awake, whether or not it is making a sound — what the card's tint follows. */
+const isAwake = (ctx, e) => !["off", "unavailable", "unknown", "standby"]
+  .includes(st(ctx, e)?.state ?? "off");
 const looksLikeTv = (ctx, e) =>
   attr(ctx, e, "device_class") === "tv" || /tv|television|chromecast|shield|roku/i.test(e);
 
@@ -223,11 +226,11 @@ function speakerCard(ctx, c) {
     <button @click=${() => volNudge(ctx, e, 0.01)}><ha-icon icon="mdi:plus"></ha-icon></button>
   </div>`;
   if (isTall(c))
-    return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
+    return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""}">
       ${tallBody(icon, name, label,
         muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
     </div>`;
-  return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
+  return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${icon}></ha-icon>
       <div class="hl-meta">
