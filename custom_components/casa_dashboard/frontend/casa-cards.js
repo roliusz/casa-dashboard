@@ -226,11 +226,11 @@ function speakerCard(ctx, c) {
     <button @click=${() => volNudge(ctx, e, 0.01)}><ha-icon icon="mdi:plus"></ha-icon></button>
   </div>`;
   if (isTall(c))
-    return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""}">
+    return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""} ${dead ? "dim" : ""}">
       ${tallBody(icon, name, label,
         dead ? "" : muted ? "Muted" : vol + "%", dead ? "" : "Volume", volBtns, () => ctx.more(e))}
     </div>`;
-  return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
+  return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""} ${dead ? "dim" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${icon}></ha-icon>
       <div class="hl-meta">
@@ -263,13 +263,13 @@ function tvCard(ctx, c) {
     <button ?disabled=${!dur} @click=${() => seek(10)}><ha-icon icon="mdi:fast-forward-10"></ha-icon></button>
   </div>`;
   if (isTall(c))
-    return html`<div class="gcard media-tile ${on ? "on" : ""}">
+    return html`<div class="gcard media-tile ${on ? "on" : "dim"}">
       ${tallBody(c.icon || "mdi:television", tvName, on ? "On" : "Off",
         on ? (a.media_title || a.app_name || a.source || "On") : "Off",
         on ? (a.media_title ? (a.app_name || a.source || "") : "") : "",
         transport, () => ctx.more(e), true)}
     </div>`;
-  return html`<div class="gcard media-tile ${on ? "on" : ""} ${readingOnly(c) ? "reading" : ""}">
+  return html`<div class="gcard media-tile ${on ? "on" : "dim"} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
       <ha-icon class="spk-ic" icon=${c.icon || "mdi:television"}></ha-icon>
       <div class="hl-meta">
@@ -1416,6 +1416,9 @@ export const cardStyles = `
   .plain.on{background:linear-gradient(135deg,rgba(248,222,111,.14),rgba(248,222,111,.04));border-color:rgba(248,222,111,.28);}
   .media-tile.on .spk-ic{color:var(--green);}
   .spk-btns{display:flex;align-items:center;gap:10px;}
+  /* A device that is off has nothing to turn up. Its controls still work — they are the way to
+     wake it — but they should not look as live as one that is playing. */
+  .gcard.dim .spk-btns button{opacity:.45;}
   .spk-btns button{flex:1;height:40px;border-radius:12px;border:1px solid var(--cardBorder);background:var(--chip);
     color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;}
   .spk-btns button.act{background:rgba(251,110,29,.2);border-color:rgba(251,110,29,.4);color:var(--orange);}
