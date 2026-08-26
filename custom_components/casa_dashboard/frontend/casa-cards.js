@@ -228,7 +228,7 @@ function speakerCard(ctx, c) {
   if (isTall(c))
     return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""}">
       ${tallBody(icon, name, label,
-        muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
+        dead ? "" : muted ? "Muted" : vol + "%", dead ? "" : "Volume", volBtns, () => ctx.more(e))}
     </div>`;
   return html`<div class="gcard spk-card ${isAwake(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
     <div class="cmp-head rclick" @click=${() => ctx.more(e)}>
@@ -237,7 +237,7 @@ function speakerCard(ctx, c) {
         <div class="hl-name">${name}</div>
         <div class="hl-sub">${label}</div>
       </div>
-      <div class="cmp-val">${vol}%</div>
+      ${dead ? "" : html`<div class="cmp-val">${vol}%</div>`}
     </div>
     ${readingOnly(c) ? "" : volBtns}
   </div>`;
