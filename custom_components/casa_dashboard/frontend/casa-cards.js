@@ -212,6 +212,10 @@ function speakerCard(ctx, c) {
   const vol = v != null ? Math.round(v * 100) : 0;
   const name = c.name || attr(ctx, e, "friendly_name") || "Speaker";
   const icon = muted ? "mdi:volume-off" : (c.icon || "mdi:speaker");
+  // Home Assistant has no "on" for a media player that is awake but silent — that is `idle`,
+  // which reads as broken on a wall panel. Say On, but never for one that is actually off.
+  const dead = ["off", "unavailable", "unknown", "standby"].includes(st(ctx, e)?.state);
+  const label = muted ? "Muted" : isActive(ctx, e) ? "Playing" : dead ? cap(st(ctx, e).state) : "On";
   const volBtns = html`<div class="spk-btns">
     <button @click=${() => volNudge(ctx, e, -0.01)}><ha-icon icon="mdi:minus"></ha-icon></button>
     <button class=${muted ? "act" : ""} @click=${() => ctx.call("media_player", "volume_mute", { entity_id: e, is_volume_muted: !muted })}>
@@ -220,7 +224,7 @@ function speakerCard(ctx, c) {
   </div>`;
   if (isTall(c))
     return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""}">
-      ${tallBody(icon, name, muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle",
+      ${tallBody(icon, name, label,
         muted ? "Muted" : vol + "%", "Volume", volBtns, () => ctx.more(e))}
     </div>`;
   return html`<div class="gcard spk-card ${isActive(ctx, e) ? "playing" : ""} ${readingOnly(c) ? "reading" : ""}">
@@ -228,7 +232,7 @@ function speakerCard(ctx, c) {
       <ha-icon class="spk-ic" icon=${icon}></ha-icon>
       <div class="hl-meta">
         <div class="hl-name">${name}</div>
-        <div class="hl-sub">${muted ? "Muted" : isActive(ctx, e) ? "Playing" : "Idle"}</div>
+        <div class="hl-sub">${label}</div>
       </div>
       <div class="cmp-val">${vol}%</div>
     </div>
